@@ -53,7 +53,7 @@ interface AppContainerProps {
 }
 
 const AppContainer = ({ children, title = "English_Word", className = "", onReset, onExitFS, onEnterFS }: AppContainerProps) => (
-  <div className={`w-full max-w-6xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
+  <div className={`w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
     <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
       <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
         <BookOpen size={18} className="text-[#8c8c8c]" />
@@ -449,15 +449,15 @@ function App() {
   if (gameState === 'start') {
     return (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
-        <BaseWrapper className="w-full h-screen sm:h-[90vh] sm:min-h-[500px] sm:max-h-[800px] flex flex-col border-none sm:border-solid">
+        <BaseWrapper className="w-full h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
           <div className="flex-1 flex flex-col items-center py-6 px-4 sm:justify-center sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto w-full">
             <div className="text-center space-y-2 shrink-0">
               <h1 className="text-3xl sm:text-4xl font-bold tracking-wider text-[#dbd9d6]">ENGLISH WORD</h1>
               <p className="text-[#8c8c8c] text-sm">{questions.length} words loaded in database</p>
             </div>
 
-            <div className="w-full max-w-2xl space-y-6 pt-2 pb-6 shrink-0">
-              <div className="space-y-4 bg-[#1b1a19] p-4 sm:p-6 rounded-sm border border-[#383634]">
+            <div className="w-full max-w-sm space-y-6 pt-2 pb-6 shrink-0">
+              <div className="space-y-4 bg-[#1b1a19] p-4 rounded-sm border border-[#383634]">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
                     <Hash size={14} /> Questions
@@ -576,7 +576,7 @@ function App() {
   if (gameState === 'editor') {
     return (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
-        <BaseWrapper title="Import Data" className="w-full h-screen sm:h-[90vh] sm:min-h-[500px] sm:max-h-[800px] flex flex-col border-none sm:border-solid">
+        <BaseWrapper title="Import Data" className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
           <div className="flex flex-col h-full">
             <input
               type="file"
@@ -633,7 +633,7 @@ function App() {
   if (gameState === 'result') {
     return (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
-        <BaseWrapper title="Session Complete" className="w-full h-screen sm:h-[60vh] sm:min-h-[400px] sm:max-h-[600px] flex flex-col border-none sm:border-solid">
+        <BaseWrapper title="Session Complete" className="w-full h-screen sm:h-[60vh] sm:min-h-[500px] sm:max-h-[700px] flex flex-col border-none sm:border-solid">
           <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 space-y-8 text-center overflow-y-auto">
 
             {sessionMode === 'quiz' ? (
@@ -644,7 +644,7 @@ function App() {
                     {Math.round((score / activeQuestions.length) * 100)}%
                   </div>
                 </div>
-                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-2xl">
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
                   <p className="text-base sm:text-lg text-[#dbd9d6]">
                     <span className="text-[#629924] font-bold">{score}</span> correct out of <span className="font-bold">{activeQuestions.length}</span>
                   </p>
@@ -658,7 +658,7 @@ function App() {
                     {activeQuestions.length}
                   </div>
                 </div>
-                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-2xl">
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
                   <p className="text-base sm:text-lg text-[#dbd9d6]">
                     Reading session completed.
                   </p>
@@ -666,7 +666,7 @@ function App() {
               </>
             )}
 
-            <div className="pt-4 sm:pt-8 w-full max-w-md">
+            <div className="pt-4 sm:pt-8 w-full max-w-xs">
               <Button onClick={returnToStart} className="w-full py-4" icon={RefreshCw}>
                 Return to Start
               </Button>
@@ -679,7 +679,7 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
-      <BaseWrapper title={`${sessionMode === 'quiz' ? 'Quiz' : 'Reading'} : ${currentIndex + 1} / ${activeQuestions.length}`} className="w-full h-screen sm:h-[90vh] sm:min-h-[500px] sm:max-h-[800px] flex flex-col border-none sm:border-solid">
+      <BaseWrapper title={`${sessionMode === 'quiz' ? 'Quiz' : 'Reading'} : ${currentIndex + 1} / ${activeQuestions.length}`} className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
         <div className="h-1 w-full bg-[#1b1a19] shrink-0">
           <div
             className={`h-full transition-all duration-300 ${sessionMode === 'reading' ? 'bg-[#1b78d0]' : 'bg-[#629924]'}`}
@@ -778,7 +778,7 @@ function App() {
                       </div>
 
                       {currentQuestion.context && (
-                        <div className="text-[#dbd9d6] italic text-sm sm:text-base md:text-xl max-w-3xl mt-2 sm:mt-4 px-4 sm:px-8 border-l-4 border-[#383634] text-left">
+                        <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
                           {currentQuestion.context}
                         </div>
                       )}

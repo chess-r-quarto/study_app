@@ -63,29 +63,29 @@
 
         const APP_DATA: AppItem[] = [
             // --- Development & Utilities ---
-            { id: "dev-1", category: "Dev & Utilities", name: "HTML to MD", description: "Web to Markdown converter", icon: "FileText", appUrl: "html_to_md.html", manualUrl: "html_to_md_manual.md", installed: true },
-            { id: "dev-2", category: "Dev & Utilities", name: "PDF to MD", description: "PDF to Markdown converter", icon: "FileDown", appUrl: "pdf_to_md.html", manualUrl: "pdf_to_md_manual.md", installed: true },
-            { id: "dev-3", category: "Dev & Utilities", name: "Wiki to MD", description: "Wiki to Markdown tool", icon: "BookOpen", appUrl: "wiki_to_md.html", manualUrl: "wiki_to_md_manual.md", installed: true },
-            { id: "dev-4", category: "Dev & Utilities", name: "JSON Downloader", description: "JSON Downloader application", icon: "Download", appUrl: "json_downloader.html", manualUrl: "json_downloader_manual.md", installed: true },
-            { id: "dev-5", category: "Dev & Utilities", name: "Thread Scraper", description: "Thread data extractor", icon: "Globe", appUrl: "thread_scraper.html", manualUrl: "thread_scraper_manual.md", installed: true },
-            { id: "dev-6", category: "Dev & Utilities", name: "Legal Compiler", description: "Legal document compiler", icon: "Scale", appUrl: "legal_compiler.html", manualUrl: "legal_compiler_manual.md", installed: true },
-            { id: "dev-7", category: "Dev & Utilities", name: "Legal Compiler TS", description: "TypeScript version of legal compiler", icon: "Scale", appUrl: "legal_compiler_ts.html", manualUrl: "legal_compiler_ts_manual.md", installed: true },
+            { id: "dev-1", category: "Dev & Utilities", name: "HTML to MD", description: "Web to Markdown converter", icon: "FileText", appUrl: "tools/html_to_md.html", manualUrl: "tools/html_to_md_manual.md", installed: true },
+            { id: "dev-2", category: "Dev & Utilities", name: "PDF to MD", description: "PDF to Markdown converter", icon: "FileDown", appUrl: "tools/pdf_to_md.html", manualUrl: "tools/pdf_to_md_manual.md", installed: true },
+            { id: "dev-3", category: "Dev & Utilities", name: "Wiki to MD", description: "Wiki to Markdown tool", icon: "BookOpen", appUrl: "tools/wiki_to_md.html", manualUrl: "tools/wiki_to_md_manual.md", installed: true },
+            { id: "dev-4", category: "Dev & Utilities", name: "JSON Downloader", description: "JSON Downloader application", icon: "Download", appUrl: "tools/json_downloader.html", manualUrl: "tools/json_downloader_manual.md", installed: true },
+            { id: "dev-5", category: "Dev & Utilities", name: "Thread Scraper", description: "Thread data extractor", icon: "Globe", appUrl: "tools/thread_scraper.html", manualUrl: "tools/thread_scraper_manual.md", installed: true },
+            { id: "dev-6", category: "Dev & Utilities", name: "Legal Compiler", description: "Legal document compiler", icon: "Scale", appUrl: "tools/legal_compiler.html", manualUrl: "tools/legal_compiler_manual.md", installed: true },
+            { id: "dev-7", category: "Dev & Utilities", name: "Legal Compiler TS", description: "TypeScript version of legal compiler", icon: "Scale", appUrl: "tools/legal_compiler_ts.html", manualUrl: "tools/legal_compiler_ts_manual.md", installed: true },
             
             // --- Data & Language ---
-            { id: "data-1", category: "Data & Language", name: "Data Management", description: "Data management and cleansing operations", icon: "Database", appUrl: "Data_Management.html", manualUrl: "Data_Management_manual.md", installed: true },
-            { id: "data-2", category: "Data & Language", name: "English Word DB", description: "English word database with voice features", icon: "Languages", appUrl: "English_Word.html", manualUrl: "English_Word_manual.md", installed: true },
-            { id: "data-3", category: "Data & Language", name: "News Feed", description: "RSS reader application", icon: "Rss", appUrl: "News_feed.html", manualUrl: "News_feed_manual.md", installed: true },
+            { id: "data-1", category: "Data & Language", name: "Data Management", description: "Data management and cleansing operations", icon: "Database", appUrl: "data_management/data_management.html", manualUrl: "data_management/data_management_manual.md", installed: true },
+            { id: "data-2", category: "Data & Language", name: "English Word DB", description: "English word database with voice features", icon: "Languages", appUrl: "english_word/english_word.html", manualUrl: "english_word/english_word_manual.md", installed: true },
+            { id: "data-3", category: "Data & Language", name: "News Feed", description: "RSS reader application", icon: "Rss", appUrl: "news_feed/news_feed.html", manualUrl: "news_feed/news_feed_manual.md", installed: true },
 
             // --- FP1 (Financial Planning) ---
-            { id: "fp1-1", category: "FP1", name: "Dividend Calc", description: "Dividend calculation tool", icon: "Calculator", appUrl: "FP1_Dividend_Calc.html", manualUrl: "FP1_Dividend_Calc_manual.md", installed: true },
-            { id: "fp1-2", category: "FP1", name: "Corporate Tax Matrix", description: "Corporate tax master matrix", icon: "Landmark", appUrl: "FP1_cor_tax_matrix.html", manualUrl: "FP1_cor_tax_matrix_manual.md", installed: true },
-            { id: "fp1-3", category: "FP1", name: "FP1 FAR", description: "Floor Area Ratio calculations", icon: "Building2", appUrl: "FP1_FAR.html", manualUrl: "FP1_FAR_manual.md", installed: true },
-            { id: "fp1-4", category: "FP1", name: "FP1 Pension", description: "Pension simulation logic", icon: "Users", appUrl: "FP1_Pension.html", manualUrl: "FP1_Pension_manual.md", installed: true },
-            { id: "fp1-5", category: "FP1", name: "FP1 Portfolio", description: "Portfolio management and math formulas", icon: "PieChart", appUrl: "FP1_Portfolio.html", manualUrl: "FP1_Portfolio_manual.md", installed: true },
-            { id: "fp1-6", category: "FP1", name: "Asset Value", description: "Asset valuation tool", icon: "Gem", appUrl: "FP1_asset_value.html", manualUrl: "FP1_asset_value_manual.md", installed: true },
-            { id: "fp1-7", category: "FP1", name: "Sell & Buy", description: "Trading sell/buy simulation", icon: "TrendingUp", appUrl: "FP1_sell_buy.html", manualUrl: "FP1_sell_buy_manual.md", installed: true },
-            { id: "fp1-8", category: "FP1", name: "Inheritance", description: "Inheritance tax estimation", icon: "ScrollText", appUrl: "FP1_souzoku.html", manualUrl: "FP1_souzoku_manual.md", installed: true },
-            { id: "fp1-9", category: "FP1", name: "Small Scale Land Tax Relief", description: "Small-scale land tax relief calculations", icon: "Map", appUrl: "FP1_small-scale-land-tax-relief.html", manualUrl: "FP1_small-scale-land-tax-relief_manual.md", installed: true }
+            { id: "fp1-1", category: "FP1", name: "Dividend Calc", description: "Dividend calculation tool", icon: "Calculator", appUrl: "fp1/fp1_dividend_calc.html", manualUrl: "fp1/fp1_dividend_calc_manual.md", installed: true },
+            { id: "fp1-2", category: "FP1", name: "Corporate Tax Matrix", description: "Corporate tax master matrix", icon: "Landmark", appUrl: "fp1/fp1_cor_tax_matrix.html", manualUrl: "fp1/fp1_cor_tax_matrix_manual.md", installed: true },
+            { id: "fp1-3", category: "FP1", name: "FP1 FAR", description: "Floor Area Ratio calculations", icon: "Building2", appUrl: "fp1/fp1_far.html", manualUrl: "fp1/fp1_far_manual.md", installed: true },
+            { id: "fp1-4", category: "FP1", name: "FP1 Pension", description: "Pension simulation logic", icon: "Users", appUrl: "fp1/fp1_pension.html", manualUrl: "fp1/fp1_pension_manual.md", installed: true },
+            { id: "fp1-5", category: "FP1", name: "FP1 Portfolio", description: "Portfolio management and math formulas", icon: "PieChart", appUrl: "fp1/fp1_portfolio.html", manualUrl: "fp1/fp1_portfolio_manual.md", installed: true },
+            { id: "fp1-6", category: "FP1", name: "Asset Value", description: "Asset valuation tool", icon: "Gem", appUrl: "fp1/fp1_asset_value.html", manualUrl: "fp1/fp1_asset_value_manual.md", installed: true },
+            { id: "fp1-7", category: "FP1", name: "Sell & Buy", description: "Trading sell/buy simulation", icon: "TrendingUp", appUrl: "fp1/fp1_sell_buy.html", manualUrl: "fp1/fp1_sell_buy_manual.md", installed: true },
+            { id: "fp1-8", category: "FP1", name: "Inheritance", description: "Inheritance tax estimation", icon: "ScrollText", appUrl: "fp1/fp1_souzoku.html", manualUrl: "fp1/fp1_souzoku_manual.md", installed: true },
+            { id: "fp1-9", category: "FP1", name: "Small Scale Land Tax Relief", description: "Small-scale land tax relief calculations", icon: "Map", appUrl: "fp1/fp1_small-scale-land-tax-relief.html", manualUrl: "fp1/fp1_small-scale-land-tax-relief_manual.md", installed: true }
         ];
 
         const SidebarItem = ({ icon, label, active = false, onClick }: { icon: string, label: string, active?: boolean, onClick?: () => void }) => {

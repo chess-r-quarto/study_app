@@ -2,7 +2,7 @@
 
 **[Public Access](https://chess-r-quarto.github.io/study_app/)**
 
-A minimalist, macOS dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
+A minimalist, lichess like dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
 
 ## Visual Identity
 

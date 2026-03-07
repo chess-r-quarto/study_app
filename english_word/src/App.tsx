@@ -1,0 +1,804 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+import {
+  Check, X, RefreshCw, Settings, BookOpen,
+  Clipboard, UploadCloud, FileJson, RotateCcw,
+  Minimize, Maximize, Hash, Shuffle, ListOrdered,
+  Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
+  PlayCircle
+} from 'lucide-react';
+
+interface QuestionData {
+  id: number;
+  word: string;
+  pronunciation?: string;
+  pos: string;
+  meaning: string;
+  wrong: string;
+  context: string;
+  source: string;
+}
+
+interface Choice {
+  text: string;
+  isCorrect: boolean;
+}
+
+type QuestionCountOption = '50' | '100' | 'all';
+type SessionMode = 'quiz' | 'reading';
+
+const DEFAULT_DATA: QuestionData[] = [
+  { id: 1, word: "prescriptive", pronunciation: "/prɪˈskrɪptɪv/", pos: "Adjective", meaning: "規範的な、指示する", wrong: "自由放任の", context: "The manual offers prescriptive rules for grammar and punctuation.", source: "Chicago Manual of Style" },
+  { id: 2, word: "authoritative", pronunciation: "/əˈθɔːrɪteɪtɪv/", pos: "Adjective", meaning: "権威ある、信頼できる", wrong: "疑わしい", context: "CMOS is considered an authoritative source for American English.", source: "Chicago Manual of Style" },
+  { id: 3, word: "plagiarism", pronunciation: "/ˈpleɪdʒərɪzəm/", pos: "Noun", meaning: "盗作、剽窃", wrong: "独創", context: "Strict citation guidelines help prevent plagiarism.", source: "Chicago Manual of Style" },
+  { id: 4, "word": "bibliography", pronunciation: "/ˌbɪbliˈɒɡrəfi/", pos: "Noun", meaning: "参考文献目録", wrong: "索引", context: "The bibliography lists all sources consulted by the author.", source: "Chicago Manual of Style" },
+  { id: 5, word: "manuscript", pronunciation: "/ˈmænjʊskrɪpt/", pos: "Noun", meaning: "原稿", wrong: "既刊本", context: "Authors submit their manuscripts to the publisher for review.", source: "Chicago Manual of Style" }
+];
+
+const WindowControls = ({ onReset, onExitFS, onEnterFS }: { onReset: () => void, onExitFS: () => void, onEnterFS: () => void }) => (
+  <div className="flex gap-3 text-[#8c8c8c]">
+    <button onClick={onReset} className="hover:text-white transition-colors" title="Reset App"><RotateCcw size={16} /></button>
+    <button onClick={onExitFS} className="hover:text-white transition-colors" title="Exit Fullscreen"><Minimize size={16} /></button>
+    <button onClick={onEnterFS} className="hover:text-white transition-colors" title="Enter Fullscreen"><Maximize size={16} /></button>
+  </div>
+);
+
+interface AppContainerProps {
+  children: React.ReactNode;
+  title?: string;
+  className?: string;
+  onReset: () => void;
+  onExitFS: () => void;
+  onEnterFS: () => void;
+}
+
+const AppContainer = ({ children, title = "English_Word", className = "", onReset, onExitFS, onEnterFS }: AppContainerProps) => (
+  <div className={`w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
+    <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
+      <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
+        <BookOpen size={18} className="text-[#8c8c8c]" />
+        {title}
+      </div>
+      <WindowControls onReset={onReset} onExitFS={onExitFS} onEnterFS={onEnterFS} />
+    </div>
+    <div className="flex-1 flex flex-col relative bg-[#262421] overflow-hidden">
+      {children}
+    </div>
+  </div>
+);
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "danger" | "ghost" | "blue";
+  icon?: React.ElementType;
+}
+
+const Button = ({ onClick, children, variant = "primary", className = "", disabled = false, icon: Icon, ...props }: ButtonProps) => {
+  const baseStyle = "px-4 py-2 text-sm font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-sm";
+
+  const variants = {
+    primary: "bg-[#629924] text-white hover:bg-[#72a332] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+    secondary: "bg-[#383634] text-[#dbd9d6] hover:bg-[#454341] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+    blue: "bg-[#1b78d0] text-white hover:bg-[#2084e6] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+    danger: "bg-[#cc3333] text-white hover:bg-[#d64040] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+    ghost: "bg-transparent text-[#8c8c8c] hover:bg-[#383634] hover:text-[#dbd9d6]"
+  };
+
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+      {Icon && <Icon size={16} />}
+      {children}
+    </button>
+  );
+};
+
+function App() {
+  const [gameState, setGameState] = useState<'start' | 'editor' | 'playing' | 'result'>('start');
+  const [sessionMode, setSessionMode] = useState<SessionMode>('quiz');
+  const [questions, setQuestions] = useState<QuestionData[]>(DEFAULT_DATA);
+  const [activeQuestions, setActiveQuestions] = useState<QuestionData[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
+  const [shuffledChoices, setShuffledChoices] = useState<Choice[]>([]);
+
+  const [questionCount, setQuestionCount] = useState<QuestionCountOption>('all');
+  const [isRandomOrder, setIsRandomOrder] = useState<boolean>(false);
+  const [startPositionStr, setStartPositionStr] = useState<string>("");
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+  const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
+  const [quizAudioEnabled, setQuizAudioEnabled] = useState<boolean>(false);
+  const [globalVolume, setGlobalVolume] = useState<number>(1.0);
+
+
+  const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isAutoplayRef = useRef<boolean>(isAutoplay);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    isAutoplayRef.current = isAutoplay;
+  }, [isAutoplay]);
+
+  useEffect(() => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => { /* voices ready */ };
+      window.speechSynthesis.getVoices();
+    }
+
+    const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    audio.loop = true;
+    audioRef.current = audio;
+    return () => {
+      audio.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (gameState !== 'playing' && audioRef.current) {
+      audioRef.current.pause();
+    }
+  }, [gameState]);
+
+  const currentQuestion = activeQuestions[currentIndex];
+
+  const getOptimalVoice = (lang: string) => {
+    if (!window.speechSynthesis) return null;
+    const voices = window.speechSynthesis.getVoices();
+
+    if (lang.startsWith('en')) {
+      return voices.find(v => v.name === 'Google US English') ||
+        voices.find(v => v.name === 'Samantha') ||
+        voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') ||
+        null;
+    }
+    if (lang.startsWith('ja')) {
+      return voices.find(v => v.name === 'Google 日本語') ||
+        voices.find(v => v.name === 'Kyoko') ||
+        voices.find(v => v.lang === 'ja-JP') ||
+        null;
+    }
+    return voices.find(v => v.lang === lang) || null;
+  };
+
+  const speak = async (text: string, lang: string, rate: number = 0.9): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!window.speechSynthesis || globalVolume <= 0) return resolve();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = rate;
+      utterance.volume = globalVolume;
+
+      const voice = getOptimalVoice(lang);
+      if (voice) utterance.voice = voice;
+
+      const fallbackTimeout = setTimeout(() => {
+        resolve();
+      }, Math.max(4000, text.length * 200));
+
+      utterance.onend = () => {
+        clearTimeout(fallbackTimeout);
+        resolve();
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('SpeechSynthesis Error:', e);
+        clearTimeout(fallbackTimeout);
+        resolve();
+      };
+
+      window.speechSynthesis.speak(utterance);
+
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    });
+  };
+
+  const playAudioSequence = async (question: QuestionData, mode: 'full' | 'word' | 'meaning_context') => {
+    if (!window.speechSynthesis || globalVolume <= 0) return;
+    setIsPlayingAudio(true);
+    window.speechSynthesis.cancel();
+
+    try {
+      if (mode === 'full' || mode === 'word') {
+        await speak(question.word, 'en-US', 0.85);
+      }
+
+      if (mode === 'full' || mode === 'meaning_context') {
+        if (mode === 'full') await new Promise(r => setTimeout(r, 600));
+        await speak(question.meaning, 'ja-JP', 1.0);
+
+        if (question.context) {
+          await new Promise(r => setTimeout(r, 800));
+          await speak(question.context, 'en-US', 0.9);
+        }
+      }
+    } finally {
+      setIsPlayingAudio(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentQuestion && gameState === 'playing') {
+      const choices = [
+        { text: currentQuestion.meaning, isCorrect: true },
+        { text: currentQuestion.wrong, isCorrect: false }
+      ];
+      setShuffledChoices(choices.sort(() => Math.random() - 0.5));
+    }
+  }, [currentQuestion, gameState]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const executeQuestionFlow = async () => {
+      if (!currentQuestion || gameState !== 'playing') return;
+
+      if (sessionMode === 'reading') {
+        if (isAutoplay) {
+          await playAudioSequence(currentQuestion, 'full');
+          if (isActive && isAutoplayRef.current) {
+            await new Promise(r => setTimeout(r, 1200));
+            if (isActive && isAutoplayRef.current) {
+              nextQuestion();
+            }
+          }
+        }
+      } else if (sessionMode === 'quiz' && !showFeedback) {
+        if (quizAudioEnabled) {
+          await playAudioSequence(currentQuestion, 'word');
+        }
+      }
+    };
+
+    executeQuestionFlow();
+
+    return () => {
+      isActive = false;
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+    };
+  }, [currentQuestion, currentIndex, gameState, sessionMode, isAutoplay, showFeedback, quizAudioEnabled]);
+
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentQuestion && gameState === 'playing') {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentQuestion.word,
+        artist: currentQuestion.meaning,
+        album: 'English_Word'
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        setIsAutoplay(true);
+        if (audioRef.current && audioRef.current.paused) {
+          audioRef.current.play().catch(() => { });
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        setIsAutoplay(false);
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        nextQuestion();
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (currentIndex > 0) {
+          window.speechSynthesis.cancel();
+          setShowFeedback(false);
+          setCurrentIndex(i => i - 1);
+        }
+      });
+    }
+  }, [currentQuestion, gameState, currentIndex]);
+
+  const nextQuestion = () => {
+    setShowFeedback(false);
+    window.speechSynthesis.cancel();
+    setIsPlayingAudio(false);
+    if (currentIndex < activeQuestions.length - 1) {
+      setCurrentIndex(i => i + 1);
+    } else {
+      setGameState('result');
+    }
+  };
+
+  const handleManualAudioPlay = () => {
+    if (currentQuestion) {
+      playAudioSequence(currentQuestion, 'full');
+    }
+  };
+
+  const startSession = (mode: SessionMode) => {
+    setSessionMode(mode);
+    setIsAutoplay(true);
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.warn("MediaSession dummy audio requires interaction", e));
+    }
+
+    let pool = [...questions];
+
+    if (isRandomOrder) {
+      pool.sort(() => Math.random() - 0.5);
+    } else {
+      pool.sort((a, b) => a.id - b.id);
+      const parsedStart = parseInt(startPositionStr, 10);
+      const startPos = isNaN(parsedStart) ? 1 : parsedStart;
+      const startIndex = Math.max(0, Math.min(startPos - 1, pool.length - 1));
+      pool = pool.slice(startIndex);
+    }
+
+    let count = pool.length;
+    if (questionCount === '50') count = Math.min(50, pool.length);
+    else if (questionCount === '100') count = Math.min(100, pool.length);
+
+    setActiveQuestions(pool.slice(0, count));
+    setScore(0);
+    setCurrentIndex(0);
+    setShowFeedback(false);
+    setGameState('playing');
+  };
+
+  const handleAnswer = (isCorrect: boolean) => {
+    window.speechSynthesis.cancel();
+    setIsPlayingAudio(false);
+    setLastAnswerCorrect(isCorrect);
+    if (isCorrect) setScore(s => s + 1);
+    setShowFeedback(true);
+
+    if (quizAudioEnabled) {
+      setTimeout(() => playAudioSequence(currentQuestion, 'full'), 50);
+    }
+  };
+
+  const returnToStart = () => {
+    window.speechSynthesis.cancel();
+    setIsPlayingAudio(false);
+    setGameState('start');
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setJsonInput(text);
+      setJsonError(null);
+    } catch (err) {
+      setJsonError("Clipboard access denied. Please paste manually.");
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      try {
+        JSON.parse(content);
+        setJsonInput(content);
+        setJsonError(null);
+      } catch (error: any) {
+        setJsonError("Invalid JSON file: " + error.message);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImport = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) throw new Error("Format Error: Data must be a JSON Array [...]");
+      if (parsed.length === 0) throw new Error("Data Error: The array is empty.");
+      if (!parsed[0].word || !parsed[0].meaning || !parsed[0].pos) throw new Error("Structure Error: Missing 'word', 'meaning', or 'pos' fields.");
+
+      setQuestions(parsed);
+      setJsonError(null);
+      setGameState('start');
+    } catch (e: any) {
+      setJsonError(e.message);
+    }
+  };
+
+  const handleFullScreenEnter = () => {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(err => console.log(err));
+    }
+  };
+
+  const handleFullScreenExit = () => {
+    if (document.exitFullscreen && document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.log(err));
+    }
+  };
+
+  const handleAppReset = () => {
+    returnToStart();
+  };
+
+  const handleStartPositionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === "" || /^\d{1,3}$/.test(val)) {
+      setStartPositionStr(val);
+    }
+  };
+
+  const BaseWrapper = ({ children, title, className }: { children: React.ReactNode, title?: string, className?: string }) => (
+    <AppContainer
+      title={title}
+      className={className}
+      onReset={handleAppReset}
+      onEnterFS={handleFullScreenEnter}
+      onExitFS={handleFullScreenExit}
+    >
+      {children}
+    </AppContainer>
+  );
+
+  if (gameState === 'start') {
+    return (
+      <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+        <BaseWrapper className="w-full h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
+          <div className="flex-1 flex flex-col items-center py-6 px-4 sm:justify-center sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto w-full">
+            <div className="text-center space-y-2 shrink-0">
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-wider text-[#dbd9d6]">ENGLISH WORD</h1>
+              <p className="text-[#8c8c8c] text-sm">{questions.length} words loaded in database</p>
+            </div>
+
+            <div className="w-full max-w-sm space-y-6 pt-2 pb-6 shrink-0">
+              <div className="space-y-4 bg-[#1b1a19] p-4 rounded-sm border border-[#383634]">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                    <Hash size={14} /> Questions
+                  </div>
+                  <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                    {(['50', '100', 'all'] as const).map(v => (
+                      <button
+                        key={v}
+                        onClick={() => setQuestionCount(v)}
+                        className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${questionCount === v ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
+                    <div className="flex items-center gap-2">
+                      <ListOrdered size={14} /> Order
+                    </div>
+                  </div>
+                  <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                    <button
+                      onClick={() => setIsRandomOrder(false)}
+                      className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm flex items-center justify-center gap-2 transition-colors ${!isRandomOrder ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                    >
+                      <ListOrdered size={14} /> ID Order
+                    </button>
+                    <button
+                      onClick={() => setIsRandomOrder(true)}
+                      className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm flex items-center justify-center gap-2 transition-colors ${isRandomOrder ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                    >
+                      <Shuffle size={14} /> Random
+                    </button>
+                  </div>
+
+                  {!isRandomOrder && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#262421]">
+                      <span className="text-xs font-bold text-[#8c8c8c] uppercase flex items-center gap-1">
+                        <PlayCircle size={14} /> Start At:
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="999"
+                        value={startPositionStr}
+                        onChange={handleStartPositionChange}
+                        placeholder="1"
+                        className="bg-[#262421] border border-[#383634] text-[#dbd9d6] text-xs px-2 py-1.5 rounded-sm w-20 text-center focus:outline-none focus:border-[#8c8c8c] placeholder:text-[#8c8c8c] placeholder:opacity-50 transition-colors"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                    {quizAudioEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Quiz Auto Audio
+                  </div>
+                  <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                    <button
+                      onClick={() => setQuizAudioEnabled(false)}
+                      className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!quizAudioEnabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                    >
+                      OFF
+                    </button>
+                    <button
+                      onClick={() => setQuizAudioEnabled(true)}
+                      className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${quizAudioEnabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                    >
+                      ON
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-[#262421]">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
+                    <div className="flex items-center gap-2">
+                      {globalVolume > 0 ? <Volume2 size={14} /> : <VolumeX size={14} />} Master Volume
+                    </div>
+                    <span>{Math.round(globalVolume * 100)}%</span>
+                  </div>
+                  <div className="pt-2">
+                    <input
+                      type="range"
+                      min="0" max="1" step="0.1"
+                      value={globalVolume}
+                      onChange={(e) => setGlobalVolume(parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button onClick={() => startSession('quiz')} className="w-full py-4 text-sm sm:text-base" icon={Gamepad2}>
+                    Quiz
+                  </Button>
+                  <Button onClick={() => startSession('reading')} variant="blue" className="w-full py-4 text-sm sm:text-base" icon={Headphones}>
+                    Reading
+                  </Button>
+                </div>
+                <Button variant="secondary" onClick={() => setGameState('editor')} className="w-full py-3" icon={Settings}>
+                  Import JSON
+                </Button>
+              </div>
+            </div>
+          </div>
+        </BaseWrapper>
+      </div>
+    );
+  }
+
+  if (gameState === 'editor') {
+    return (
+      <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+        <BaseWrapper title="Import Data" className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
+          <div className="flex flex-col h-full">
+            <input
+              type="file"
+              accept=".json"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            <div className="bg-[#1b1a19] border-b border-[#383634] p-2 flex justify-between items-center shrink-0">
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={triggerFileUpload} className="h-8 text-xs px-2 sm:px-4" icon={UploadCloud}>
+                  <span className="hidden sm:inline">Load File</span>
+                </Button>
+                <Button variant="ghost" onClick={handlePasteFromClipboard} className="h-8 text-xs px-2 sm:px-4" icon={Clipboard}>
+                  <span className="hidden sm:inline">Paste</span>
+                </Button>
+              </div>
+              <Button variant="ghost" onClick={returnToStart} className="h-8 text-xs">Cancel</Button>
+            </div>
+
+            <div className="flex-1 relative">
+              <textarea
+                className="w-full h-full p-4 font-mono text-sm bg-[#161512] text-[#85A94E] resize-none focus:outline-none placeholder:text-[#383634]"
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                spellCheck={false}
+                placeholder="Paste JSON..."
+              />
+            </div>
+
+            <div className="bg-[#1b1a19] p-4 border-t border-[#383634] flex justify-between items-center shrink-0">
+              <div className="flex-1 pr-4">
+                {jsonError ? (
+                  <span className="text-[#cc3333] text-xs sm:text-sm font-bold flex items-center gap-2">
+                    <X size={16} className="shrink-0" /> <span className="truncate">{jsonError}</span>
+                  </span>
+                ) : (
+                  <span className="text-[#8c8c8c] text-xs sm:text-sm font-bold flex items-center gap-2">
+                    <FileJson size={16} className="shrink-0" /> JSON Valid
+                  </span>
+                )}
+              </div>
+              <Button onClick={handleImport} icon={Check} className="shrink-0 text-xs sm:text-sm">
+                Save
+              </Button>
+            </div>
+          </div>
+        </BaseWrapper>
+      </div>
+    );
+  }
+
+  if (gameState === 'result') {
+    return (
+      <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+        <BaseWrapper title="Session Complete" className="w-full h-screen sm:h-[60vh] sm:min-h-[500px] sm:max-h-[700px] flex flex-col border-none sm:border-solid">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 space-y-8 text-center overflow-y-auto">
+
+            {sessionMode === 'quiz' ? (
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#8c8c8c] uppercase tracking-widest">Accuracy</h2>
+                  <div className="text-5xl sm:text-6xl font-bold text-[#dbd9d6]">
+                    {Math.round((score / activeQuestions.length) * 100)}%
+                  </div>
+                </div>
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                  <p className="text-base sm:text-lg text-[#dbd9d6]">
+                    <span className="text-[#629924] font-bold">{score}</span> correct out of <span className="font-bold">{activeQuestions.length}</span>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#8c8c8c] uppercase tracking-widest">Words Read</h2>
+                  <div className="text-5xl sm:text-6xl font-bold text-[#dbd9d6]">
+                    {activeQuestions.length}
+                  </div>
+                </div>
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                  <p className="text-base sm:text-lg text-[#dbd9d6]">
+                    Reading session completed.
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div className="pt-4 sm:pt-8 w-full max-w-xs">
+              <Button onClick={returnToStart} className="w-full py-4" icon={RefreshCw}>
+                Return to Start
+              </Button>
+            </div>
+          </div>
+        </BaseWrapper>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+      <BaseWrapper title={`${sessionMode === 'quiz' ? 'Quiz' : 'Reading'} : ${currentIndex + 1} / ${activeQuestions.length}`} className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid">
+        <div className="h-1 w-full bg-[#1b1a19] shrink-0">
+          <div
+            className={`h-full transition-all duration-300 ${sessionMode === 'reading' ? 'bg-[#1b78d0]' : 'bg-[#629924]'}`}
+            style={{ width: `${((currentIndex) / activeQuestions.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-y-auto">
+            <div className="absolute top-2 right-4 sm:top-4 sm:right-6 text-[10px] sm:text-xs font-bold text-[#8c8c8c] uppercase flex flex-col items-end gap-1">
+              <span>ID: {currentQuestion.id}</span>
+              <span className="hidden sm:inline">{currentQuestion.source}</span>
+            </div>
+
+            <div className="mb-4 flex items-center gap-3 mt-4 sm:mt-0">
+              <div className="px-3 py-1 bg-[#1b1a19] border border-[#383634] rounded-sm text-[#8c8c8c] text-xs font-bold uppercase tracking-widest">
+                {currentQuestion.pos}
+              </div>
+              <button
+                onClick={handleManualAudioPlay}
+                disabled={isPlayingAudio}
+                className="p-1.5 text-[#8c8c8c] hover:text-[#dbd9d6] hover:bg-[#383634] rounded-sm transition-colors disabled:opacity-50"
+                title="Play Audio"
+              >
+                {globalVolume > 0 ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </button>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white tracking-tight text-center break-words max-w-full">
+              {currentQuestion.word}
+            </h2>
+            {currentQuestion.pronunciation && (
+              <div className="mt-2 text-lg sm:text-xl md:text-2xl text-[#8c8c8c] font-ipa tracking-wide">
+                {currentQuestion.pronunciation}
+              </div>
+            )}
+          </div>
+
+          <div className="h-1/2 sm:h-auto sm:min-h-[20rem] bg-[#1b1a19] border-t border-[#383634] relative flex flex-col overflow-y-auto shrink-0">
+            {sessionMode === 'reading' ? (
+              <div className="flex-1 flex flex-col p-4 sm:p-6 animate-in fade-in duration-200">
+                <div className="flex-1 flex flex-col justify-center items-center text-center space-y-4">
+                  <div className="text-xl sm:text-2xl">
+                    <span className="text-[#8c8c8c] text-base sm:text-lg">Meaning: </span>
+                    <span className="text-white font-bold">{currentQuestion.meaning}</span>
+                  </div>
+                  {currentQuestion.context && (
+                    <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
+                      {currentQuestion.context}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 sm:mt-8 flex gap-3 pb-2 shrink-0">
+                  <Button
+                    onClick={() => setIsAutoplay(!isAutoplay)}
+                    variant={isAutoplay ? "secondary" : "blue"}
+                    className="flex-1 py-3 sm:py-4 text-sm sm:text-lg shrink-0"
+                    icon={isAutoplay ? Pause : Play}
+                  >
+                    <span className="hidden sm:inline">{isAutoplay ? "Pause Auto-play" : "Resume Auto-play"}</span>
+                    <span className="sm:hidden">{isAutoplay ? "Pause" : "Resume"}</span>
+                  </Button>
+                  {!isAutoplay && (
+                    <Button onClick={nextQuestion} variant="secondary" className="flex-1 py-3 sm:py-4 text-sm sm:text-lg shrink-0">
+                      Next
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                {!showFeedback ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 sm:p-6 h-full min-h-[14rem] sm:min-h-[16rem]">
+                    {shuffledChoices.map((choice, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleAnswer(choice.isCorrect)}
+                        className="bg-[#262421] border border-[#383634] hover:bg-[#383634] hover:border-[#8c8c8c] text-lg sm:text-xl font-bold text-[#dbd9d6] rounded-sm transition-colors active:bg-[#454341] flex items-center justify-center p-3 sm:p-4"
+                      >
+                        {choice.text}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col p-4 sm:p-6 animate-in fade-in duration-200">
+                    <div className="flex-1 flex flex-col justify-center items-center text-center space-y-4">
+                      <div className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${lastAnswerCorrect ? 'text-[#629924]' : 'text-[#cc3333]'}`}>
+                        {lastAnswerCorrect ? <Check size={28} className="sm:w-8 sm:h-8" /> : <X size={28} className="sm:w-8 sm:h-8" />}
+                        {lastAnswerCorrect ? 'Correct' : 'Inaccuracy'}
+                      </div>
+
+                      <div className="text-lg sm:text-xl">
+                        <span className="text-[#8c8c8c]">Meaning: </span>
+                        <span className="text-white font-bold">{currentQuestion.meaning}</span>
+                      </div>
+
+                      {currentQuestion.context && (
+                        <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
+                          {currentQuestion.context}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 sm:mt-8 pb-2 shrink-0">
+                      <Button onClick={nextQuestion} className="w-full py-3 sm:py-4 text-base sm:text-lg shrink-0">
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </BaseWrapper>
+    </div>
+  );
+}
+
+
+export default App;

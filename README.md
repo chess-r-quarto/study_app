@@ -39,7 +39,7 @@ Specialized financial planning calculators and tax matrices.
 
 ### 🔤 Language
 Vocabulary drills and foundational knowledge.
-* English Word (`english_word/english_word.html`)
+* English Word (`english_word/dist/index.html`)
 
 ## Deployment
 

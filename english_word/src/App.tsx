@@ -53,7 +53,7 @@ interface AppContainerProps {
 }
 
 const AppContainer = ({ children, title = "English_Word", className = "", onReset, onExitFS, onEnterFS }: AppContainerProps) => (
-  <div className={`w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
+  <div className={`w-full max-w-6xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
     <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
       <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
         <BookOpen size={18} className="text-[#8c8c8c]" />

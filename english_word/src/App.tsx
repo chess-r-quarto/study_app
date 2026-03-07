@@ -456,8 +456,8 @@ function App() {
               <p className="text-[#8c8c8c] text-sm">{questions.length} words loaded in database</p>
             </div>
 
-            <div className="w-full max-w-sm space-y-6 pt-2 pb-6 shrink-0">
-              <div className="space-y-4 bg-[#1b1a19] p-4 rounded-sm border border-[#383634]">
+            <div className="w-full max-w-2xl space-y-6 pt-2 pb-6 shrink-0">
+              <div className="space-y-4 bg-[#1b1a19] p-4 sm:p-6 rounded-sm border border-[#383634]">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
                     <Hash size={14} /> Questions
@@ -666,7 +666,7 @@ function App() {
               </>
             )}
 
-            <div className="pt-4 sm:pt-8 w-full max-w-xs">
+            <div className="pt-4 sm:pt-8 w-full max-w-md">
               <Button onClick={returnToStart} className="w-full py-4" icon={RefreshCw}>
                 Return to Start
               </Button>
@@ -778,7 +778,7 @@ function App() {
                       </div>
 
                       {currentQuestion.context && (
-                        <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
+                        <div className="text-[#dbd9d6] italic text-sm sm:text-base md:text-xl max-w-3xl mt-2 sm:mt-4 px-4 sm:px-8 border-l-4 border-[#383634] text-left">
                           {currentQuestion.context}
                         </div>
                       )}

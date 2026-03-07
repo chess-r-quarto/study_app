@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FP1級 年金算定・繰下げ月数内訳シート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <style>
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number], input[type=date], input[type=month] {
+        -moz-appearance: textfield;
+      }
+      @media print {
+        body { background: white !important; }
+        .no-print { display: none !important; }
+      }
+    </style>
+  </head>
+  <body class="bg-[#edebe9] min-h-screen text-[#333333] font-sans selection:bg-[#3692e7] selection:text-white">
+    <div id="root"></div>
+
+    <script>
+      Babel.registerPreset('tsx', {
+        presets: [
+          [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+          Babel.availablePresets['react'],
+        ],
+      });
+    </script>
+    
+    <script type="text/babel" data-presets="tsx">
+      const { useState, useMemo, useEffect, useRef } = React;
+
+      // --- Icons ---
+      const CalculatorIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>;
+      const CalendarIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+      const CoinsIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>;
+      const CheckCircleIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+      const PrinterIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
+
+      // --- Components ---
+      const Latex: React.FC<{ tex: string, className?: string }> = ({ tex, className = "" }) => {
+        const containerRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = `$$${tex}$$`;
+            if ((window as any).MathJax && (window as any).MathJax.typesetPromise) {
+              (window as any).MathJax.typesetPromise([containerRef.current]);
+            }
+          }
+        }, [tex]);
+        return <div ref={containerRef} className={`overflow-x-auto overflow-y-hidden text-sm ${className}`} />;
+      };
+
+      const Card: React.FC<{ title: string, icon: any, children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
+        <div className="bg-white rounded-sm border border-[#dbd9d6] shadow-sm mb-6 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#f8f7f6] border-b border-[#dbd9d6]">
+            <Icon className="w-4 h-4 text-[#666]" />
+            <h2 className="text-sm font-semibold text-[#333] tracking-wide">{title}</h2>
+          </div>
+          <div className="p-4 md:p-5">
+            {children}
+          </div>
+        </div>
+      );
+
+      const InputGroup: React.FC<{ label: string, children: React.ReactNode }> = ({ label, children }) => (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-[#666] tracking-wider uppercase">{label}</label>
+          {children}
+        </div>
+      );
+
+      // --- Main App ---
+      const App: React.FC = () => {
+        const [birthDate, setBirthDate] = useState<string>('1961-11-15');
+        const [claimMonth, setClaimMonth] = useState<string>('2028-12');
+        const [mNational, setMNational] = useState<number>(480);
+        const [mKosei, setMKosei] = useState<number>(480);
+        const [mExtra, setMExtra] = useState<number>(12);
+        const [avgSalary, setAvgSalary] = useState<number>(450000);
+        const [fullBasic, setFullBasic] = useState<number>(795000);
+        const [calcType, setCalcType] = useState<'down' | 'up'>('down');
+
+        const results = useMemo(() => {
+          // 1. Date & Month Calculations
+          const bDate = new Date(birthDate);
+          if (isNaN(bDate.getTime())) return null;
+
+          const reach65Date = new Date(bDate.getFullYear() + 65, bDate.getMonth(), bDate.getDate() - 1);
+          const startMonth = new Date(reach65Date.getFullYear(), reach65Date.getMonth() + 1, 1);
+          const endMonth = new Date(claimMonth + "-01");
+          if (isNaN(endMonth.getTime())) return null;
+
+          let totalMonths = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth());
+          totalMonths = Math.max(0, totalMonths);
+
+          // Build Trace Data
+          const traceData = [];
+          let tempStart = new Date(startMonth);
+          let remain = totalMonths;
+
+          while (remain >= 12) {
+            const yS = tempStart.getFullYear();
+            const mS = tempStart.getMonth() + 1;
+            const tempEnd = new Date(tempStart.getFullYear(), tempStart.getMonth() + 11, 1);
+            traceData.push({
+              months: 12,
+              text: `${yS}年${mS}月 ～ ${tempEnd.getFullYear()}年${tempEnd.getMonth() + 1}月`
+            });
+            tempStart.setMonth(tempStart.getMonth() + 12);
+            remain -= 12;
+          }
+
+          if (remain > 0) {
+            const yS = tempStart.getFullYear();
+            const mS = tempStart.getMonth() + 1;
+            const tempEnd = new Date(tempStart.getFullYear(), tempStart.getMonth() + remain - 1, 1);
+            traceData.push({
+              months: remain,
+              text: `${yS}年${mS}月 ～ ${tempEnd.getFullYear()}年${tempEnd.getMonth() + 1}月`
+            });
+          }
+
+          // 2. Base Amount Calculations
+          const basic = Math.floor(fullBasic * (Math.min(mNational, 480) / 480));
+          const kosei = Math.floor(avgSalary * 0.005481 * mKosei);
+          const unitKeika = 1657; // Default value (R5)
+          const mKeikaSub = Math.min(mKosei - mExtra, 480);
+          const keika = Math.floor((unitKeika * Math.min(mKosei, 480)) - (fullBasic * (mKeikaSub / 480)));
+          const keikaVal = Math.max(0, keika);
+          const baseSum = basic + kosei + keikaVal;
+
+          const texFormula = `
+            \\begin{aligned}
+            &\\text{老齢基礎年金: } ${fullBasic.toLocaleString()} \\times \\frac{${mNational}}{480} = ${basic.toLocaleString()}\\text{円} \\\\[0.5em]
+            &\\text{老齢厚生年金: } ${avgSalary.toLocaleString()} \\times 0.005481 \\times ${mKosei} = ${kosei.toLocaleString()}\\text{円} \\\\[0.5em]
+            &\\text{経過的加算額: } (1,657 \\times ${Math.min(mKosei, 480)}) - \\left(${fullBasic.toLocaleString()} \\times \\frac{${mKeikaSub}}{480}\\right) = ${keikaVal.toLocaleString()}\\text{円} \\\\[1em]
+            &\\text{65歳時基本額合計: } \\mathbf{${baseSum.toLocaleString()}\\text{円}}
+            \\end{aligned}
+          `;
+
+          // 3. Adjustment Rate
+          const rateMultiplier = calcType === 'down' ? 0.007 : -0.004;
+          const adjRate = totalMonths * rateMultiplier;
+          const finalTotal = Math.floor(baseSum * (1 + adjRate));
+
+          return {
+            reach65Date,
+            startMonth,
+            endMonth,
+            totalMonths,
+            traceData,
+            texFormula,
+            adjRate,
+            finalTotal
+          };
+        }, [birthDate, claimMonth, mNational, mKosei, mExtra, avgSalary, fullBasic, calcType]);
+
+        return (
+          <div className="pb-16 max-w-6xl mx-auto">
+            <header className="bg-[#262421] text-[#dbd7d1] px-6 py-4 shadow-sm sticky top-0 z-20 flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <CalculatorIcon className="w-5 h-5 text-[#3692e7]" />
+                <h1 className="text-lg font-semibold tracking-wide text-white">年金算定・繰延シミュレータ</h1>
+              </div>
+              <button onClick={() => window.print()} className="no-print flex items-center gap-2 bg-[#3692e7] hover:bg-[#2b7bc5] text-white px-3 py-1.5 rounded-sm text-xs font-bold transition-colors">
+                <PrinterIcon className="w-4 h-4" /> PDF
+              </button>
+            </header>
+
+            <main className="px-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* --- LEFT COLUMN: INPUTS --- */}
+              <div className="lg:col-span-4 space-y-0 no-print">
+                <Card title="1. 属性・期間設定" icon={CalendarIcon}>
+                  <div className="space-y-4">
+                    <InputGroup label="本人生年月日">
+                      <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                    </InputGroup>
+                    <InputGroup label="年金請求月 (受給開始)">
+                      <input type="month" value={claimMonth} onChange={(e) => setClaimMonth(e.target.value)} className="w-full bg-[#e6f3ff] border border-[#b3d9ff] p-2.5 rounded-sm text-[#0052a3] font-bold focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                    </InputGroup>
+                    
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <InputGroup label="基礎年金月数">
+                        <input type="number" value={mNational} onChange={(e) => setMNational(Number(e.target.value))} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                      </InputGroup>
+                      <InputGroup label="厚生年金月数">
+                        <input type="number" value={mKosei} onChange={(e) => setMKosei(Number(e.target.value))} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                      </InputGroup>
+                    </div>
+                    <InputGroup label="20歳前/60歳後の厚生月数">
+                      <input type="number" value={mExtra} onChange={(e) => setMExtra(Number(e.target.value))} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                    </InputGroup>
+                  </div>
+                </Card>
+
+                <Card title="2. 金額基礎データ" icon={CoinsIcon}>
+                  <div className="space-y-4">
+                    <InputGroup label="平均標準報酬額 (円)">
+                      <input type="number" value={avgSalary} onChange={(e) => setAvgSalary(Number(e.target.value))} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                    </InputGroup>
+                    <InputGroup label="基礎年金満額 (円)">
+                      <input type="number" value={fullBasic} onChange={(e) => setFullBasic(Number(e.target.value))} className="w-full bg-[#e3e1df] p-2.5 rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none font-mono text-sm" />
+                    </InputGroup>
+
+                    <div className="pt-3">
+                      <label className="text-xs font-bold text-[#666] tracking-wider uppercase mb-2 block">繰延区分</label>
+                      <div className="flex bg-[#e3e1df] rounded-sm p-1 gap-1">
+                        <button 
+                          onClick={() => setCalcType('down')}
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-sm transition-colors ${calcType === 'down' ? 'bg-white shadow-sm text-[#333]' : 'text-[#888] hover:text-[#333]'}`}
+                        >
+                          繰下げ (増額)
+                        </button>
+                        <button 
+                          onClick={() => setCalcType('up')}
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-sm transition-colors ${calcType === 'up' ? 'bg-white shadow-sm text-[#333]' : 'text-[#888] hover:text-[#333]'}`}
+                        >
+                          繰上げ (減額)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* --- RIGHT COLUMN: RESULTS --- */}
+              <div className="lg:col-span-8 space-y-0">
+                {results ? (
+                  <>
+                    <Card title="待機期間の算定内訳" icon={CalendarIcon}>
+                      <div className="bg-[#f8f7f6] p-4 border border-[#dbd9d6] rounded-sm font-mono text-sm space-y-2 text-[#333]">
+                        <p><span className="text-[#888] mr-2">65歳到達月:</span> {results.reach65Date.getFullYear()}年{results.reach65Date.getMonth()+1}月 <span className="text-xs text-[#888]">(到達日: {results.reach65Date.toLocaleDateString()})</span></p>
+                        <p><span className="text-[#888] mr-2">待機開始月:</span> {results.startMonth.getFullYear()}年{results.startMonth.getMonth()+1}月</p>
+                        <p><span className="text-[#888] mr-2">年金請求月:</span> {results.endMonth.getFullYear()}年{results.endMonth.getMonth()+1}月 <span className="text-xs text-[#888]">(直前月までカウント)</span></p>
+                        
+                        <div className="mt-4 pt-4 border-t border-[#dbd9d6] space-y-1.5 pl-2 border-l-4 border-[#3692e7]">
+                          {results.traceData.map((trace, idx) => (
+                            <p key={idx} className="flex gap-3">
+                              <span className="w-16 text-right font-bold text-[#666]">{trace.months}ヶ月 :</span>
+                              <span>{trace.text}</span>
+                            </p>
+                          ))}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-[#dbd9d6] flex justify-between items-center">
+                          <span className="font-bold text-[#666] uppercase text-xs">Total Delay</span>
+                          <span className="font-bold text-lg">{results.totalMonths} <span className="text-sm font-normal text-[#888]">ヶ月</span></span>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card title="各年金の基本額算定 (65歳時価額)" icon={CalculatorIcon}>
+                      <div className="bg-[#f8f7f6] p-4 border border-[#dbd9d6] rounded-sm">
+                        <Latex tex={results.texFormula} />
+                      </div>
+                    </Card>
+
+                    <div className="bg-white border border-[#dbd9d6] rounded-sm shadow-sm overflow-hidden relative">
+                      <div className="absolute top-0 right-0 bg-[#3692e7] text-white text-[10px] px-3 py-1 font-bold uppercase tracking-widest">
+                        Final Answer
+                      </div>
+                      <div className="p-6 md:p-8 text-center">
+                        <p className="text-xs font-bold text-[#888] mb-2 uppercase tracking-widest">繰延調整後：総受給額（年額）</p>
+                        <p className="text-4xl md:text-5xl font-light text-[#333] mb-4">
+                          {results.finalTotal.toLocaleString()} <span className="text-xl md:text-2xl opacity-70">円</span>
+                        </p>
+                        
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-[#f8f7f6] border border-[#dbd9d6]">
+                          <CheckCircleIcon className={`w-4 h-4 ${calcType === 'down' ? 'text-[#629924]' : 'text-[#db5555]'}`} />
+                          <span className="text-sm font-bold text-[#666]">
+                            {calcType === 'down' ? '増額率' : '減額率'} : 
+                            <span className={calcType === 'down' ? 'text-[#629924] ml-2' : 'text-[#db5555] ml-2'}>
+                              {(results.adjRate * 100).toFixed(1)}%
+                            </span>
+                          </span>
+                          <span className="text-xs text-[#888] font-mono ml-1">({results.totalMonths}ヶ月)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-[#888] bg-white border border-[#dbd9d6] rounded-sm">
+                    日付設定が不正です
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!);
+      root.render(<App />);
+    </script>
+  </body>
+</html>

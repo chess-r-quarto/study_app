@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ポートフォリオ計算機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <style>
+      /* Lichess風の入力スライダーカスタマイズ */
+      input[type=range] {
+        -webkit-appearance: none;
+        background: transparent;
+      }
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #3692e7;
+        cursor: pointer;
+        margin-top: -6px;
+      }
+      input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #dbd9d6;
+        border-radius: 2px;
+      }
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+  <body class="bg-[#edebe9] min-h-screen py-8 px-4 text-[#333333] font-sans">
+    <div id="root"></div>
+
+    <script>
+      Babel.registerPreset('tsx', {
+        presets: [
+          [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+          Babel.availablePresets['react'],
+        ],
+      });
+    </script>
+    
+    <script type="text/babel" data-presets="tsx">
+      const { useState, useEffect, useRef } = React;
+
+      const App: React.FC = () => {
+        const [r1, setR1] = useState<number>(5);
+        const [s1, setS1] = useState<number>(10);
+        const [w1, setW1] = useState<number>(50);
+
+        const [r2, setR2] = useState<number>(8);
+        const [s2, setS2] = useState<number>(20);
+        const [w2, setW2] = useState<number>(50);
+
+        const [rho, setRho] = useState<number>(0.2);
+        
+        const mathContainerRef = useRef<HTMLDivElement>(null);
+
+        const calculatePortfolio = () => {
+          const W1 = w1 / 100;
+          const W2 = w2 / 100;
+
+          const portReturn = (W1 * r1) + (W2 * r2);
+
+          const term1 = Math.pow(W1, 2) * Math.pow(s1, 2);
+          const term2 = Math.pow(W2, 2) * Math.pow(s2, 2);
+          const term3 = 2 * W1 * W2 * s1 * s2 * rho;
+          const variance = term1 + term2 + term3;
+          const portStd = Math.sqrt(variance);
+
+          return { portReturn, portStd, W1, W2, term1, term2, term3, variance };
+        };
+
+        const res = calculatePortfolio();
+
+        const latexSteps = `
+        $$
+        \\begin{aligned}
+        &\\text{1. 期待リターンの計算:} \\\\
+        &E[R_p] = (${res.W1.toFixed(2)} \\times ${r1}\\%) + (${res.W2.toFixed(2)} \\times ${r2}\\%) = ${res.portReturn.toFixed(2)}\\% \\\\[1.5em]
+        &\\text{2. 分散 } (\\sigma_p^2) \\text{ の計算:} \\\\
+        &\\text{公式: } \\sigma_p^2 = w_A^2 \\sigma_A^2 + w_B^2 \\sigma_B^2 + 2w_A w_B \\sigma_A \\sigma_B \\rho \\\\
+        &\\text{資産A寄与: } ${res.W1.toFixed(2)}^2 \\times ${s1}^2 = ${res.term1.toFixed(4)} \\\\
+        &\\text{資産B寄与: } ${res.W2.toFixed(2)}^2 \\times ${s2}^2 = ${res.term2.toFixed(4)} \\\\
+        &\\text{共分散項: } 2 \\times ${res.W1.toFixed(2)} \\times ${res.W2.toFixed(2)} \\times ${s1} \\times ${s2} \\times ${rho.toFixed(2)} = ${res.term3.toFixed(4)} \\\\
+        &\\text{合計分散: } ${res.variance.toFixed(4)} \\\\[1.5em]
+        &\\text{3. 標準偏差 } (\\sigma_p) \\text{ の算出:} \\\\
+        &\\sigma_p = \\sqrt{${res.variance.toFixed(4)}} = ${res.portStd.toFixed(2)}\\%
+        \\end{aligned}
+        $$
+        `;
+
+        useEffect(() => {
+          if ((window as any).MathJax && (window as any).MathJax.typesetPromise && mathContainerRef.current) {
+            (window as any).MathJax.typesetPromise([mathContainerRef.current]);
+          }
+        }, [r1, s1, w1, r2, s2, w2, rho]);
+
+        return (
+          <div className="max-w-2xl mx-auto bg-white rounded-sm shadow-sm overflow-hidden border border-[#dbd9d6]">
+            <div className="p-6">
+              <h1 className="text-xl font-semibold text-[#2b2b2b] mb-6 pb-2 border-b border-[#dbd9d6]">2資産ポートフォリオ計算機</h1>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* 資産A */}
+                <div className="p-4 bg-[#f8f7f6] border-l-4 border-[#3692e7] rounded-sm">
+                  <h2 className="font-semibold text-[#3692e7] mb-4">資産 A</h2>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">期待リターン (%)</span>
+                      <input type="number" value={r1} onChange={(e) => setR1(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none transition-shadow" />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">標準偏差 (%)</span>
+                      <input type="number" value={s1} onChange={(e) => setS1(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none transition-shadow" />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">投資比率 (%)</span>
+                      <input type="number" value={w1} onChange={(e) => setW1(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#3692e7] outline-none transition-shadow" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 資産B */}
+                <div className="p-4 bg-[#f8f7f6] border-l-4 border-[#629924] rounded-sm">
+                  <h2 className="font-semibold text-[#629924] mb-4">資産 B</h2>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">期待リターン (%)</span>
+                      <input type="number" value={r2} onChange={(e) => setR2(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#629924] outline-none transition-shadow" />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">標準偏差 (%)</span>
+                      <input type="number" value={s2} onChange={(e) => setS2(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#629924] outline-none transition-shadow" />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mb-1 block">投資比率 (%)</span>
+                      <input type="number" value={w2} onChange={(e) => setW2(Number(e.target.value))} className="w-full p-2 bg-[#e3e1df] border-none rounded-sm text-[#333] focus:ring-2 focus:ring-[#629924] outline-none transition-shadow" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* 相関係数スライダー */}
+              <div className="mb-8 p-5 bg-[#f8f7f6] border border-[#dbd9d6] rounded-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-sm font-semibold text-[#333333]">相関係数 ($\rho$)</span>
+                  <span className="font-mono bg-[#e3e1df] px-2 py-1 rounded-sm text-sm">{rho.toFixed(2)}</span>
+                </div>
+                <input type="range" min="-1" max="1" step="0.01" value={rho} onChange={(e) => setRho(Number(e.target.value))} className="w-full" />
+                <div className="flex justify-between text-xs text-[#888888] mt-3 font-medium">
+                  <span>-1.0 (逆相関)</span>
+                  <span>0 (無相関)</span>
+                  <span>1.0 (正相関)</span>
+                </div>
+              </div>
+
+              {/* 結果エリア */}
+              <div className="border-t border-[#dbd9d6] pt-6">
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="text-center p-4 bg-[#262421] text-[#dbd7d1] rounded-sm shadow-inner">
+                    <p className="text-xs uppercase tracking-widest opacity-70 mb-1">期待リターン</p>
+                    <p className="text-3xl font-light text-white">{res.portReturn.toFixed(2)}<span className="text-lg opacity-70">%</span></p>
+                  </div>
+                  <div className="text-center p-4 bg-[#262421] text-[#dbd7d1] rounded-sm shadow-inner">
+                    <p className="text-xs uppercase tracking-widest opacity-70 mb-1">標準偏差</p>
+                    <p className="text-3xl font-light text-white">{res.portStd.toFixed(2)}<span className="text-lg opacity-70">%</span></p>
+                  </div>
+                </div>
+
+                <div className="bg-[#ffffff] rounded-sm border border-[#dbd9d6]">
+                  <div className="px-4 py-3 border-b border-[#dbd9d6] bg-[#f8f7f6]">
+                    <h3 className="font-semibold text-[#333333] text-sm">Calculation Steps</h3>
+                  </div>
+                  <div 
+                    ref={mathContainerRef} 
+                    className="p-4 text-sm text-[#333333] overflow-x-auto"
+                  >
+                    {latexSteps}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!);
+      root.render(<App />);
+    </script>
+  </body>
+</html>

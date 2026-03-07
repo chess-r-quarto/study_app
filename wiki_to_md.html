@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wikipedia to Markdown</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Config for Lichess Dark Theme -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              DEFAULT: '#161512',
+              panel: '#262421',
+              input: '#1e1d1b',
+              border: '#302e2c',
+              hover: '#363431'
+            },
+            content: {
+              DEFAULT: '#c3c3c3',
+              muted: '#8c8c8c',
+              bright: '#ffffff',
+            },
+            primary: {
+              DEFAULT: '#3692e7',
+              hover: '#2a7abf',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Turndown (HTML to Markdown) -->
+  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+
+  <!-- Custom Babel configuration for TSX -->
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+
+  <style>
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #161512;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #302e2c;
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #403e3c;
+    }
+  </style>
+</head>
+<body class="bg-surface text-content min-h-screen font-sans selection:bg-primary selection:text-content-bright">
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState } = React;
+
+    const App = (): JSX.Element => {
+      const [input, setInput] = useState<string>('');
+      const [markdown, setMarkdown] = useState<string>('');
+      const [loading, setLoading] = useState<boolean>(false);
+      const [error, setError] = useState<string>('');
+
+      const extractTitle = (rawInput: string): string => {
+        let title = rawInput.trim();
+        if (title.includes('wikipedia.org/wiki/')) {
+          const parts = title.split('wikipedia.org/wiki/');
+          title = parts[1];
+        }
+        title = title.split('#')[0].split('?')[0];
+        return title;
+      };
+
+      const handleFetch = async (): Promise<void> => {
+        if (!input.trim()) return;
+        
+        setLoading(true);
+        setError('');
+        setMarkdown('');
+
+        const title = extractTitle(input);
+
+        try {
+          const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&format=json&origin=*&redirects=1`;
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+          }
+          
+          const data = await response.json();
+
+          if (data.error) {
+            throw new Error(`API Error: ${data.error.info}`);
+          }
+
+          const html = data.parse.text['*'];
+
+          const turndownService = new TurndownService({ 
+            headingStyle: 'atx',
+            codeBlockStyle: 'fenced'
+          });
+          
+          turndownService.remove(['style', 'script', 'noscript', 'sup', '.mw-editsection']);
+          
+          const md = turndownService.turndown(html);
+
+          setMarkdown(md);
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setError(err.message);
+          } else {
+            setError('An unexpected error occurred.');
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleDownload = (): void => {
+        if (!markdown) return;
+        
+        const title = extractTitle(input) || 'wikipedia-article';
+        const decodedTitle = decodeURIComponent(title).replace(/_/g, ' ');
+        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${decodedTitle}.md`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto p-6 mt-10">
+          <div className="bg-surface-panel rounded-lg shadow-xl border border-surface-border p-8">
+            <h1 className="text-2xl font-semibold mb-6 text-content-bright">Wikipedia to Markdown</h1>
+            
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <input
+                type="text"
+                placeholder="Enter English Wikipedia title or URL (e.g., React_(software))"
+                className="flex-1 px-4 py-2 bg-surface-input border border-surface-border text-content-bright rounded-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-content-muted"
+                value={input}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') handleFetch();
+                }}
+              />
+              <button
+                onClick={handleFetch}
+                disabled={loading || !input.trim()}
+                className="px-8 py-2 bg-primary text-content-bright font-medium rounded-md hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-panel disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Fetching...' : 'Fetch'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-[#3c1e1e] text-[#e06c6c] border border-[#5c2b2b] rounded-md">
+                {error}
+              </div>
+            )}
+
+            {markdown && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-sm font-medium text-content-muted uppercase tracking-wider">Preview</h2>
+                  <button
+                    onClick={handleDownload}
+                    className="px-4 py-2 bg-surface-border text-content-bright text-sm font-medium rounded-md hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-surface-border transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download (.md)
+                  </button>
+                </div>
+                <textarea
+                  className="w-full h-96 p-4 bg-surface-input border border-surface-border text-content rounded-md font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                  value={markdown}
+                  readOnly
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<App />);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Compiler for AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Lichess / Dark Mode Theme */
+        body { background-color: #161512; color: #bababa; font-family: 'Noto Sans JP', sans-serif; }
+        .lichess-card { background-color: #262421; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .active-zone { background-color: #2b3036; border-color: #3692e7 !important; }
+        .text-accent { color: #3692e7; }
+        .border-accent { border-color: #3692e7; }
+        .hover-card:hover { border-color: #606060; }
+        
+        /* Terminal / Log Styling */
+        .terminal-font { font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #161512; }
+        ::-webkit-scrollbar-thumb { background: #404040; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #505050; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Helper: Encoding Detection & Reading ---
+        const readFileAuto = async (file) => {
+            const buffer = await file.arrayBuffer();
+            try {
+                const decoder = new TextDecoder("utf-8", { fatal: true });
+                return decoder.decode(buffer);
+            } catch (e) {
+                try {
+                    const decoder = new TextDecoder("shift-jis", { fatal: true });
+                    return decoder.decode(buffer);
+                } catch (e2) {
+                    const decoder = new TextDecoder("utf-8");
+                    return decoder.decode(buffer);
+                }
+            }
+        };
+
+        // --- Helper: Text Normalization ---
+        const normalizeText = (str) => {
+            if (!str) return "";
+            return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+                      .replace(/\u3000/g, ' ')
+                      .replace(/&nbsp;/g, ' ')
+                      .trim();
+        };
+
+        // --- Helper: Kanji Number to Arabic Number ---
+        const parseKanjiNum = (s) => {
+            if (!s) return "";
+            // Already Arabic
+            if (s.match(/^[0-9０-９]+$/)) {
+                return s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+            }
+            // Kanji Parsing
+            const map = {'〇':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+            const unit = {'十':10,'百':100,'千':1000};
+            let res = 0;
+            let tmp = 0;
+            for(let char of s) {
+                if(unit[char]) {
+                    if(tmp === 0) tmp = 1;
+                    res += tmp * unit[char];
+                    tmp = 0;
+                } else if (map[char] !== undefined) {
+                    tmp = map[char];
+                }
+            }
+            return res + tmp;
+        };
+
+        // --- Core Logic 1: XML Parsing (v5 Deep Structure) ---
+        const ERA_MAP = { "Meiji": "明治", "Taisho": "大正", "Showa": "昭和", "Heisei": "平成", "Reiwa": "令和" };
+
+        const parseLegalXML = (xmlText) => {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            
+            const lawTitle = normalizeText(xmlDoc.querySelector('LawTitle')?.textContent) || "Unknown_Law";
+            const lawNum = normalizeText(xmlDoc.querySelector('LawNum')?.textContent) || "";
+            
+            let enactDate = "";
+            const lawTag = xmlDoc.querySelector('Law');
+            if (lawTag && lawTag.getAttribute('Era')) {
+                const eraRaw = lawTag.getAttribute('Era');
+                const era = ERA_MAP[eraRaw] || eraRaw;
+                enactDate = `${era}${lawTag.getAttribute('Year')}年${lawTag.getAttribute('PromulgateMonth')}月${lawTag.getAttribute('PromulgateDay')}日公布`;
+                enactDate = normalizeText(enactDate);
+            }
+
+            let md = `---
+title: "${lawTitle}"
+law_num: "${lawNum}"
+enact_date: "${enactDate}"
+source_type: "xml_converted"
+---\n\n# ${lawTitle}\n\n`;
+
+            const clean = (t) => t ? normalizeText(t.replace(/\s+/g, ' ')) : '';
+            const getSiblingIndex = (node, tag) => {
+                let count = 1, prev = node.previousElementSibling;
+                while(prev) { if(prev.nodeName === tag) count++; prev = prev.previousElementSibling; }
+                return count;
+            };
+
+            const traverse = (node) => {
+                if (!node) return;
+                const name = node.nodeName;
+
+                if (name === 'Part') md += `\n## ${normalizeText(node.querySelector('PartTitle')?.textContent)}\n\n`;
+                else if (name === 'Chapter') md += `\n### ${normalizeText(node.querySelector('ChapterTitle')?.textContent)}\n\n`;
+                else if (name === 'Section') md += `\n#### ${normalizeText(node.querySelector('SectionTitle')?.textContent)}\n\n`;
+                else if (name === 'Article') {
+                    // Extract Num from Title if mixed (e.g. "第一条")
+                    let titleStr = normalizeText(node.querySelector('ArticleTitle')?.textContent);
+                    let numStr = "";
+                    let caption = normalizeText(node.querySelector('ArticleCaption')?.textContent);
+                    
+                    // Convert "第一条" -> "第1条"
+                    const match = titleStr.match(/^第(.+)条$/);
+                    if (match) {
+                        const num = parseKanjiNum(match[1]);
+                        titleStr = `第${num}条`;
+                    }
+                    
+                    if (caption) caption = `(${caption})`; // XML usually has caption separate
+                    
+                    md += `\n##### ${titleStr} ${caption}\n`;
+                } else if (name === 'Paragraph') {
+                    let num = normalizeText(node.querySelector('ParagraphNum')?.textContent);
+                    if (!num) num = getSiblingIndex(node, 'Paragraph');
+                    const sentence = node.querySelector('ParagraphSentence > Sentence')?.textContent || '';
+                    md += `**第${num}項** ${clean(sentence)}\n\n`;
+                } else if (name === 'Item') {
+                    const num = normalizeText(node.querySelector('ItemTitle')?.textContent);
+                    const sentence = node.querySelector('ItemSentence > Sentence')?.textContent || '';
+                    md += `- **第${num}号** ${clean(sentence)}\n`;
+                } else if (name === 'Subitem1') {
+                    const num = normalizeText(node.querySelector('Subitem1Title')?.textContent);
+                    const sentence = node.querySelector('Subitem1Sentence > Sentence')?.textContent || '';
+                    md += `  - **${num}** ${clean(sentence)}\n`; 
+                } else if (name === 'Subitem2') {
+                    const num = normalizeText(node.querySelector('Subitem2Title')?.textContent);
+                    const sentence = node.querySelector('Subitem2Sentence > Sentence')?.textContent || '';
+                    md += `    - **${num}** ${clean(sentence)}\n`;
+                }
+
+                Array.from(node.children).forEach(child => {
+                    if (!['PartTitle','ChapterTitle','SectionTitle','ArticleTitle','ArticleCaption','ParagraphNum','ParagraphSentence','ItemTitle','ItemSentence','Subitem1Title','Subitem1Sentence','Subitem2Title','Subitem2Sentence'].includes(child.nodeName)) {
+                        traverse(child);
+                    }
+                });
+            };
+
+            const mainProvision = xmlDoc.querySelector('MainProvision');
+            if (mainProvision) traverse(mainProvision);
+
+            return { title: lawTitle, content: md };
+        };
+
+        // --- Core Logic 2: Legacy HTML Parsing (Master Class) ---
+        
+        const parseReikiHTML = (htmlText) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, "text/html");
+            let title = normalizeText(doc.querySelector('title')?.textContent) || "Unknown_Legacy_Law";
+            
+            let md = `---
+title: "${title}"
+source_type: "legacy_html_converted"
+description: "Converted from Reiki-Base/MHTML/HTML format"
+---\n\n# ${title}\n\n`;
+
+            const container = 
+                doc.querySelector('.joubun') || 
+                doc.querySelector('#primary') || 
+                doc.querySelector('#main') || 
+                doc.body;
+
+            // Collect lines
+            let lines = [];
+            const elines = container.querySelectorAll('.eline');
+            if (elines.length > 0) {
+                lines = Array.from(elines);
+            } else {
+                lines = Array.from(container.querySelectorAll('div, p')).filter(el => {
+                    return el.childElementCount === 0 || (el.innerText && el.innerText.length < 200);
+                });
+            }
+
+            lines.forEach((el) => {
+                const rawText = normalizeText(el.textContent);
+                if (!rawText) return;
+
+                // --- 1. Article (Complex Detection) ---
+                
+                // Pattern A: "(Caption)ArticleNum Content" (Legacy style)
+                // e.g., "(趣旨)第1条 この規則は..."
+                let match = rawText.match(/^[\(（](.+?)[\)）]\s*第([0-9０-９一-千]+)条[\s　]*(.*)/);
+                if (match) {
+                    const caption = `(${match[1]})`;
+                    const num = parseKanjiNum(match[2]);
+                    const content = match[3];
+                    md += `\n##### 第${num}条 ${caption}\n`;
+                    if (content) md += `${content}\n`; // Body on new line
+                    return;
+                }
+
+                // Pattern B: "ArticleNum (Caption) Content" (XML style)
+                // e.g., "第1条 (趣旨) この規則は..."
+                match = rawText.match(/^第([0-9０-９一-千]+)条[\s　]+[\(（](.+?)[\)）][\s　]*(.*)/);
+                if (match) {
+                    const num = parseKanjiNum(match[1]);
+                    const caption = `(${match[2]})`;
+                    const content = match[3];
+                    md += `\n##### 第${num}条 ${caption}\n`;
+                    if (content) md += `${content}\n`;
+                    return;
+                }
+
+                // Pattern C: "ArticleNum Content" (No Caption)
+                // e.g., "第1条 この規則は..."
+                match = rawText.match(/^第([0-9０-９一-千]+)条[\s　]*(.*)/);
+                if (match) {
+                    const num = parseKanjiNum(match[1]);
+                    const content = match[2];
+                    md += `\n##### 第${num}条\n`; // No caption
+                    if (content) md += `${content}\n`;
+                    return;
+                }
+                
+                // --- 2. Paragraph (項) ---
+                // Pattern: "2 ..." or "10 ..."
+                // Note: We avoid matching years "平成31年" by checking context or strict start
+                // We trust normalizeText has removed leading spaces
+                if (rawText.match(/^[0-9]+[\s　]/)) {
+                    const parts = rawText.split(/[\s　]/);
+                    const num = parts[0];
+                    const body = rawText.substring(num.length).trim();
+                    // Basic sanity check: num shouldn't be a year (usually followed by 年)
+                    if (!body.startsWith('年')) {
+                        md += `\n**第${num}項** ${body}\n`;
+                        return;
+                    }
+                }
+
+                // --- 3. Item (号) ---
+                // Pattern: (1), (一), (ア)
+                if (
+                    rawText.match(/^[\(（]([0-9]+)[\)）]/) || 
+                    rawText.match(/^[\(（]([一二三四五六七八九十]+)[\)）]/) ||
+                    rawText.match(/^[ア-ン][\s　]/)
+                ) {
+                     md += `- ${rawText}\n`;
+                     return;
+                }
+
+                // --- 4. Explicit Item (第N号) ---
+                // Pattern: "第1号", "第１号"
+                match = rawText.match(/^第([0-9０-９]+)号[\s　](.*)/);
+                if (match) {
+                     const num = parseKanjiNum(match[1]); // Ensure Arabic
+                     const content = match[2];
+                     md += `- **第${num}号** ${content}\n`;
+                     return;
+                }
+
+                // --- 5. Fallback ---
+                if (rawText !== title) {
+                    md += `${rawText}\n`;
+                }
+            });
+
+            return { title, content: md };
+        };
+
+        // --- UI Component ---
+        const App = () => {
+            const [logs, setLogs] = useState([]);
+            const [processing, setProcessing] = useState(false);
+            const [downloadUrl, setDownloadUrl] = useState(null);
+            const [downloadName, setDownloadName] = useState("");
+            const [isDragging, setIsDragging] = useState(false);
+            const fileInputRef = useRef(null);
+
+            const addLog = (msg) => setLogs(prev => [...prev.slice(-5), msg]);
+
+            const handleFiles = async (fileList) => {
+                setProcessing(true);
+                setDownloadUrl(null); 
+                setLogs([]);
+                const outputZip = new JSZip();
+                let processedCount = 0;
+
+                try {
+                    addLog("Initializing compiler...");
+                    for (const file of fileList) {
+                        const fname = file.name.toLowerCase();
+                        
+                        if (fname.endsWith('.zip')) {
+                            addLog(`Reading archive: ${file.name}`);
+                            const loadedZip = await JSZip.loadAsync(file);
+                            const xmlFiles = Object.keys(loadedZip.files).filter(n => n.endsWith('.xml'));
+                            for (const xmlPath of xmlFiles) {
+                                const xmlText = await loadedZip.files[xmlPath].async("text");
+                                const { title, content } = parseLegalXML(xmlText);
+                                const safeName = title.replace(/[\\/:*?"<>|]/g, '_');
+                                outputZip.file(`${safeName}.md`, content);
+                                processedCount++;
+                                addLog(`Compiled XML: ${title}`);
+                            }
+                        } else if (fname.endsWith('.xml')) {
+                            const xmlText = await readFileAuto(file); 
+                            const { title, content } = parseLegalXML(xmlText);
+                            const safeName = title.replace(/[\\/:*?"<>|]/g, '_');
+                            outputZip.file(`${safeName}.md`, content);
+                            processedCount++;
+                            addLog(`Compiled XML: ${title}`);
+
+                        } else if (fname.endsWith('.html') || fname.endsWith('.htm')) {
+                            addLog(`Reading Legacy HTML: ${file.name}`);
+                            const rawText = await readFileAuto(file); 
+                            
+                            const { title, content } = parseReikiHTML(rawText);
+                            const safeName = title.replace(/[\\/:*?"<>|]/g, '_');
+                            outputZip.file(`${safeName}_legacy.md`, content);
+                            processedCount++;
+                            addLog(`Compiled Legacy: ${title}`);
+                        }
+                    }
+
+                    if (processedCount > 0) {
+                        addLog(`Building artifacts...`);
+                        const content = await outputZip.generateAsync({ type: "blob" });
+                        const url = URL.createObjectURL(content);
+                        setDownloadUrl(url);
+                        setDownloadName(`Legal_Artifacts_${new Date().toISOString().slice(0,10)}.zip`);
+                        addLog("Build complete. Ready to download.");
+                    } else {
+                        addLog("Error: No valid sources found.");
+                    }
+                } catch (e) {
+                    addLog(`Fatal Error: ${e.message}`);
+                    console.error(e);
+                } finally {
+                    setProcessing(false);
+                }
+            };
+
+            const reset = () => {
+                setDownloadUrl(null);
+                setLogs([]);
+            };
+
+            useEffect(() => { lucide.createIcons(); }, [logs, downloadUrl, processing]);
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-6">
+                    <div className="w-full max-w-lg">
+                        
+                        {/* Header */}
+                        <header className="flex items-center space-x-3 mb-6 select-none opacity-90">
+                            <i data-lucide="cpu" className="w-6 h-6 text-accent"></i>
+                            <h1 className="text-xl font-light tracking-wide text-[#bababa]">Legal <span className="text-accent font-normal">Compiler</span></h1>
+                        </header>
+
+                        {/* Main Interaction Area */}
+                        {!downloadUrl ? (
+                            <div 
+                                className={`lichess-card p-12 text-center border-2 border-dashed transition-all duration-200 cursor-pointer 
+                                    ${isDragging ? 'active-zone' : 'border-[#404040] hover-card'}`}
+                                onClick={() => !processing && fileInputRef.current?.click()}
+                                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)}
+                                onDrop={e => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}
+                            >
+                                <input type="file" ref={fileInputRef} className="hidden" multiple accept=".xml,.zip,.html,.htm" onChange={e => handleFiles(e.target.files)} />
+                                
+                                {processing ? (
+                                    <div className="flex flex-col items-center animate-pulse">
+                                        <i data-lucide="binary" className="w-10 h-10 text-accent animate-spin mb-4"></i>
+                                        <p className="text-sm font-mono text-accent">COMPILING...</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <i data-lucide="code-2" className="w-10 h-10 text-[#505050] mx-auto"></i>
+                                        <div>
+                                            <p className="text-base text-[#bababa]">Drop Source Code</p>
+                                            <p className="text-[10px] text-[#606060] mt-2 uppercase tracking-widest font-mono">
+                                                XML (v5) / ZIP / HTML (Legacy)
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            // Download View
+                            <div className="lichess-card p-8 text-center border border-[#303030] animate-fade-in">
+                                <div className="mb-6 flex justify-center">
+                                    <div className="w-16 h-16 rounded-full bg-[#2b3036] flex items-center justify-center border border-[#3692e7]">
+                                        <i data-lucide="check" className="w-8 h-8 text-accent"></i>
+                                    </div>
+                                </div>
+                                <h2 className="text-lg text-[#bababa] mb-2">Compilation Complete</h2>
+                                <p className="text-xs text-[#606060] mb-6 font-mono">Ready to export artifacts.</p>
+                                
+                                <div className="flex space-x-3 justify-center">
+                                    <a 
+                                        href={downloadUrl} 
+                                        download={downloadName}
+                                        className="bg-[#3692e7] hover:bg-[#2b7bc4] text-white px-6 py-2 rounded text-sm font-medium transition-colors flex items-center"
+                                    >
+                                        <i data-lucide="download" className="w-4 h-4 mr-2"></i>
+                                        Download ZIP
+                                    </a>
+                                    <button 
+                                        onClick={reset}
+                                        className="bg-[#303030] hover:bg-[#404040] text-[#bababa] px-4 py-2 rounded text-sm transition-colors"
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* System Log */}
+                        <div className="mt-4 lichess-card p-3 font-mono text-[11px] text-[#606060] terminal-font h-32 overflow-hidden border border-[#303030]">
+                            <div className="flex items-center space-x-2 mb-2 border-b border-[#303030] pb-1">
+                                <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
+                                <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
+                                <span className="opacity-50">System Log</span>
+                            </div>
+                            <div className="flex flex-col space-y-1">
+                                {logs.length === 0 && <span className="opacity-30">Ready for input...</span>}
+                                {logs.map((l, i) => (
+                                    <div key={i} className="truncate flex items-center">
+                                        <span className="text-accent mr-2">➜</span>
+                                        <span className="opacity-80">{l}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Footer Info */}
+                        <div className="mt-4 flex justify-between items-center text-[10px] text-[#404040] font-mono">
+                            <span>TARGET: NOTEBOOKLM / MD</span>
+                            <span>BUILD: STABLE + LEGACY (HTML)</span>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>買換え特例シミュレーター</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for in-browser TSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+      /* Lichess風の入力スライダーカスタマイズ */
+      input[type=range] {
+        -webkit-appearance: none;
+        background: transparent;
+        width: 100%;
+      }
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #3692e7;
+        cursor: pointer;
+        margin-top: -6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+      input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #dbd9d6;
+        border-radius: 2px;
+      }
+      input[type=range]:focus {
+        outline: none;
+      }
+      
+      /* Number Input */
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+  <body class="bg-[#edebe9] text-[#333333] font-sans antialiased selection:bg-[#3692e7] selection:text-white min-h-screen">
+    <div id="root"></div>
+
+    <script>
+      Babel.registerPreset('tsx', {
+        presets: [
+          [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+          Babel.availablePresets['react'],
+        ],
+      });
+    </script>
+    
+    <script type="text/babel" data-presets="tsx">
+      const { useState, useMemo, useEffect, useRef } = React;
+
+      // --- Icons ---
+      const SettingsIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+      const CalculatorIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>;
+
+      // --- Components ---
+      const Latex: React.FC<{ tex: string, className?: string }> = ({ tex, className = "" }) => {
+        const containerRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+          if (containerRef.current && (window as any).katex) {
+            try {
+              (window as any).katex.render(tex, containerRef.current, {
+                throwOnError: false,
+                displayMode: true,
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }, [tex]);
+        return <div ref={containerRef} className={`overflow-x-auto overflow-y-hidden text-sm ${className}`} />;
+      };
+
+      const App: React.FC = () => {
+        // --- State Definitions (万円単位) ---
+        const [params, setParams] = useState({
+          salePrice: 10000,   // 売却価格 (A)
+          buyPrice: 8000,     // 買換価格 (B)
+          acquisition: 500,   // 取得費 (C)
+          transferCost: 400,  // 譲渡費用 (D)
+          deferralRate: 0.8,  // 繰延認定率 (デフォルト8割)
+        });
+
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+
+        // --- Logic Functions ---
+        const calc = useMemo(() => {
+          const totalCost = params.acquisition + params.transferCost;
+          const grossProfit = params.salePrice - totalCost;
+          
+          // 1. 繰延として認められる最大枠 (認定繰延額)
+          const recognizedDeferral = Math.floor(Math.min(params.salePrice, params.buyPrice) * params.deferralRate);
+          
+          // 2. 収入金額とみなす額 (売却価格から認定繰延額を引いた、現金化部分)
+          const taxableRevenue = Math.max(0, params.salePrice - recognizedDeferral);
+          
+          // 3. 現金化率 (本質的な比率)
+          const cashOutRatio = params.salePrice > 0 ? taxableRevenue / params.salePrice : 0;
+          
+          // 4. 課税譲渡所得 = 本来の利益 * 現金化率
+          const taxableIncome = Math.floor(grossProfit * cashOutRatio);
+
+          // 5. 新しい物件の引き継ぎ取得費 (将来のコスト)
+          const inheritedCost = Math.floor(totalCost * (recognizedDeferral / params.salePrice));
+
+          const texFormula = `
+            \\begin{aligned}
+             \\text{譲渡益} (G) &= ${params.salePrice} - ${totalCost} = ${grossProfit} \\text{ 万} \\\\[0.5em]
+             \\text{認定繰延額} &= \\min(${params.salePrice}, ${params.buyPrice}) \\times ${(params.deferralRate * 100).toFixed(0)}\\% = ${recognizedDeferral} \\text{ 万} \\\\[0.5em]
+             \\text{現金化収入} &= \\max(0, ${params.salePrice} - ${recognizedDeferral}) = ${taxableRevenue} \\text{ 万} \\\\[0.5em]
+             \\text{課税譲渡所得} &= ${grossProfit} \\times \\frac{${taxableRevenue}}{${params.salePrice}} = \\mathbf{${taxableIncome}} \\text{ 万円}
+            \\end{aligned}
+          `;
+
+          return { totalCost, grossProfit, recognizedDeferral, taxableRevenue, cashOutRatio, taxableIncome, inheritedCost, texFormula };
+        }, [params]);
+
+        // --- Canvas Renderer ---
+        useEffect(() => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          const dpr = window.devicePixelRatio || 1;
+          const rect = canvas.getBoundingClientRect();
+          canvas.width = rect.width * dpr;
+          canvas.height = rect.height * dpr;
+          ctx.scale(dpr, dpr);
+
+          const w = rect.width;
+          const h = rect.height;
+          const pad = 40;
+          const gW = w - pad * 2;
+          const gH = h - pad * 2;
+
+          ctx.clearRect(0, 0, w, h);
+
+          // 座標定義 (左下原点)
+          const oX = pad;
+          const oY = h - pad;
+
+          // スケール
+          const sY = gH / Math.max(params.salePrice, 1);
+          
+          // 分割ライン
+          const splitRatio = calc.recognizedDeferral / Math.max(params.salePrice, 1);
+          const wLeft = gW * splitRatio;
+          const wRight = gW * (1 - splitRatio);
+
+          const hCost = calc.totalCost * sY;
+          const hProfit = calc.grossProfit * sY;
+
+          // 1. グリッド (方眼)
+          ctx.strokeStyle = '#e3e1df';
+          ctx.lineWidth = 1;
+          for(let i=0; i<=10; i++) {
+            ctx.beginPath();
+            ctx.moveTo(oX + (gW/10)*i, oY); ctx.lineTo(oX + (gW/10)*i, oY - gH);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(oX, oY - (gH/10)*i); ctx.lineTo(oX + gW, oY - (gH/10)*i);
+            ctx.stroke();
+          }
+
+          // 2. 描画: 繰延エリア (左)
+          ctx.fillStyle = '#f8f7f6'; // Light gray for deferred
+          ctx.fillRect(oX, oY - hCost - hProfit, wLeft, hProfit);
+          ctx.fillStyle = '#dbd9d6'; // Cost color
+          ctx.fillRect(oX, oY - hCost, wLeft, hCost);
+
+          // 3. 描画: 課税エリア (右)
+          ctx.fillStyle = '#3692e7'; // Lichess Blue for taxable
+          ctx.fillRect(oX + wLeft, oY - hCost - hProfit, wRight, hProfit);
+          ctx.fillStyle = '#b3d9ff'; // Lighter blue for cost
+          ctx.fillRect(oX + wLeft, oY - hCost, wRight, hCost);
+
+          // 4. 枠線
+          ctx.strokeStyle = '#333333';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(oX, oY - gH, gW, gH);
+          ctx.beginPath();
+          ctx.moveTo(oX + wLeft, oY); ctx.lineTo(oX + wLeft, oY - gH);
+          ctx.stroke();
+
+          // 5. テキストラベル
+          ctx.fillStyle = '#333333';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          
+          if (wRight > 60 && hProfit > 30) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('課税所得', oX + wLeft + wRight/2, oY - hCost - hProfit/2 - 2);
+            ctx.fillText(`${calc.taxableIncome}万`, oX + wLeft + wRight/2, oY - hCost - hProfit/2 + 12);
+          }
+
+          ctx.fillStyle = '#666666';
+          ctx.textAlign = 'right';
+          ctx.fillText('100%', oX - 10, oY - gH + 5);
+          ctx.fillText('0', oX - 10, oY + 5);
+
+        }, [params, calc]);
+
+        return (
+          <div className="p-4 md:p-8 max-w-6xl mx-auto">
+            {/* Header */}
+            <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-[#dbd9d6] pb-4">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-wide text-[#333] flex items-center gap-2">
+                  <CalculatorIcon className="w-6 h-6 text-[#3692e7]" />
+                  Tax Calculation Workbench
+                </h1>
+                <p className="text-xs text-[#666] mt-1 font-bold">居住用・事業用財産の買換え特例：幾何学的解析モデル</p>
+              </div>
+              <div className="text-[10px] font-mono text-[#888] mt-4 md:mt-0 bg-[#e3e1df] px-2 py-1 rounded-sm">
+                SYSTEM_v2.0 / RATIO_BASED_ANALYSIS
+              </div>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left: Input Parameters */}
+              <div className="lg:col-span-4 space-y-6">
+                <div className="bg-white border border-[#dbd9d6] rounded-sm shadow-sm overflow-hidden">
+                  <div className="bg-[#f8f7f6] border-b border-[#dbd9d6] p-3 flex items-center gap-2">
+                    <SettingsIcon className="w-4 h-4 text-[#666]" />
+                    <h2 className="text-sm font-semibold text-[#333] uppercase tracking-wider">Input Parameters</h2>
+                  </div>
+                  
+                  <div className="p-5 space-y-6">
+                    <div>
+                      <div className="flex justify-between text-xs mb-2 font-bold text-[#666]">
+                        <span>売却対価 (A)</span>
+                        <span className="font-mono text-[#333]">{params.salePrice.toLocaleString()}万</span>
+                      </div>
+                      <input type="range" min="1000" max="20000" step="100" 
+                        value={params.salePrice}
+                        onChange={e => setParams({...params, salePrice: Number(e.target.value)})}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-2 font-bold text-[#666]">
+                        <span>買換取得価額 (B)</span>
+                        <span className="font-mono text-[#3692e7]">{params.buyPrice.toLocaleString()}万</span>
+                      </div>
+                      <input type="range" min="0" max={params.salePrice + 2000} step="100" 
+                        value={params.buyPrice}
+                        onChange={e => setParams({...params, buyPrice: Number(e.target.value)})}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-2 font-bold text-[#666]">
+                        <span>繰延認定率 (係数)</span>
+                        <span className="font-mono text-[#333]">{(params.deferralRate * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex gap-1 bg-[#e3e1df] p-1 rounded-sm">
+                        {[0.8, 0.9, 1.0].map(r => (
+                          <button key={r} 
+                            onClick={() => setParams({...params, deferralRate: r})}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-sm transition-colors ${params.deferralRate === r ? 'bg-white shadow-sm text-[#333]' : 'text-[#888] hover:text-[#333]'}`}>
+                            {r === 1.0 ? '全額' : `${r*100}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-5 border-t border-[#dbd9d6]">
+                      <div className="flex justify-between text-xs mb-3 font-bold text-[#666]">
+                        <span>取得費 + 譲渡費用</span>
+                        <span className="font-mono text-[#333]">{(params.acquisition + params.transferCost).toLocaleString()}万</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="relative">
+                          <input type="number" value={params.acquisition} 
+                            onChange={e => setParams({...params, acquisition: Number(e.target.value)})}
+                            className="w-full bg-[#f8f7f6] border border-[#dbd9d6] rounded-sm p-2 text-right font-mono text-[#333] focus:border-[#3692e7] outline-none text-sm" />
+                          <span className="absolute left-2 top-2 text-[10px] text-[#888] font-bold">取得費</span>
+                        </div>
+                        <div className="relative">
+                          <input type="number" value={params.transferCost} 
+                            onChange={e => setParams({...params, transferCost: Number(e.target.value)})}
+                            className="w-full bg-[#f8f7f6] border border-[#dbd9d6] rounded-sm p-2 text-right font-mono text-[#333] focus:border-[#3692e7] outline-none text-sm" />
+                          <span className="absolute left-2 top-2 text-[10px] text-[#888] font-bold">譲渡費用</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Analysis Summary */}
+                <div className="bg-[#262421] text-[#dbd7d1] rounded-sm shadow-inner p-5 space-y-4">
+                  <h2 className="text-[10px] uppercase tracking-widest opacity-70 font-bold">Calculation Summary</h2>
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-bold opacity-70">現金化率</span>
+                    <span className="text-xl font-mono text-white">{(calc.cashOutRatio * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-3 border-t border-[#444]">
+                    <span className="text-xs font-bold text-[#3692e7]">課税譲渡所得</span>
+                    <span className="text-4xl font-light text-white tracking-tighter">
+                      {calc.taxableIncome.toLocaleString()} <span className="text-sm uppercase opacity-70 font-normal">万円</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Visualization & Geometry */}
+              <div className="lg:col-span-8 flex flex-col gap-6">
+                <div className="bg-white border border-[#dbd9d6] rounded-sm shadow-sm p-6 flex flex-col flex-grow">
+                  <div className="flex justify-between items-start mb-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-[#333] flex items-center gap-2">
+                      Geometric Model
+                    </h2>
+                    <div className="flex gap-4 text-[10px] font-bold uppercase text-[#666]">
+                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#3692e7]"></span> 課税部分</div>
+                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#f8f7f6] border border-[#dbd9d6]"></span> 繰延部分</div>
+                    </div>
+                  </div>
+
+                  <div className="flex-grow relative min-h-[300px] mb-6">
+                    <canvas ref={canvasRef} className="w-full h-full absolute inset-0" />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs border-t border-[#dbd9d6] pt-6">
+                    <div className="bg-[#f8f7f6] p-4 border border-[#dbd9d6] rounded-sm">
+                      <h3 className="font-bold mb-2 text-[#3692e7] flex items-center gap-1.5">
+                        <span className="bg-[#3692e7] text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px]">1</span> 
+                        現金化部分（今、払う）
+                      </h3>
+                      <p className="text-[#666] leading-relaxed">
+                        売却額のうち再投資に回さなかった（認定枠外の） <strong className="text-[#333]">{calc.taxableRevenue.toLocaleString()}万円</strong> に含まれる利益 
+                        <strong className="text-[#333]">{calc.taxableIncome.toLocaleString()}万円</strong> が今回の課税対象です。
+                      </p>
+                    </div>
+                    <div className="bg-[#f8f7f6] p-4 border border-[#dbd9d6] rounded-sm">
+                      <h3 className="font-bold mb-2 text-[#666] flex items-center gap-1.5">
+                        <span className="bg-[#888] text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px]">2</span> 
+                        次世代への宿題（将来、払う）
+                      </h3>
+                      <p className="text-[#666] leading-relaxed">
+                        繰延べた利益は消滅しません。新物件の取得費は <strong className="text-[#333]">{calc.inheritedCost.toLocaleString()}万円</strong> に圧縮され、将来の売却時に今回の「未払分」が合算されます。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#dbd9d6] rounded-sm shadow-sm p-5">
+                  <h3 className="text-sm font-bold text-[#333] mb-3 border-b border-[#dbd9d6] pb-2">Calculation Steps</h3>
+                  <div className="bg-[#f8f7f6] border border-[#dbd9d6] rounded-sm p-4 text-[#333]">
+                    <Latex tex={calc.texFormula} />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!);
+      root.render(<App />);
+    </script>
+  </body>
+</html>

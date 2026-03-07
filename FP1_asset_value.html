@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>純資産価額方式シミュレーター (FP1級)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+      /* Input overrides */
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
+      
+      /* Custom Patterns */
+      .bg-pattern-tax {
+        background: repeating-linear-gradient(45deg, #ef4444, #ef4444 8px, #f97316 8px, #f97316 16px);
+      }
+      
+      .table-input {
+        width: 100%;
+        background: transparent;
+        text-align: right;
+        outline: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .table-input:focus {
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(54, 146, 231, 0.5);
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body class="bg-[#edebe9] min-h-screen text-[#333333] font-sans selection:bg-[#3692e7] selection:text-white flex items-center justify-center p-4">
+    <div id="root" class="w-full max-w-6xl"></div>
+
+    <script>
+      Babel.registerPreset('tsx', {
+        presets: [
+          [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+          Babel.availablePresets['react'],
+        ],
+      });
+    </script>
+    
+    <script type="text/babel" data-presets="tsx">
+      const { useState, useMemo, useEffect, useRef } = React;
+
+      // --- Constants ---
+      const TAX_RATE = 0.37;
+
+      // --- Icons ---
+      const CalculatorIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>;
+      const BarChartIcon = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+
+      // --- Components ---
+      const Latex: React.FC<{ tex: string, className?: string }> = ({ tex, className = "" }) => {
+        const containerRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+          if (containerRef.current && (window as any).katex) {
+            try {
+              (window as any).katex.render(tex, containerRef.current, {
+                throwOnError: false,
+                displayMode: true,
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }, [tex]);
+        return <div ref={containerRef} className={`overflow-x-auto overflow-y-hidden text-sm ${className}`} />;
+      };
+
+      const Card: React.FC<{ title: string, icon: any, children: React.ReactNode, className?: string }> = ({ title, icon: Icon, children, className = "" }) => (
+        <div className={`bg-white rounded-sm border border-[#dbd9d6] shadow-sm overflow-hidden flex flex-col ${className}`}>
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#f8f7f6] border-b border-[#dbd9d6]">
+            <Icon className="w-4 h-4 text-[#666]" />
+            <h2 className="text-sm font-semibold text-[#333] tracking-wide">{title}</h2>
+          </div>
+          <div className="p-4 md:p-5 flex-1 flex flex-col">
+            {children}
+          </div>
+        </div>
+      );
+
+      // --- Main App ---
+      const App: React.FC = () => {
+        const [shares, setShares] = useState<number>(100000);
+        
+        // Assets
+        const [mktCurrA, setMktCurrA] = useState<number>(22900);
+        const [bookCurrA, setBookCurrA] = useState<number>(22900);
+        const [mktFixA, setMktFixA] = useState<number>(13000);
+        const [bookFixA, setBookFixA] = useState<number>(10600);
+        
+        // Liabilities
+        const [mktCurrL, setMktCurrL] = useState<number>(9500);
+        const [bookCurrL, setBookCurrL] = useState<number>(9500);
+        const [mktFixL, setMktFixL] = useState<number>(6000);
+        const [bookFixL, setBookFixL] = useState<number>(6000);
+
+        const results = useMemo(() => {
+          const mAssetTotal = (mktCurrA || 0) + (mktFixA || 0);
+          const bAssetTotal = (bookCurrA || 0) + (bookFixA || 0);
+          const mLiabTotal = (mktCurrL || 0) + (mktFixL || 0);
+          const bLiabTotal = (bookCurrL || 0) + (bookFixL || 0);
+
+          const mktNet = Math.max(0, mAssetTotal - mLiabTotal);
+          const bookNet = Math.max(0, bAssetTotal - bLiabTotal);
+
+          let diff = mktNet - bookNet;
+          let tax = 0;
+          if (diff > 0) {
+            tax = Math.round(diff * TAX_RATE);
+          } else {
+            diff = 0;
+          }
+
+          const finalNetVal = mktNet - tax;
+          const s = shares || 1;
+          const pricePerShare = Math.floor((finalNetVal * 10000) / s);
+
+          // Formatting for KaTeX
+          const formatStr = (n: number) => Math.floor(n).toLocaleString();
+          const A = formatStr(mktNet * 10000);
+          const B = formatStr(bookNet * 10000);
+          const T = formatStr(tax * 10000);
+          const Num = formatStr(finalNetVal * 10000);
+          const S = formatStr(s);
+
+          const texFormula = `
+            \\begin{aligned}
+             \\text{1株評価額} &= \\frac{${A} - (${A} - ${B}) \\times 37\\%}{${S}} \\\\[0.5em]
+             &= \\frac{${A} - ${T}}{${S}} \\\\[0.5em]
+             &= \\frac{${Num}}{${S}} = \\mathbf{${formatStr(pricePerShare)}} \\text{ 円}
+            \\end{aligned}
+          `;
+
+          // Visualization Scaling (Percentage based on max column)
+          const maxStack = Math.max(mAssetTotal, bAssetTotal, 1);
+          const scale = 100 / maxStack;
+
+          const p_bLiab = bLiabTotal * scale;
+          const p_bNet = bookNet * scale;
+
+          const p_mLiab = mLiabTotal * scale;
+          let p_mBase = 0;
+          let p_gain = 0;
+          if (mktNet > bookNet) {
+            p_mBase = p_bNet;
+            p_gain = (mktNet - bookNet) * scale;
+          } else {
+            p_mBase = mktNet * scale;
+            p_gain = 0;
+          }
+
+          const p_tax = tax * scale;
+          const p_final = finalNetVal * scale;
+
+          return {
+            mAssetTotal, bAssetTotal, mLiabTotal, bLiabTotal,
+            mktNet, bookNet, tax, finalNetVal, pricePerShare, texFormula,
+            viz: { p_bLiab, p_bNet, p_mLiab, p_mBase, p_gain, p_tax, p_final }
+          };
+        }, [shares, mktCurrA, bookCurrA, mktFixA, bookFixA, mktCurrL, bookCurrL, mktFixL, bookFixL]);
+
+        const TableInput: React.FC<{ value: number, onChange: (v: number) => void }> = ({ value, onChange }) => (
+          <input
+            type="number"
+            value={value === 0 ? '' : value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="table-input p-1"
+          />
+        );
+
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+            
+            {/* --- LEFT: INPUTS --- */}
+            <div className="flex flex-col gap-6">
+              <Card title="設例データ入力 (単位: 万円)" icon={CalculatorIcon} className="flex-1">
+                
+                <div className="flex items-center gap-4 bg-[#f8f7f6] p-3 border border-[#dbd9d6] rounded-sm mb-6">
+                  <span className="text-sm font-bold text-[#333]">発行済株式数</span>
+                  <div className="relative flex-1 max-w-[200px]">
+                    <input
+                      type="number"
+                      value={shares}
+                      onChange={(e) => setShares(Number(e.target.value))}
+                      className="w-full bg-white border border-[#dbd9d6] rounded-sm p-2 text-right font-mono text-[#333] focus:border-[#3692e7] outline-none"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-[#888] pointer-events-none font-bold">株</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* Assets Table */}
+                  <div className="border border-[#dbd9d6] rounded-sm overflow-hidden">
+                    <table className="w-full text-xs text-center">
+                      <thead className="bg-[#f8f7f6] text-[#666] border-b border-[#dbd9d6]">
+                        <tr>
+                          <th className="py-2 px-1 font-semibold border-r border-[#dbd9d6] w-1/4">資産</th>
+                          <th className="py-2 px-1 font-semibold text-[#3692e7] border-r border-[#dbd9d6]">相続税評価額</th>
+                          <th className="py-2 px-1 font-semibold">帳簿価額</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-mono text-[#333] bg-white">
+                        <tr className="border-b border-[#dbd9d6]">
+                          <td className="py-1 px-2 border-r border-[#dbd9d6] bg-[#fdfdfc]">流動</td>
+                          <td className="border-r border-[#dbd9d6] px-1"><TableInput value={mktCurrA} onChange={setMktCurrA} /></td>
+                          <td className="px-1"><TableInput value={bookCurrA} onChange={setBookCurrA} /></td>
+                        </tr>
+                        <tr className="border-b border-[#dbd9d6]">
+                          <td className="py-1 px-2 border-r border-[#dbd9d6] bg-[#fdfdfc]">固定</td>
+                          <td className="border-r border-[#dbd9d6] px-1"><TableInput value={mktFixA} onChange={setMktFixA} /></td>
+                          <td className="px-1"><TableInput value={bookFixA} onChange={setBookFixA} /></td>
+                        </tr>
+                        <tr className="bg-[#f8f7f6] font-bold">
+                          <td className="py-2 px-2 border-r border-[#dbd9d6]">合計</td>
+                          <td className="py-2 px-2 border-r border-[#dbd9d6] text-right">{results.mAssetTotal.toLocaleString()}</td>
+                          <td className="py-2 px-2 text-right">{results.bAssetTotal.toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Liabilities Table */}
+                  <div className="border border-[#dbd9d6] rounded-sm overflow-hidden">
+                    <table className="w-full text-xs text-center">
+                      <thead className="bg-[#f8f7f6] text-[#666] border-b border-[#dbd9d6]">
+                        <tr>
+                          <th className="py-2 px-1 font-semibold border-r border-[#dbd9d6] w-1/4">負債</th>
+                          <th className="py-2 px-1 font-semibold text-[#3692e7] border-r border-[#dbd9d6]">相続税評価額</th>
+                          <th className="py-2 px-1 font-semibold">帳簿価額</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-mono text-[#333] bg-white">
+                        <tr className="border-b border-[#dbd9d6]">
+                          <td className="py-1 px-2 border-r border-[#dbd9d6] bg-[#fdfdfc]">流動</td>
+                          <td className="border-r border-[#dbd9d6] px-1"><TableInput value={mktCurrL} onChange={setMktCurrL} /></td>
+                          <td className="px-1"><TableInput value={bookCurrL} onChange={setBookCurrL} /></td>
+                        </tr>
+                        <tr className="border-b border-[#dbd9d6]">
+                          <td className="py-1 px-2 border-r border-[#dbd9d6] bg-[#fdfdfc]">固定</td>
+                          <td className="border-r border-[#dbd9d6] px-1"><TableInput value={mktFixL} onChange={setMktFixL} /></td>
+                          <td className="px-1"><TableInput value={bookFixL} onChange={setBookFixL} /></td>
+                        </tr>
+                        <tr className="bg-[#f8f7f6] font-bold">
+                          <td className="py-2 px-2 border-r border-[#dbd9d6]">合計</td>
+                          <td className="py-2 px-2 border-r border-[#dbd9d6] text-right">{results.mLiabTotal.toLocaleString()}</td>
+                          <td className="py-2 px-2 text-right">{results.bLiabTotal.toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-auto">
+                  <div className="bg-[#262421] rounded-sm p-4 text-center shadow-inner text-[#dbd7d1]">
+                    <p className="text-xs uppercase tracking-widest opacity-70 mb-1">1株あたりの評価額</p>
+                    <p className="text-4xl font-light text-white">
+                      {results.pricePerShare.toLocaleString()} <span className="text-xl opacity-70">円</span>
+                    </p>
+                  </div>
+                  <div className="mt-4 bg-[#f8f7f6] p-4 border border-[#dbd9d6] rounded-sm text-[#333]">
+                    <Latex tex={results.texFormula} />
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* --- RIGHT: VISUALIZATION --- */}
+            <div className="flex flex-col gap-6">
+              <Card title="純資産構成ビジュアル" icon={BarChartIcon} className="flex-1 h-full min-h-[500px]">
+                <div className="flex-1 flex justify-around items-end bg-[#f8f7f6] border border-[#dbd9d6] rounded-sm p-6 relative pb-16 pt-12">
+                  
+                  {/* Book B/S */}
+                  <div className="w-20 h-full flex flex-col-reverse relative group">
+                    <div className="absolute -bottom-10 w-full text-center text-xs font-bold text-[#666] leading-tight">
+                      帳簿価額<br/><span className="font-normal text-[10px] text-[#888]">(Book)</span>
+                    </div>
+                    <div className="absolute -top-6 w-full text-center text-sm font-bold text-[#333] font-mono">
+                      {results.bookNet.toLocaleString()}<span className="text-[10px]">万</span>
+                    </div>
+                    
+                    <div 
+                      className="w-full flex items-center justify-center text-[10px] text-white font-bold bg-gradient-to-br from-gray-400 to-gray-500 border border-[#dbd9d6] transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_bLiab}%` }}
+                    >
+                      負債
+                    </div>
+                    <div 
+                      className="w-full flex items-center justify-center text-[10px] text-[#333] font-bold bg-gradient-to-br from-gray-200 to-gray-300 border border-[#dbd9d6] border-b-0 transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_bNet}%` }}
+                    >
+                      簿価純資産
+                    </div>
+                  </div>
+
+                  {/* Market B/S */}
+                  <div className="w-20 h-full flex flex-col-reverse relative group">
+                    <div className="absolute -bottom-10 w-full text-center text-xs font-bold text-[#3692e7] leading-tight">
+                      相続税評価<br/><span className="font-normal text-[10px] text-[#888]">(Market)</span>
+                    </div>
+                    <div className="absolute -top-6 w-full text-center text-sm font-bold text-[#3692e7] font-mono">
+                      {results.mktNet.toLocaleString()}<span className="text-[10px]">万</span>
+                    </div>
+                    
+                    <div 
+                      className="w-full flex items-center justify-center text-[10px] text-white font-bold bg-gradient-to-br from-gray-400 to-gray-500 border border-[#dbd9d6] transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_mLiab}%` }}
+                    >
+                      負債
+                    </div>
+                    <div 
+                      className="w-full flex flex-col items-center justify-center text-[10px] text-white font-bold bg-gradient-to-br from-[#3692e7] to-[#2b7bc5] border border-[#dbd9d6] border-b-0 transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_mBase}%` }}
+                    >
+                      時価純資産
+                    </div>
+                    <div 
+                      className="w-full flex flex-col items-center justify-center text-[10px] text-white font-bold bg-gradient-to-br from-[#629924] to-[#4e7d1c] border border-[#dbd9d6] border-b-0 transition-all duration-500 overflow-visible relative"
+                      style={{ height: `${results.viz.p_gain}%`, opacity: results.viz.p_gain > 0 ? 1 : 0 }}
+                    >
+                      含み益
+                      {results.viz.p_gain > 5 && (
+                        <div className="absolute -right-16 bg-white text-[#629924] border border-[#629924] text-[9px] px-1 rounded-sm shadow-sm whitespace-nowrap">
+                          +(A-B)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Final Calculation */}
+                  <div className="w-20 h-full flex flex-col-reverse relative group">
+                    <div className="absolute -bottom-10 w-full text-center text-xs font-bold text-[#333] leading-tight">
+                      計算結果<br/><span className="font-normal text-[10px] text-[#888]">(Value)</span>
+                    </div>
+                    <div className="absolute -top-6 w-full text-center text-sm font-bold text-[#333] font-mono">
+                      {results.finalNetVal.toLocaleString()}<span className="text-[10px]">万</span>
+                    </div>
+                    
+                    <div 
+                      className="w-full flex items-center justify-center text-[10px] text-[#888] font-bold bg-gradient-to-br from-gray-300 to-gray-400 opacity-20 border border-[#dbd9d6] transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_mLiab}%` }}
+                    ></div>
+                    <div 
+                      className="w-full flex flex-col items-center justify-center text-[10px] text-white font-bold bg-gradient-to-br from-[#262421] to-[#1a1917] border border-[#dbd9d6] border-b-0 transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_final}%` }}
+                    >
+                      評価額
+                    </div>
+                    <div 
+                      className="w-full flex items-center justify-center text-[10px] text-white font-bold bg-pattern-tax border border-[#dbd9d6] border-b-0 transition-all duration-500 overflow-hidden"
+                      style={{ height: `${results.viz.p_tax}%`, opacity: results.viz.p_tax > 0 ? 1 : 0 }}
+                    >
+                      ▲税金
+                    </div>
+                  </div>
+
+                </div>
+              </Card>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!);
+      root.render(<App />);
+    </script>
+  </body>
+</html>

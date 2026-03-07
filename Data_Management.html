@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Management Literacy Training</title>
+    <style>
+        /* ==========================================
+           1. macOS風 UIスタイル定義
+           ========================================== */
+        :root {
+            --system-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --window-bg: #ffffff;
+            --title-bar-bg: #f1f1f1;
+            --title-bar-border: #dcdcdc;
+            --primary: #007aff; /* macOS Blue */
+            --primary-hover: #0062cc;
+            --text-main: #222;
+            --text-sub: #666;
+            --success: #34c759;
+            --error: #ff3b30;
+            --btn-bg: #ffffff;
+            --btn-border: #d1d1d1;
+            --btn-shadow: 0 1px 1px rgba(0,0,0,0.05);
+        }
+
+        body {
+            font-family: var(--system-font);
+            background: url('https://images.unsplash.com/photo-1621360841013-c768371e93cf?q=80&w=2560&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-main);
+            backdrop-filter: blur(10px); /* 背景のぼかし */
+        }
+
+        /* ウィンドウ本体 */
+        #window-frame {
+            background: var(--window-bg);
+            width: 100%;
+            max-width: 700px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: popIn 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        /* タイトルバー */
+        .title-bar {
+            height: 38px;
+            background: linear-gradient(to bottom, #f6f6f6, #e8e8e8);
+            border-bottom: 1px solid #c8c8c8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            user-select: none;
+            -webkit-app-region: drag; /* Electron等でのドラッグ対応 */
+        }
+
+        .title-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            letter-spacing: 0.5px;
+        }
+
+        /* 信号機ボタン (Traffic Lights) */
+        .traffic-lights {
+            position: absolute;
+            left: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .traffic-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 0.5px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: rgba(0,0,0,0.6);
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .traffic-btn:hover::after {
+            content: attr(data-icon);
+            opacity: 1;
+        }
+        
+        .traffic-btn::after {
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .btn-close { background-color: #ff5f56; border-color: #e0443e; }
+        .btn-close:active { background-color: #bf4942; }
+
+        .btn-minimize { background-color: #ffbd2e; border-color: #dea123; }
+        .btn-minimize:active { background-color: #bf8e22; }
+
+        .btn-zoom { background-color: #27c93f; border-color: #1aab29; }
+        .btn-zoom:active { background-color: #1d9730; }
+
+
+        /* コンテンツエリア */
+        #app-content {
+            padding: 30px 40px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-content {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .header-content h2 {
+            margin: 5px 0;
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #333;
+        }
+        .header-content small {
+            color: #888;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        /* 設定エリア */
+        .settings {
+            background: #f5f5f7;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e5e5e5;
+        }
+        .settings select {
+            margin-left: 10px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d1d1;
+            background: #fff;
+            font-family: inherit;
+        }
+
+        /* ジャンル選択リスト */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .category-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            box-shadow: var(--btn-shadow);
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text-main);
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            font-family: var(--system-font);
+        }
+        .category-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+        }
+        .category-btn span:last-child {
+            opacity: 0.5;
+        }
+        .category-btn:hover span:last-child {
+            opacity: 1;
+        }
+
+        /* クイズ画面 */
+        .q-meta {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .q-text {
+            font-size: 1.25rem;
+            margin-bottom: 30px;
+            line-height: 1.5;
+            font-weight: 600;
+            color: #333;
+            min-height: 60px;
+        }
+        
+        .btn-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .opt-btn {
+            padding: 18px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: 1px solid #dcdcdc;
+            border-radius: 10px;
+            background: #fff;
+            color: #333;
+            text-align: left;
+            transition: all 0.15s ease-out;
+            font-family: var(--system-font);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            line-height: 1.4;
+        }
+        .opt-btn:hover:not(:disabled) {
+            background: #f0f8ff;
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+        .opt-btn:active:not(:disabled) {
+            transform: translateY(0);
+            background: #e6f0fa;
+        }
+        .opt-btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        /* フィードバック＆アクション */
+        #action-area {
+            margin-top: 30px;
+            min-height: 80px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #feedback {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            height: 30px; /* 固定高さでレイアウトシフト防止 */
+        }
+        .correct { color: var(--success); }
+        .wrong { color: var(--error); }
+
+        /* macOS風プライマリボタン */
+        .next-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            font-family: var(--system-font);
+        }
+        .next-btn:hover {
+            background: var(--primary-hover);
+        }
+        .next-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* フッター */
+        .nav-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--system-font);
+            transition: color 0.2s;
+        }
+        .back-btn:hover {
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="window-frame">
+    <!-- macOS風タイトルバー -->
+    <div class="title-bar">
+        <div class="traffic-lights">
+            <!-- 赤: アプリ終了（リセット） -->
+            <div class="traffic-btn btn-close" data-icon="✕" onclick="appControl.quit()"></div>
+            <!-- 黄: フルスクリーン解除 -->
+            <div class="traffic-btn btn-minimize" data-icon="−" onclick="appControl.minimize()"></div>
+            <!-- 緑: フルスクリーン -->
+            <div class="traffic-btn btn-zoom" data-icon="＋" onclick="appControl.zoom()"></div>
+        </div>
+        <div class="title-text">リテラシー診断</div>
+    </div>
+
+    <!-- アプリケーションコンテンツ -->
+    <div id="app-content">
+        <div class="header-content">
+            <small>Data Management Literacy Training</small>
+            <h2 id="app-title">リテラシー診断</h2>
+        </div>
+
+        <div id="view-menu">
+            <div class="settings">
+                <label>自動遷移時間:</label>
+                <select id="select-interval">
+                    <option value="1000">1秒 (高速)</option>
+                    <option value="3000" selected>3秒 (標準)</option>
+                    <option value="5000">5秒 (ゆっくり)</option>
+                </select>
+            </div>
+            <p style="text-align:center; color:#666; margin-bottom:15px;">ジャンルを選択して開始</p>
+            <div id="category-list" class="menu-grid"></div>
+        </div>
+
+        <div id="view-quiz" class="hidden">
+            <span class="q-meta" id="q-number"></span>
+            <div class="q-text" id="q-content"></div>
+            <div class="btn-container">
+                <button class="opt-btn" id="opt0" onclick="engine.checkAnswer(0)"></button>
+                <button class="opt-btn" id="opt1" onclick="engine.checkAnswer(1)"></button>
+            </div>
+            
+            <div id="action-area">
+                <div id="feedback"></div>
+                <button id="manual-next" class="next-btn hidden" onclick="engine.nextQuestion()">次へ進む</button>
+            </div>
+
+            <div class="stats">
+                Score: <span id="q-score">0</span> / <span id="q-total">0</span>
+            </div>
+            <div class="nav-footer">
+                <button class="back-btn" onclick="engine.showMenu()">メニューに戻る</button>
+            </div>
+        </div>
+
+        <div id="view-result" class="hidden" style="text-align: center; flex-grow: 1; display:flex; flex-direction:column; justify-content:center;">
+            <h3 style="color:#666;">診断終了</h3>
+            <div style="font-size: 4rem; font-weight: 200; color: var(--primary); margin: 20px 0;" id="result-score"></div>
+            <p id="result-text" style="font-size: 1.1rem; color: #444; margin-bottom: 40px;"></p>
+            <button class="next-btn" style="width: 100%; max-width: 300px; margin: 0 auto;" onclick="engine.showMenu()">トップに戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ==========================================
+ * 0. macOS風ウィンドウコントロール
+ * ==========================================
+ */
+const appControl = {
+    // 赤ボタン: アプリ終了（リセット）
+    quit() {
+        if(confirm('診断を終了してトップ画面に戻りますか？')) {
+            location.reload();
+        }
+    },
+    // 黄ボタン: フルスクリーン解除
+    minimize() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(err => console.log(err));
+        }
+    },
+    // 緑ボタン: フルスクリーン
+    zoom() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.log(err));
+        }
+    }
+};
+
+/**
+ * ==========================================
+ * 2. エンジン部分: 処理ロジック
+ * ==========================================
+ */
+const engine = {
+    currentQuestions: [],
+    currentIndex: 0,
+    score: 0,
+    isAnswered: false,
+    timer: null,
+
+    init() {
+        this.showMenu();
+    },
+
+    showMenu() {
+        this.clearTimer();
+        this.toggleView('view-menu');
+        document.querySelector('.header-content').style.display = 'block';
+        const list = document.getElementById('category-list');
+        list.innerHTML = '';
+        const categories = [...new Set(questionDatabase.map(q => q.category))];
+        this.createCategoryBtn(list, "全ジャンルから出題 (ランダム)", null);
+        categories.forEach(cat => this.createCategoryBtn(list, cat, cat));
+    },
+
+    createCategoryBtn(parent, label, filter) {
+        const btn = document.createElement('button');
+        btn.className = 'category-btn';
+        btn.innerHTML = `<span>${label}</span><span>Of course</span>`; // macOSっぽい文言へ変更（実際は矢印でも可）
+        btn.innerHTML = `<span>${label}</span><span style="font-size:1.2em">›</span>`;
+        btn.onclick = () => this.startQuiz(filter);
+        parent.appendChild(btn);
+    },
+
+    startQuiz(filter) {
+        this.currentQuestions = filter 
+            ? questionDatabase.filter(q => q.category === filter)
+            : [...questionDatabase].sort(() => Math.random() - 0.5);
+
+        this.currentIndex = 0;
+        this.score = 0;
+        document.querySelector('.header-content').style.display = 'none'; // クイズ中はヘッダーを隠して集中
+        this.toggleView('view-quiz');
+        this.renderQuestion();
+    },
+
+    renderQuestion() {
+        this.isAnswered = false;
+        this.clearTimer();
+        const q = this.currentQuestions[this.currentIndex];
+        
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('manual-next').classList.add('hidden');
+        
+        const btns = [document.getElementById('opt0'), document.getElementById('opt1')];
+        btns.forEach((btn, i) => {
+            btn.innerText = q.options[i];
+            btn.disabled = false;
+            btn.style.borderColor = "#dcdcdc";
+            btn.style.color = "#333";
+            btn.style.backgroundColor = "#fff";
+        });
+        
+        document.getElementById('q-number').innerText = `${q.category} — Question ${this.currentIndex + 1} / ${this.currentQuestions.length}`;
+        document.getElementById('q-content').innerText = q.question;
+        document.getElementById('q-score').innerText = this.score;
+        document.getElementById('q-total').innerText = this.currentIndex;
+    },
+
+    checkAnswer(choice) {
+        if (this.isAnswered) return;
+        this.isAnswered = true;
+        this.clearTimer();
+
+        const q = this.currentQuestions[this.currentIndex];
+        const feedback = document.getElementById('feedback');
+        const nextBtn = document.getElementById('manual-next');
+        const interval = parseInt(document.getElementById('select-interval').value);
+        
+        // ボタン無効化と正解強調
+        [0, 1].forEach(i => {
+            const btn = document.getElementById(`opt${i}`);
+            btn.disabled = true;
+            if (i === q.answer) {
+                btn.style.borderColor = "var(--success)";
+                btn.style.backgroundColor = "#e8f5e9";
+                btn.style.color = "var(--success)";
+                btn.style.fontWeight = "bold";
+            } else if (i === choice && i !== q.answer) {
+                btn.style.borderColor = "var(--error)";
+                btn.style.backgroundColor = "#ffebee";
+            }
+        });
+
+        if (choice === q.answer) {
+            this.score++;
+            feedback.innerText = "Correct";
+            feedback.className = "correct";
+        } else {
+            feedback.innerText = "Incorrect";
+            feedback.className = "wrong";
+        }
+
+        nextBtn.classList.remove('hidden');
+
+        // 自動遷移の予約
+        this.timer = setTimeout(() => {
+            this.nextQuestion();
+        }, interval);
+    },
+
+    nextQuestion() {
+        this.clearTimer();
+        this.currentIndex++;
+        if (this.currentIndex < this.currentQuestions.length) {
+            this.renderQuestion();
+        } else {
+            this.showResult();
+        }
+    },
+
+    clearTimer() {
+        if (this.timer) clearTimeout(this.timer);
+    },
+
+    showResult() {
+        this.toggleView('view-result');
+        document.querySelector('.header-content').style.display = 'block';
+        document.getElementById('result-score').innerText = `${this.score} / ${this.currentQuestions.length}`;
+        const rate = (this.score / this.currentQuestions.length) * 100;
+        document.getElementById('result-text').innerText = rate === 100 ? "Excellent! 完全制覇です。" : "Good job! お疲れ様でした。";
+    },
+
+    toggleView(viewId) {
+        ['view-menu', 'view-quiz', 'view-result'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(viewId).classList.remove('hidden');
+        
+        // ビュー切り替え時にウィンドウサイズに応じたアニメーションリセット等はCSSで処理
+    }
+};
+
+/**
+ * ==========================================
+ * 3. 問題データベース (200問・5カテゴリー完全版)
+ * ==========================================
+ */
+const questionDatabase = [
+    // --- データ構造 (1-40) ---
+    { id: 1, category: "データ構造", question: "行と列で構成され、あらかじめスキーマが定義されたデータ形式は？", options: ["構造化データ", "非構造化データ"], answer: 0 },
+    { id: 2, category: "データ構造", question: "R/Pythonのデータフレームにおいて、1つの列（Series）が持つべき性質は？", options: ["単一のデータ型であること", "複数のデータ型が混在すること"], answer: 0 },
+    { id: 3, category: "データ構造", question: "テーブル内で各行を一意に識別するための項目を何と呼ぶか？", options: ["主キー（プライマリキー）", "インデックス"], answer: 0 },
+    { id: 4, category: "データ構造", question: "金額計算など精度が求められる数値に最適な型は？", options: ["浮動小数点型（Float）", "固定小数点型（Decimal）"], answer: 1 },
+    { id: 5, category: "データ構造", question: "JSONやXMLのように、構造はあるが柔軟に変更可能なデータは？", options: ["半構造化データ", "完全構造化データ"], answer: 0 },
+    { id: 6, category: "データ構造", question: "データフレームを横に結合する際、共通のキーを基にする操作は？", options: ["マージ（結合）", "コンカチ（連結）"], answer: 0 },
+    { id: 7, category: "データ構造", question: "データベース設計において、データの重複を排除するプロセスは？", options: ["正規化", "冗長化"], answer: 0 },
+    { id: 8, category: "データ構造", question: "CSVファイルにおいて、データの区切り文字として一般的に使われるのは？", options: ["カンマ", "タブ"], answer: 0 },
+    { id: 9, category: "データ構造", question: "「1対多」の関係を持つテーブル間で、多の方に持たせる参照用キーは？", options: ["外部キー", "秘密キー"], answer: 0 },
+    { id: 10, category: "データ構造", question: "大規模集計に向いた、列単位でデータを保持する形式は？", options: ["列指向ストレージ", "行指向ストレージ"], answer: 0 },
+    { id: 11, category: "データ構造", question: "データベースの「NULL」が意味するものは？", options: ["値が存在しない、または不明", "数値の0"], answer: 0 },
+    { id: 12, category: "データ構造", question: "データフレームから特定の列だけを抽出する操作を何と呼ぶか？", options: ["プロジェクション（投影）", "セレクション（選択）"], answer: 0 },
+    { id: 13, category: "データ構造", question: "ER図において「実体」を指す用語は？", options: ["エンティティ", "リレーションシップ"], answer: 0 },
+    { id: 14, category: "データ構造", question: "タイムスタンプ型を文字列として扱う最大のリスクは？", options: ["時間の前後関係によるソートや計算が困難になる", "文字化けする"], answer: 0 },
+    { id: 15, category: "データ構造", question: "構造化データにおける「レコード」は何に対応するか？", options: ["行", "列"], answer: 0 },
+    { id: 16, category: "データ構造", question: "多対多の関係をリレーショナルデータベースで表現するのに必要なのは？", options: ["中間テーブル", "インデックス"], answer: 0 },
+    { id: 17, category: "データ構造", question: "固定長文字列（CHAR）と可変長文字列（VARCHAR）で、容量節約に有利なのは？", options: ["VARCHAR", "CHAR"], answer: 0 },
+    { id: 18, category: "データ構造", question: "NoSQLデータベースの中で、JSON形式の保存に適しているのは？", options: ["ドキュメント型", "キーバリュー型"], answer: 0 },
+    { id: 19, category: "データ構造", question: "複数の列を組み合わせて作る主キーを何と呼ぶか？", options: ["複合キー", "サロゲートキー"], answer: 0 },
+    { id: 20, category: "データ構造", question: "データフレームで「T（転置）」を行うとどうなるか？", options: ["行と列が入れ替わる", "データが削除される"], answer: 0 },
+    { id: 21, category: "データ構造", question: "論理データモデルを物理的なDB定義に変換する段階は？", options: ["物理設計", "概念設計"], answer: 0 },
+    { id: 22, category: "データ構造", question: "データベースの「ビュー」の性質として正しいものは？", options: ["実データを持たない仮想的なテーブル", "常に物理メモリを占有する"], answer: 0 },
+    { id: 23, category: "データ構造", question: "日付から「曜日」を抽出する処理は、データ構造上どの変数の作成にあたるか？", options: ["派生変数（特徴量）", "外部キー"], answer: 0 },
+    { id: 24, category: "データ構造", question: "大量の構造化データを分析するために最適化された基盤は？", options: ["データウェアハウス（DWH）", "データレイク"], answer: 0 },
+    { id: 25, category: "データ構造", question: "バイナリ形式のデータ（画像、音声）は通常どこに分類されるか？", options: ["非構造化データ", "構造化データ"], answer: 0 },
+    { id: 26, category: "データ構造", question: "テーブルの結合において、片方のテーブルの全行を維持する結合は？", options: ["外部結合（OUTER JOIN）", "内部結合（INNER JOIN）"], answer: 0 },
+    { id: 27, category: "データ構造", question: "データフレーム内の特定の値を別の値に置き換える操作を何と呼ぶか？", options: ["置換（Replace）", "結合（Merge）"], answer: 0 },
+    { id: 28, category: "データ構造", question: "大規模な数値を扱う際、桁溢れ（オーバーフロー）を防ぐために使う型は？", options: ["BigInt", "SmallInt"], answer: 0 },
+    { id: 29, category: "データ構造", question: "データフレームの「スライス」とは何をすることか？", options: ["データの一部を範囲指定で切り出すこと", "データを圧縮すること"], answer: 0 },
+    { id: 30, category: "データ構造", question: "スキーマ定義をせずにデータを書き込めるデータベースの性質は？", options: ["スキーマ・オン・リード", "スキーマ・オン・ライト"], answer: 0 },
+    { id: 31, category: "データ構造", question: "テーブル設計で、ビジネス的な意味を持たない連番などを主キーにするのは？", options: ["サロゲートキー", "ナチュラルキー"], answer: 0 },
+    { id: 32, category: "データ構造", question: "データフレームの「形状（Shape）」が(100, 5)の場合、列数は？", options: ["5", "100"], answer: 0 },
+    { id: 33, category: "データ構造", question: "SQLで「重複を排除して」データを取得するキーワードは？", options: ["DISTINCT", "ORDER BY"], answer: 0 },
+    { id: 34, category: "データ構造", question: "データモデルにおける「多重度」が示すものは？", options: ["エンティティ間の数値的な対応関係", "データの更新頻度"], answer: 0 },
+    { id: 35, category: "データ構造", question: "ワイドフォーマット（横持ち）からロングフォーマット（縦持ち）への変換は？", options: ["アンピボット（Melt）", "ピボット"], answer: 0 },
+    { id: 36, category: "データ構造", question: "非構造化データストアとして一般的に使われるクラウドサービスは？", options: ["オブジェクトストレージ", "リレーショナルデータベース"], answer: 0 },
+    { id: 37, category: "データ構造", question: "データフレームにおいて、すべての要素に対して関数を適用する操作は？", options: ["マップ（Apply）", "フィルタ"], answer: 0 },
+    { id: 38, category: "データ構造", question: "リレーショナルDBにおいて、検索を高速化するための構造は？", options: ["インデックス", "バックアップ"], answer: 0 },
+    { id: 39, category: "データ構造", question: "Boolean型のデータが保持できる状態数は？", options: ["2つ（True / False）", "無限"], answer: 0 },
+    { id: 40, category: "データ構造", question: "データフレームの結合で、キーが一致する行のみを残すのは？", options: ["内部結合", "完全外部結合"], answer: 0 },
+
+    // --- クレンジング (41-80) ---
+    { id: 41, category: "クレンジング", question: "データ内の「表記揺れ」を修正し、同一の名称に整える作業は？", options: ["名寄せ（標準化）", "データ削除"], answer: 0 },
+    { id: 42, category: "クレンジング", question: "「150歳」のように、論理的にあり得ない数値の扱いは？", options: ["外れ値（異常値）として処理", "そのまま平均に含める"], answer: 0 },
+    { id: 43, category: "クレンジング", question: "欠損値を平均値や中央値で穴埋めすることを何と呼ぶか？", options: ["補完（インピュテーション）", "正規化"], answer: 0 },
+    { id: 44, category: "クレンジング", question: "数値の範囲を0から1の間に収める処理を何と呼ぶか？", options: ["スケーリング（正規化）", "ビン化"], answer: 0 },
+    { id: 45, category: "クレンジング", question: "全角・半角の混在を統一する処理はどの工程に含まれるか？", options: ["データクレンジング", "データロード"], answer: 0 },
+    { id: 46, category: "クレンジング", question: "住所データから都道府県名を抽出するような処理を何と呼ぶか？", options: ["特徴量抽出・加工", "データ圧縮"], answer: 0 },
+    { id: 47, category: "クレンジング", question: "「重複データ」を削除する際、まず特定すべきなのは？", options: ["ユニークな識別子（ID等）", "データの作成日時"], answer: 0 },
+    { id: 48, category: "クレンジング", question: "日付形式を「YYYY/MM/DD」に統一する目的は？", options: ["機械可読性と分析効率の向上", "ストレージの節約"], answer: 0 },
+    { id: 49, category: "クレンジング", question: "不要な空白（スペース）を取り除く操作を何と呼ぶか？", options: ["トリミング", "パディング"], answer: 0 },
+    { id: 50, category: "クレンジング", question: "カテゴリ変数を0と1のフラグに変換する手法は？", options: ["One-Hot エンコーディング", "ログ変換"], answer: 0 },
+    { id: 51, category: "クレンジング", question: "クレンジング前に行う、データの分布や欠損状況を把握する調査は？", options: ["データプロファイリング", "データ暗号化"], answer: 0 },
+    { id: 52, category: "クレンジング", question: "外れ値を「異常値」ではなく「重要な兆候」とみなすケースは？", options: ["不正検知分析", "平均的な顧客分析"], answer: 0 },
+    { id: 53, category: "クレンジング", question: "データのノイズ（誤差）を滑らかにする処理を何と呼ぶか？", options: ["スムージング", "スケーリング"], answer: 0 },
+    { id: 54, category: "クレンジング", question: "単位の異なるデータを比較可能にするための前処理は？", options: ["標準化（Zスコア変換など）", "データのコピー"], answer: 0 },
+    { id: 55, category: "クレンジング", question: "郵便番号からハイフンを除去する処理の目的は？", options: ["フォーマットの一貫性保持", "データ改ざん"], answer: 0 },
+    { id: 56, category: "クレンジング", question: "欠損値をそのままにして分析した場合の主なリスクは？", options: ["統計的なバイアス（偏り）が生じる", "計算速度が無限に遅くなる"], answer: 0 },
+    { id: 57, category: "クレンジング", question: "文字列データ内のHTMLタグを取り除く処理は？", options: ["スクレイピングのクレンジング", "データの正規化"], answer: 0 },
+    { id: 58, category: "クレンジング", question: "「20歳以上」という条件でデータをフィルタリングするのは？", options: ["データクレンジングの一部（抽出）", "バックアップ"], answer: 0 },
+    { id: 59, category: "クレンジング", question: "年齢を「10代」「20代」のように区分（離散化）する操作は？", options: ["ビン化", "正規化"], answer: 0 },
+    { id: 60, category: "クレンジング", question: "クレンジングの自動化において、正規表現（Regex）は何に使うか？", options: ["特定の文字列パターンの検索と置換", "計算の高速化"], answer: 0 },
+    { id: 61, category: "クレンジング", question: "マスターデータとの突合により正しい名称に修正する処理は？", options: ["名寄せ", "データ重複"], answer: 0 },
+    { id: 62, category: "クレンジング", question: "「東京都港区」から「東京都」だけを切り出すのは？", options: ["文字列抽出", "文字列結合"], answer: 0 },
+    { id: 63, category: "クレンジング", question: "クレンジングの結果を検証（バリデーション）する際に確認すべきは？", options: ["期待した変換ルールが適用されているか", "ファイルのアイコン"], answer: 0 },
+    { id: 64, category: "クレンジング", question: "ストップワード（「の」や「です」等）の除去が必要な分析は？", options: ["テキストマイニング", "数値回帰分析"], answer: 0 },
+    { id: 65, category: "クレンジング", question: "データの意味が変わらない範囲で値を丸める（例：端数処理）目的は？", options: ["分析のノイズ軽減", "データの消失"], answer: 0 },
+    { id: 66, category: "クレンジング", question: "複数の列を結合して一つの意味（例：姓と名を結合）にするのは？", options: ["文字列結合", "列分割"], answer: 0 },
+    { id: 67, category: "クレンジング", question: "異常値を特定するために「箱ひげ図」を用いるのはなぜか？", options: ["四分位範囲から大きく外れた値が見やすいため", "円グラフより綺麗だから"], answer: 0 },
+    { id: 68, category: "クレンジング", question: "クレンジングスクリプトの「再利用性」を高めるメリットは？", options: ["同様のデータ不備に効率的に対応できるため", "サーバーを安くするため"], answer: 0 },
+    { id: 69, category: "クレンジング", question: "データフレームにおいて、全ての要素がNULLの列を削除する操作は？", options: ["ドロップ（Drop）", "マージ（Merge）"], answer: 0 },
+    { id: 70, category: "クレンジング", question: "不自然な大文字小文字の混在を統一するのは？", options: ["ケース変換（大文字・小文字統一）", "エンコーディング"], answer: 0 },
+    { id: 71, category: "クレンジング", question: "データ内の「？」「NA」「なし」などの表現を統一すべき理由は？", options: ["欠損値として正しく認識させるため", "タイピング練習のため"], answer: 0 },
+    { id: 72, category: "クレンジング", question: "データクレンジングの「負の側面」としてあり得るものは？", options: ["過度な加工により元のデータの意味を損なうこと", "計算が速すぎること"], answer: 0 },
+    { id: 73, category: "クレンジング", question: "大量のデータを一度にクレンジングする際のリスク管理は？", options: ["バックアップを取り、一部でテスト実行する", "一気に全件更新する"], answer: 0 },
+    { id: 74, category: "クレンジング", question: "電話番号を「0312345678」と「03-1234-5678」で統一するのは？", options: ["名寄せ（標準化）", "データの正規化"], answer: 0 },
+    { id: 75, category: "クレンジング", question: "ECサイトの購入履歴で、テストアカウントの注文を消すのは？", options: ["データフィルタリング（クレンジング）", "売上の水増し"], answer: 0 },
+    { id: 76, category: "クレンジング", question: "画像データのリサイズやグレースケール化はクレンジングの一種か？", options: ["はい（前処理に含まれる）", "いいえ（破壊行為である）"], answer: 0 },
+    { id: 77, category: "クレンジング", question: "クレンジング後にデータの「行数」が変わるケースは？", options: ["重複行の削除や、異常値の行削除を行った場合", "名前を変えた場合"], answer: 0 },
+    { id: 78, category: "クレンジング", question: "「Dirty Data（汚れたデータ）」をそのまま使うとどうなるか？", options: ["Garbage In, Garbage Out（分析結果もゴミになる）", "AIが自動で完璧に治す"], answer: 0 },
+    { id: 79, category: "クレンジング", question: "時系列データで、欠測値を直前の値で埋める手法は？", options: ["前方向への補完（Forward Fill）", "平均値補完"], answer: 0 },
+    { id: 80, category: "クレンジング", question: "アンケートの自由記述から感情（ポジ・ネガ）を判定する前の下準備は？", options: ["テキストクレンジング", "数値スケーリング"], answer: 0 },
+
+    // --- ガバナンス (81-120) ---
+    { id: 81, category: "ガバナンス", question: "データの意味や定義、所有者を管理する情報を何と呼ぶか？", options: ["メタデータ", "生データ"], answer: 0 },
+    { id: 82, category: "ガバナンス", question: "社内のどこにどんなデータがあるかを検索できる仕組みは？", options: ["データカタログ", "データウェアハウス"], answer: 0 },
+    { id: 83, category: "ガバナンス", question: "データ品質の責任を負い、ビジネスルールを定義する役割は？", options: ["データスチュワード", "システムオペレーター"], answer: 0 },
+    { id: 84, category: "ガバナンス", question: "個人情報を分析に利用する際、特定の個人を識別できなくする加工は？", options: ["匿名加工", "バックアップ"], answer: 0 },
+    { id: 85, category: "ガバナンス", question: "データが作成されてから廃棄されるまでの流れを管理することを？", options: ["データライフサイクル管理", "データフロー設計"], answer: 0 },
+    { id: 86, category: "ガバナンス", question: "データの「信頼性」を担保するために必要な指標は？", options: ["データ品質（正確性、完全性等）", "データのファイル形式"], answer: 0 },
+    { id: 87, category: "ガバナンス", question: "データへのアクセス権を必要最小限に制限する原則は？", options: ["最小権限の原則", "公開の原則"], answer: 0 },
+    { id: 88, category: "ガバナンス", question: "データの「出所」や「加工履歴」を記録した系統情報を何と呼ぶか？", options: ["データリネージ", "データログ"], answer: 0 },
+    { id: 89, category: "ガバナンス", question: "全社共通の「用語辞書」を整備する目的は？", options: ["解釈の齟齬を無くし、整合性を保つため", "英単語の学習のため"], answer: 0 },
+    { id: 90, category: "ガバナンス", question: "GDPRや個人情報保護法などの法令遵守を担当する領域は？", options: ["データコンプライアンス", "データエンジニアリング"], answer: 0 },
+    { id: 91, category: "ガバナンス", question: "データの品質管理における「適時性」とは？", options: ["必要な時にデータが最新かつ利用可能であること", "データの計算が速いこと"], answer: 0 },
+    { id: 92, category: "ガバナンス", question: "データガバナンス活動の最終意思決定を行う合議体は？", options: ["データガバナンス委員会", "開発者ミーティング"], answer: 0 },
+    { id: 93, category: "ガバナンス", question: "「データ資産」を管理・保護するための組織的な枠組みは？", options: ["データガバナンス", "データサイエンス"], answer: 0 },
+    { id: 94, category: "ガバナンス", question: "機密性の高いデータを扱う際に、特定の項目を隠す処理は？", options: ["マスキング", "スケーリング"], answer: 0 },
+    { id: 95, category: "ガバナンス", question: "データカタログにユーザーが付け加える「タグ」や「評価」は何メタデータか？", options: ["ソーシャルメタデータ", "テクニカルメタデータ"], answer: 0 },
+    { id: 96, category: "ガバナンス", question: "データガバナンスが不十分な場合に発生する「データサイロ」とは？", options: ["部門ごとにデータが孤立し、連携できない状態", "データが多すぎて溢れる状態"], answer: 0 },
+    { id: 97, category: "ガバナンス", question: "個人データの利用における「オプトイン」とは？", options: ["事前に本人の明示的な同意を得ること", "拒否されない限り利用すること"], answer: 0 },
+    { id: 98, category: "ガバナンス", question: "データの「完全性」とは何を指すか？", options: ["欠損や重複がなく、必要な情報がすべて揃っていること", "データが完全に暗号化されていること"], answer: 0 },
+    { id: 99, category: "ガバナンス", question: "データスチュワードが現場で行うべきことは？", options: ["データの意味の定義や品質チェックの実施", "サーバーの配線"], answer: 0 },
+    { id: 100, category: "ガバナンス", question: "メタデータ管理ツールを導入する最大のメリットは？", options: ["データの探索時間を短縮し、重複投資を防ぐ", "プログラムのバグをゼロにする"], answer: 0 },
+    { id: 101, category: "ガバナンス", question: "データの「持ち主」として、ビジネス上の価値に責任を持つのは？", options: ["データオーナー", "データエンジニア"], answer: 0 },
+    { id: 102, category: "ガバナンス", question: "データ品質の改善サイクルにおいて最初に行うべきは？", options: ["現状の品質レベルの測定（プロファイリング）", "ツールの購入"], answer: 0 },
+    { id: 103, category: "ガバナンス", question: "データリネージによって把握できる「インパクト分析」とは？", options: ["あるデータを変更した際の影響範囲の特定", "サーバーの消費電力"], answer: 0 },
+    { id: 104, category: "ガバナンス", question: "情報漏洩対策として、持ち出し制限以外に重要なのは？", options: ["適切な暗号化とアクセスログの監視", "インターネットの切断"], answer: 0 },
+    { id: 105, category: "ガバナンス", question: "マスターデータ（顧客や商品）を全社で一元管理する仕組みは？", options: ["MDM（マスターデータ管理）", "CRM"], answer: 0 },
+    { id: 106, category: "ガバナンス", question: "「データセキュリティ」のCIA三要素のうち、Aが指すのは？", options: ["可用性（Availability）", "正確性（Accuracy）"], answer: 0 },
+    { id: 107, category: "ガバナンス", question: "データカタログに格納される「カラム名」「型」は何メタデータか？", options: ["テクニカルメタデータ", "ビジネスメタデータ"], answer: 0 },
+    { id: 108, category: "ガバナンス", question: "個人情報保護において「匿名加工情報」と「仮名加工情報」で制約が強いのは？", options: ["仮名加工情報", "匿名加工情報"], answer: 0 },
+    { id: 109, category: "ガバナンス", question: "データガバナンスの成熟度モデル（DMM）を用いる目的は？", options: ["自社の現在のレベルと将来の目標を明確にするため", "従業員を評価するため"], answer: 0 },
+    { id: 110, category: "ガバナンス", question: "「信頼できる唯一の情報源」を意味する用語は？", options: ["Single Source of Truth (SSOT)", "Data Lake"], answer: 0 },
+    { id: 111, category: "ガバナンス", question: "データの廃棄において物理的な破壊以外に有効なのは？", options: ["論理的な上書きや暗号学的消去", "ゴミ箱に入れる"], answer: 0 },
+    { id: 112, category: "ガバナンス", question: "データディクショナリの主な利用者は？", options: ["開発者、分析者、ビジネスユーザー", "顧客"], answer: 0 },
+    { id: 113, category: "ガバナンス", question: "データ品質の評価指標（DQI）を設定する理由は？", options: ["品質状況を客観的に測定し、改善につなげるため", "計算コストを下げるため"], answer: 0 },
+    { id: 114, category: "ガバナンス", question: "データガバナンスを推進する上での最大の壁になりやすいのは？", options: ["組織の文化や縦割りの慣習", "ソフトウェアの価格"], answer: 0 },
+    { id: 115, category: "ガバナンス", question: "「データ倫理」において配慮すべきバイアスとは？", options: ["学習データに含まれる偏見や不公平性", "計算機の丸め誤差"], answer: 0 },
+    { id: 116, category: "ガバナンス", question: "データの「正確性」を確認するための最も有効な手段は？", options: ["ソースシステムや証憑との突合", "バックアップ"], answer: 0 },
+    { id: 117, category: "ガバナンス", question: "「ビジネスメタデータ」に含まれるのは？", options: ["用語の定義、ビジネスルール", "テーブルの作成日時"], answer: 0 },
+    { id: 118, category: "ガバナンス", question: "データカタログにおいて「人気のデータ」を可視化するメリットは？", options: ["信頼性の高いデータを優先的に見つけられる", "データを自慢できる"], answer: 0 },
+    { id: 119, category: "ガバナンス", question: "データ利活用ガイドラインを作成する目的は？", options: ["ルールを明確にし、安全かつ積極的にデータを活用するため", "活用を禁止するため"], answer: 0 },
+    { id: 120, category: "ガバナンス", question: "ガバナンス活動を「全社展開」する前に推奨されるのは？", options: ["特定のプロジェクトでのパイロット実施", "全データを一斉にロックすること"], answer: 0 },
+
+    // --- データサイエンス (121-160) ---
+    { id: 121, category: "データサイエンス", question: "データから統計的な示唆を得るために、まず行う可視化分析は？", options: ["探索的データ分析（EDA）", "機械学習の構築"], answer: 0 },
+    { id: 122, category: "データサイエンス", question: "過去のデータから将来の値を予測する手法は？", options: ["回帰分析", "クラスター分析"], answer: 0 },
+    { id: 123, category: "データサイエンス", question: "データ間の相関関係を示す指標（相関係数）の範囲は？", options: ["-1から1の間", "0から100の間"], answer: 0 },
+    { id: 124, category: "データサイエンス", question: "Pythonでデータ分析を行う際、多次元配列計算に特化したライブラリは？", options: ["NumPy", "Flask"], answer: 0 },
+    { id: 125, category: "データサイエンス", question: "正解ラベルのないデータからパターンを見つけ出す学習は？", options: ["教師なし学習", "教師あり学習"], answer: 0 },
+    { id: 126, category: "データサイエンス", question: "売上と気温の関係をプロットして確認するのに適したグラフは？", options: ["散布図", "円グラフ"], answer: 0 },
+    { id: 127, category: "データサイエンス", question: "「おむつを買う人はビールも買う」のような相関を見つける分析は？", options: ["アソシエーション分析", "時系列分析"], answer: 0 },
+    { id: 128, category: "データサイエンス", question: "モデルの精度が高すぎて、未知のデータに対応できなくなる現象は？", options: ["過学習（オーバーフィッティング）", "学習不足"], answer: 0 },
+    { id: 129, category: "データサイエンス", question: "意思決定のために指標を可視化した画面を何と呼ぶか？", options: ["ダッシュボード", "ソースコード"], answer: 0 },
+    { id: 130, category: "データサイエンス", question: "ABテストの主な目的は？", options: ["施策の効果を統計的に比較検証するため", "データのバックアップを取るため"], answer: 0 },
+    { id: 131, category: "データサイエンス", question: "データをいくつかのグループに分ける手法は？", options: ["クラスタリング", "回帰"], answer: 0 },
+    { id: 132, category: "データサイエンス", question: "時間の経過とともに変化するデータを扱うのは？", options: ["時系列分析", "クロスセクション分析"], answer: 0 },
+    { id: 133, category: "データサイエンス", question: "機械学習で、予測対象となる変数を何と呼ぶか？", options: ["目的変数", "説明変数"], answer: 0 },
+    { id: 134, category: "データサイエンス", question: "AIの判断根拠を人間が理解できるようにする技術は？", options: ["説明可能なAI (XAI)", "ディープラーニング"], answer: 0 },
+    { id: 135, category: "データサイエンス", question: "データの分布において、中央の値を指すのは？", options: ["中央値（メディアン）", "平均値（ミーン）"], answer: 0 },
+    { id: 136, category: "データサイエンス", question: "二つの選択肢（YES/NO）を予測するタスクは？", options: ["二値分類", "多クラス分類"], answer: 0 },
+    { id: 137, category: "データサイエンス", question: "分析結果を解釈し、ビジネスのアクションに繋げる役割は？", options: ["ビジネスアナリスト", "データエンジニア"], answer: 0 },
+    { id: 138, category: "データサイエンス", question: "データサイエンスの標準的なプロセスモデルは？", options: ["CRISP-DM", "Waterfall"], answer: 0 },
+    { id: 139, category: "データサイエンス", question: "データの「標準偏差」が示すものは？", options: ["データの散らばり具合", "データの合計値"], answer: 0 },
+    { id: 140, category: "データサイエンス", question: "自然言語処理（NLP）の対象となるのは？", options: ["テキストデータ", "音声データ"], answer: 0 },
+    { id: 141, category: "データサイエンス", question: "統計的に「意味がある」と言えるか判断するための手法は？", options: ["検定", "推定"], answer: 0 },
+    { id: 142, category: "データサイエンス", question: "複数のモデルを組み合わせて精度を高める手法は？", options: ["アンサンブル学習", "単一学習"], answer: 0 },
+    { id: 143, category: "データサイエンス", question: "データの「分布」を確認するために棒グラフを並べた図は？", options: ["ヒストグラム", "線グラフ"], answer: 0 },
+    { id: 144, category: "データサイエンス", question: "予測モデルの性能を測る指標（正解率など）は何に使うか？", options: ["モデルの評価", "データの収集"], answer: 0 },
+    { id: 145, category: "データサイエンス", question: "異常値を検知してアラートを出すシステムは？", options: ["異常検知システム", "推薦システム"], answer: 0 },
+    { id: 146, category: "データサイエンス", question: "特徴量（説明変数）を選ぶプロセスを何と呼ぶか？", options: ["特徴量選択", "ハイパーパラメータ調整"], answer: 0 },
+    { id: 147, category: "データサイエンス", question: "画像の中から物体を特定する技術は？", options: ["物体検出", "画像生成"], answer: 0 },
+    { id: 148, category: "データサイエンス", question: "分析における「相関」と「因果」の違いで重要なのは？", options: ["相関があっても因果関係があるとは限らない", "同じ意味である"], answer: 0 },
+    { id: 149, category: "データサイエンス", question: "強化学習が使われる代表的な分野は？", options: ["ロボット制御やゲームAI", "顧客情報の分類"], answer: 0 },
+    { id: 150, category: "データサイエンス", question: "データをトレーニング用とテスト用に分ける理由は？", options: ["未知のデータに対する性能を評価するため", "計算時間を短くするため"], answer: 0 },
+    { id: 151, category: "データサイエンス", question: "リコメンドシステムで「この商品を買った人はこれも」と出すアルゴリズムは？", options: ["協調フィルタリング", "決定木"], answer: 0 },
+    { id: 152, category: "データサイエンス", question: "「決定木」を複数集めた強力なアルゴリズムは？", options: ["ランダムフォレスト", "ロジスティック回帰"], answer: 0 },
+    { id: 153, category: "データサイエンス", question: "ディープラーニングを支える多層の構造は？", options: ["ニューラルネットワーク", "決定木"], answer: 0 },
+    { id: 154, category: "データサイエンス", question: "次元圧縮手法（PCAなど）の目的は？", options: ["情報の損失を抑えつつ変数を減らすこと", "データの容量を増やすこと"], answer: 0 },
+    { id: 155, category: "データサイエンス", question: "バイアスとバリアンスのトレードオフにおいて、バリアンスが高い状態は？", options: ["過学習", "学習不足"], answer: 0 },
+    { id: 156, category: "データサイエンス", question: "「コンフュージョンマトリックス（混同行列）」は何を確認するものか？", options: ["分類モデルの予測結果と実際の正解の対応", "行列の計算式"], answer: 0 },
+    { id: 157, category: "データサイエンス", question: "学習率や木の深さなど、人間が設定するモデルのパラメータは？", options: ["ハイパーパラメータ", "目的変数"], answer: 0 },
+    { id: 158, category: "データサイエンス", question: "時系列分析で、季節による変動を除去する処理は？", options: ["季節調整", "移動平均"], answer: 0 },
+    { id: 159, category: "データサイエンス", question: "モデルを実環境にデプロイし、運用・管理する仕組みは？", options: ["MLOps", "DevOps"], answer: 0 },
+    { id: 160, category: "データサイエンス", question: "ビッグデータ分析において「V」で始まる三要素は？", options: ["Volume, Velocity, Variety", "Value, View, Voice"], answer: 0 },
+
+    // --- 戦略 (161-200) ---
+    { id: 161, category: "戦略", question: "組織全体のデータ活用方針（アーキテクチャ）を設計する役割は？", options: ["データアーキテクト", "データエンジニア"], answer: 0 },
+    { id: 162, category: "戦略", question: "データ駆動型（データドリブン）な文化の醸成に必要なのは？", options: ["全社員のリテラシー向上と成功事例共有", "高性能サーバーの導入のみ"], answer: 0 },
+    { id: 163, category: "戦略", question: "DX（デジタルトランスフォーメーション）においてデータが果たす役割は？", options: ["変革と意思決定の原動力", "単なるITコストの要因"], answer: 0 },
+    { id: 164, category: "戦略", question: "「守りのデータマネジメント」が重視するのは？", options: ["リスク回避とコンプライアンス", "新規事業の創出"], answer: 0 },
+    { id: 165, category: "戦略", question: "「攻めのデータマネジメント」が重視するのは？", options: ["収益拡大と顧客体験の向上", "コスト削減のみ"], answer: 0 },
+    { id: 166, category: "戦略", question: "データの「サイロ化」が引き起こす問題は？", options: ["部門間でデータの不整合が起き、全体最適が阻害される", "PCの動作が重くなる"], answer: 0 },
+    { id: 167, category: "戦略", question: "データマネジメントの最高責任者は？", options: ["CDO (Chief Data Officer)", "CTO"], answer: 0 },
+    { id: 168, category: "戦略", question: "データマネジメントの成熟度を評価する際の基準となるガイドラインは？", options: ["DMBOK", "SREBOOK"], answer: 0 },
+    { id: 169, category: "戦略", question: "「データの民主化」が指す状態は？", options: ["誰もが安全に必要なデータにアクセスし活用できる状態", "全データをWebに公開する状態"], answer: 0 },
+    { id: 170, category: "戦略", question: "クラウドを活用したデータプラットフォームの利点は？", options: ["スケーラビリティと柔軟なコスト管理", "オフラインで動くこと"], answer: 0 },
+    { id: 171, category: "戦略", question: "「データスチュワード」を各部門に配置するメリットは？", options: ["現場のドメイン知識を活かしたデータ管理ができる", "IT部門の人数を減らせる"], answer: 0 },
+    { id: 172, category: "戦略", question: "データ利活用のROI（投資対効果）を測る上での課題は？", options: ["直接的な利益貢献が見えにくく、効果が出るまで時間がかかる", "計算が不可能"], answer: 0 },
+    { id: 173, category: "戦略", question: "セルフサービスBIを導入する目的は？", options: ["非専門家が自分でデータを探索・可視化できるようにするため", "エンジニアの仕事を奪うため"], answer: 0 },
+    { id: 174, category: "戦略", question: "組織横断でデータ利活用を支援する専門組織は？", options: ["CoE (Center of Excellence)", "PMO"], answer: 0 },
+    { id: 175, category: "戦略", question: "データマネジメントのロードマップを策定する際に考慮すべきは？", options: ["ビジネス目標との整合性と実現の優先順位", "最新のツールの発売日"], answer: 0 },
+    { id: 176, category: "戦略", question: "「データドリブン文化」を阻害する最大の要因は？", options: ["「勘と経験」に頼る過去の成功体験への固執", "PCのスペック"], answer: 0 },
+    { id: 177, category: "戦略", question: "データレイクハウスが注目されている理由は？", options: ["安価なストレージと高度な管理機能を両立できるため", "名前がかっこいいから"], answer: 0 },
+    { id: 178, category: "戦略", question: "「外部データ（気象、SNS、統計）」を取り込む戦略的メリットは？", options: ["自社データだけでは見えない市場動向や背景を把握できる", "データの容量自慢ができる"], answer: 0 },
+    { id: 179, category: "戦略", question: "データカタログが「データ民主化」の基盤と言われる理由は？", options: ["誰でも必要なデータを安全に探せるようになるから", "全社員がSQLを書けるようになるから"], answer: 0 },
+    { id: 180, category: "戦略", question: "アジャイルなデータ開発の進め方は？", options: ["小さく始めて、検証と改善を繰り返しながら拡張する", "数年かけて完璧な仕様書を作る"], answer: 0 },
+    { id: 181, category: "戦略", question: "「データアーキテクト」が果たすビジネスへの貢献は？", options: ["将来の拡張性を見据えた効率的なデータ利用環境の提供", "キーボードのタイピング"], answer: 0 },
+    { id: 182, category: "戦略", question: "「マスターデータ管理（MDM）」が失敗する主な原因は？", options: ["組織間の利害調整不足や運用プロセスの不在", "ハードウェアの故障"], answer: 0 },
+    { id: 183, category: "戦略", question: "データの「カタログ化」がもたらすコスト削減効果は？", options: ["データの重複作成や調査にかかる工数の削減", "電気代の削減"], answer: 0 },
+    { id: 184, category: "戦略", question: "データリテラシー教育の対象となるべきなのは？", options: ["経営層から現場の社員まで全社員", "分析専門職のみ"], answer: 0 },
+    { id: 185, category: "戦略", question: "「オープンデータ」を活用する際の注意点は？", options: ["利用規約（ライセンス）とデータの更新頻度", "料金が常に高いこと"], answer: 0 },
+    { id: 186, category: "戦略", question: "データの活用レベルを示す「分析の4段階」で最も高度なのは？", options: ["処方的分析（どうすべきか）", "記述的分析（何が起きたか）"], answer: 0 },
+    { id: 187, category: "戦略", question: "データガバナンスを「コスト」ではなく「投資」と考える理由は？", options: ["データの信頼性が高まることで、高度な意思決定が可能になるから", "罰金を払いたくないから"], answer: 0 },
+    { id: 188, category: "戦略", question: "DX推進における「データエンジニア」の役割は？", options: ["分析者が使いやすい形でデータを整備し届ける「配管工」", "プレゼン資料の作成"], answer: 0 },
+    { id: 189, category: "戦略", question: "「データメッシュ」という分散型の管理手法が向いている組織は？", options: ["大規模かつ複雑な事業領域を持つ多角化企業", "社員数名のスタートアップ"], answer: 0 },
+    { id: 190, category: "戦略", question: "「データマイニング」によって得られる主な価値は？", options: ["大量のデータから隠れた相関やパターンを発見すること", "データのバックアップ"], answer: 0 },
+    { id: 191, category: "戦略", question: "データ活用プロジェクトにおいて、最初に定義すべきは？", options: ["解くべきビジネス課題と期待する成果", "使用するツール"], answer: 0 },
+    { id: 192, category: "戦略", question: "データプラットフォームの「ベンダーロックイン」を防ぐための対策は？", options: ["オープンな技術スタックや標準的なSQLの採用", "一つのツールを一生使い続ける決意"], answer: 0 },
+    { id: 193, category: "戦略", question: "経営層がデータマネジメントに積極的に関与すべき理由は？", options: ["データの価値が企業の競争力を左右する経営課題だから", "ITに詳しいことをアピールするため"], answer: 0 },
+    { id: 194, category: "戦略", question: "組織全体の「データ利活用能力」を高めるために必要なのは？", options: ["ツール、プロセス、人、文化のバランスよい強化", "高価なAIを買うこと"], answer: 0 },
+    { id: 195, category: "戦略", question: "データエンジニアリングの自動化（DataOps）のメリットは？", options: ["データパイプラインの品質向上とリリース速度の向上", "エンジニアが全員不要になること"], answer: 0 },
+    { id: 196, category: "戦略", question: "個人情報保護法が改正される背景にあるのは？", options: ["技術変化とデータの重要性増大に伴う個人の権利保護", "紙の節約"], answer: 0 },
+    { id: 197, category: "戦略", question: "「ダークデータ（活用されていないデータ）」を削減するメリットは？", options: ["管理コストとセキュリティリスクの低減", "インターネットの高速化"], answer: 0 },
+    { id: 198, category: "戦略", question: "データマネジメントと「ナレッジマネジメント」の関係は？", options: ["データから得られた知見を組織の知識として共有し活用する", "無関係である"], answer: 0 },
+    { id: 199, category: "戦略", question: "変化の激しい市場において、データ戦略に必要な姿勢は？", options: ["継続的な見直しとビジネス変化への柔軟な適応", "一度決めた計画を10年変えないこと"], answer: 0 },
+    { id: 200, category: "戦略", question: "データマネジメントの最終的なゴールは？", options: ["データを継続的にビジネス価値へ変換し続けること", "巨大なデータベースを構築すること"], answer: 0 }
+];
+
+engine.init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FP1級 延べ面積算定シート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            startup: {
+                typeset: false
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .printable-page {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            * {
+                background: transparent !important;
+                color: black !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                border-color: #ccc !important;
+            }
+            h2 { border-bottom: 1px solid black !important; }
+            input, select { border: 1px solid #ccc !important; color: black !important; }
+            @page { size: A4 portrait; margin: 0; }
+        }
+    </style>
+</head>
+<body class="bg-[#161512] text-[#babaca] min-h-screen py-4 px-4 font-sans selection:bg-[#3692e7] selection:text-white">
+    <div id="root"></div>
+
+    <script>
+        Babel.registerPreset('tsx', {
+            presets: [
+                [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+                Babel.availablePresets['react']
+            ]
+        });
+    </script>
+    <script type="text/babel" data-presets="tsx">
+        const { useState, useEffect } = React;
+
+        const App: React.FC = () => {
+            const [widthX, setWidthX] = useState<number>(20);
+            const [depthY, setDepthY] = useState<number>(25);
+            const [roadOnX, setRoadOnX] = useState<boolean>(true);
+            const [roadOnY, setRoadOnY] = useState<boolean>(true);
+            const [roadA, setRoadA] = useState<number>(8.0);
+            const [roadB, setRoadB] = useState<number>(3.6);
+            const [isRiverB, setIsRiverB] = useState<boolean>(false);
+            const [Wr, setWr] = useState<number>(15.0);
+            const [L, setL] = useState<number>(30.0);
+            const [baseFAR, setBaseFAR] = useState<number>(300);
+            const [multiplier, setMultiplier] = useState<number>(0.6);
+
+            const calculate = () => {
+                let sbB_dist = 0;
+                let sbB_desc = "なし";
+                
+                if (roadB < 4 && roadOnY) {
+                    if (isRiverB) {
+                        sbB_dist = 4.0 - roadB;
+                        sbB_desc = `川等に接するため片側後退 $4.0m - ${roadB}m = ${sbB_dist}m$`;
+                    } else {
+                        sbB_dist = (4.0 - roadB) / 2;
+                        sbB_desc = `中心線より後退 $(4.0m - ${roadB}m) \\div 2 = ${sbB_dist}m$`;
+                    }
+                }
+                
+                const sbArea = depthY * sbB_dist;
+                const effArea = (widthX * depthY) - sbArea;
+                const maxW = Math.max(roadA, 4.0, roadB);
+                
+                let Wa = 0;
+                let waHTML = <p>特定道路緩和要件を満たさないため $W_a = 0$ と判定。</p>;
+
+                if (Wr >= 15 && L <= 70 && maxW >= 6 && maxW < 12) {
+                    Wa = ((12 - maxW) * (70 - L)) / 70;
+                    waHTML = (
+                        <>
+                            <p>{`① 数値代入： $W_a = \\frac{(${12 - maxW.toFixed(1)}) \\times (${70 - L})}{70}$`}</p>
+                            <p>{`② 展開： $W_a = \\frac{${(12 - maxW).toFixed(1)} \\times ${(70 - L).toFixed(1)}}{70} = \\frac{${((12 - maxW) * (70 - L)).toFixed(2)}}{70}$`}</p>
+                            <p>③ 算出： $W_a = $ <b className="text-white text-sm">{Wa.toFixed(4)}</b></p>
+                        </>
+                    );
+                }
+
+                const roadLimitFAR = (maxW + Wa) * multiplier * 100;
+                const finalFAR = Math.min(baseFAR, roadLimitFAR);
+                const totalFloorArea = effArea * (finalFAR / 100);
+
+                return {
+                    sbB_dist, sbB_desc, sbArea, effArea,
+                    maxW, Wa, waHTML,
+                    roadLimitFAR, finalFAR, totalFloorArea
+                };
+            };
+
+            const res = calculate();
+
+            useEffect(() => {
+                if (typeof window !== 'undefined' && (window as any).MathJax && (window as any).MathJax.typesetPromise) {
+                    (window as any).MathJax.typesetClear();
+                    (window as any).MathJax.typesetPromise().catch((err: any) => console.error('MathJax error:', err));
+                }
+            });
+
+            return (
+                <div className="max-w-4xl mx-auto printable-page bg-[#262421] shadow-2xl rounded-xl p-8 border border-[#363430]">
+                    <div className="flex justify-between items-center border-b border-[#363430] pb-3 mb-5">
+                        <div>
+                            <h1 className="text-xl font-bold text-white">建築基準法：最大延べ面積算定書</h1>
+                            <p className="text-[10px] text-[#8a8a8a] mt-1">FP1級 技能検定対策（セットバック・特定道路緩和対応）</p>
+                        </div>
+                        <button 
+                            onClick={() => window.print()} 
+                            className="no-print bg-[#363430] hover:bg-[#45433e] text-white font-bold py-1.5 px-5 rounded text-sm transition shadow-md border border-[#45433e]"
+                        >
+                            PDF / 印刷
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 no-print mb-6">
+                        <div className="space-y-3 p-4 bg-[#1e1c19] rounded border border-[#363430] text-xs">
+                            <h3 className="font-bold border-l-4 border-[#629924] pl-2 text-white text-sm">敷地・接道条件</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="text-[#8a8a8a]">間口(X) m <input type="number" value={widthX} onChange={(e) => setWidthX(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                                <label className="text-[#8a8a8a]">奥行(Y) m <input type="number" value={depthY} onChange={(e) => setDepthY(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                            </div>
+                            <div className="flex gap-4 text-[11px] text-white pt-1">
+                                <label className="cursor-pointer flex items-center gap-1.5 hover:text-[#babaca] transition-colors"><input type="checkbox" checked={roadOnX} onChange={(e) => setRoadOnX(e.target.checked)} className="accent-[#629924] w-3.5 h-3.5" /> 道路Aは間口に接す</label>
+                                <label className="cursor-pointer flex items-center gap-1.5 hover:text-[#babaca] transition-colors"><input type="checkbox" checked={roadOnY} onChange={(e) => setRoadOnY(e.target.checked)} className="accent-[#629924] w-3.5 h-3.5" /> 道路Bは奥行に接す</label>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                <label className="text-[#8a8a8a]">道路A(主) m <input type="number" value={roadA} step="0.1" onChange={(e) => setRoadA(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                                <label className="text-[#8a8a8a]">道路B(副) m <input type="number" value={roadB} step="0.1" onChange={(e) => setRoadB(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                            </div>
+                            <label className="flex items-center gap-2 pt-1 font-bold text-[#babaca] cursor-pointer hover:text-white transition-colors">
+                                <input type="checkbox" checked={isRiverB} onChange={(e) => setIsRiverB(e.target.checked)} className="accent-[#629924] w-4 h-4" /> 道路Bの対岸が川・崖等
+                            </label>
+                        </div>
+
+                        <div className="space-y-3 p-4 bg-[#1e1c19] rounded border border-[#363430] text-xs">
+                            <h3 className="font-bold border-l-4 border-[#629924] pl-2 text-white text-sm">緩和・容積率</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="text-[#8a8a8a]">特定道路 $W_r$ <input type="number" value={Wr} onChange={(e) => setWr(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                                <label className="text-[#8a8a8a]">特定道路距離 $L$ <input type="number" value={L} onChange={(e) => setL(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                <label className="text-[#8a8a8a]">指定容積率 % <input type="number" value={baseFAR} onChange={(e) => setBaseFAR(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white font-bold focus:outline-none focus:border-[#629924] transition-colors" /></label>
+                                <label className="text-[#8a8a8a]">法定乗数 
+                                    <select value={multiplier} onChange={(e) => setMultiplier(Number(e.target.value))} className="w-full p-1.5 mt-1 border border-[#45433e] rounded bg-[#363430] text-white font-bold focus:outline-none focus:border-[#629924] transition-colors">
+                                        <option value={0.4}>4/10</option>
+                                        <option value={0.6}>6/10</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div className="bg-[#161512] mt-2 p-3 rounded border border-[#363430] text-center">
+                                <p className="text-[10px] text-[#8a8a8a]">最大延べ面積（概算値）</p>
+                                <p className="text-xl font-black text-white">{res.totalFloorArea.toFixed(2)} ㎡</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <section>
+                            <h2 className="text-sm font-bold border-b border-[#363430] pb-1 mb-3 text-white">1. 有効敷地面積の算定</h2>
+                            <div className="pl-2 text-[12px] space-y-1.5 text-[#babaca]">
+                                <p>{`・敷地面積合計： $${widthX}m \\times ${depthY}m = ${widthX * depthY}㎡$`}</p>
+                                <p>・道路B後退距離： {res.sbB_desc}</p>
+                                <p>{`・セットバック除外面積： $${depthY}m \\times ${res.sbB_dist.toFixed(2)}m = ${res.sbArea.toFixed(2)}㎡$`}</p>
+                                <p>・有効敷地面積： <b className="text-base text-white">{res.effArea.toFixed(2)}㎡</b></p>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h2 className="text-sm font-bold border-b border-[#363430] pb-1 mb-3 text-white">2. 特定道路緩和の計算過程 ($W_a$)</h2>
+                            <div className="pl-4 text-[12px] leading-loose border-l-2 border-[#363430] text-[#babaca]">
+                                {res.waHTML}
+                            </div>
+                        </section>
+
+                        <section>
+                            <h2 className="text-sm font-bold border-b border-[#363430] pb-1 mb-3 text-white">3. 最大延べ面積の算定</h2>
+                            <div className="pl-2 text-[12px] space-y-1.5 text-[#babaca]">
+                                <p>{`・道路制限容積率： $(前面道路 ${res.maxW.toFixed(1)}m + 緩和 ${res.Wa.toFixed(4)}m) \\times ${multiplier} \\times 100 = ${res.roadLimitFAR.toFixed(2)}\\%$`}</p>
+                                <p>{`・採用容積率： 指定 $${baseFAR}\\%$ と 道路制限 $${res.roadLimitFAR.toFixed(2)}\\%$ のうち小さい方の `}<b className="text-white">{res.finalFAR.toFixed(2)}%</b></p>
+                                <p>{`・最大延べ面積： $${res.effArea.toFixed(2)}㎡ \\times ${res.finalFAR.toFixed(2)}\\% = ${res.totalFloorArea.toFixed(2)}㎡$`}</p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="mt-8 p-5 border border-[#629924] bg-[#1e1c19] rounded-lg text-center shadow-lg">
+                        <p className="text-xs font-bold text-[#8a8a8a] mb-1">最終判定：最大延べ面積</p>
+                        <p className="text-3xl font-black text-white">{res.totalFloorArea.toFixed(2)} ㎡</p>
+                    </div>
+
+                    <div className="mt-5 text-[10px] text-[#8a8a8a] text-center">
+                        ※本算定書は建築基準法第52条に基づき、前面道路制限と特定道路緩和を適用したものです。
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root')!);
+        root.render(<App />);
+    </script>
+</body>
+</html>

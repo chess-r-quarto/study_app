@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Downloader | Lichess UI</title>
+    <!-- Dependencies with explicit crossorigin and version pinning for stability -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js" crossorigin></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            background-color: #161512;
+            color: #bababa;
+            margin: 0;
+        }
+
+        .lichess-panel {
+            background-color: #262421;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            border-radius: 3px;
+        }
+
+        .lichess-sidebar {
+            background-color: #211f1c;
+        }
+
+        .lichess-button {
+            background-color: #3692e7;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.15s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .lichess-button:hover:not(:disabled) {
+            background-color: #4da0eb;
+        }
+
+        .lichess-button:disabled {
+            background-color: #3c3934;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .lichess-input {
+            background-color: #161512;
+            border: 1px solid #3c3934;
+            color: #bababa;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .lichess-input:focus {
+            outline: none;
+            border-color: #3692e7;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161512;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3c3934;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="typescript,react">
+        const { useState, useEffect, useCallback } = React;
+
+        /**
+         * Lichess-style JSON Download Application.
+         * Functional logic implemented using React hooks.
+         */
+        function App() {
+            const [jsonText, setJsonText] = useState("");
+            const [fileName, setFileName] = useState("data.json");
+            const [isValid, setIsValid] = useState(true);
+            const [error, setError] = useState(null);
+
+            // Validate JSON on every text change
+            useEffect(() => {
+                const trimmed = jsonText.trim();
+                if (!trimmed) {
+                    setIsValid(true);
+                    setError(null);
+                    return;
+                }
+                try {
+                    JSON.parse(trimmed);
+                    setIsValid(true);
+                    setError(null);
+                } catch (e) {
+                    setIsValid(false);
+                    setError(e.message);
+                }
+            }, [jsonText]);
+
+            // Handle file generation and download
+            const handleDownload = useCallback(() => {
+                if (!isValid || !jsonText.trim()) return;
+
+                const blob = new Blob([jsonText], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                const finalName = fileName.toLowerCase().endsWith('.json') 
+                    ? fileName 
+                    : `${fileName}.json`;
+                
+                a.href = url;
+                a.download = finalName;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }, [jsonText, fileName, isValid]);
+
+            return (
+                <div className="min-h-screen flex flex-col items-center p-4 md:p-12">
+                    <header className="w-full max-w-6xl mb-8 flex justify-between items-center border-b border-[#3c3934] pb-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-3xl font-black text-white italic tracking-tighter">JSON<span className="text-[#3692e7]">.dl</span></span>
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-[#707070] font-bold">
+                            Local Environment Only
+                        </div>
+                    </header>
+
+                    <main className="w-full max-w-6xl lichess-panel overflow-hidden flex flex-col lg:flex-row">
+                        {/* Control Sidebar */}
+                        <aside className="w-full lg:w-80 p-6 lichess-sidebar flex flex-col gap-6 border-b lg:border-b-0 lg:border-r border-[#3c3934]">
+                            <div>
+                                <label className="block text-[11px] font-bold text-[#707070] uppercase mb-2 tracking-wider">Output Name</label>
+                                <input 
+                                    type="text"
+                                    value={fileName}
+                                    onChange={(e) => setFileName(e.target.value)}
+                                    className="w-full p-2.5 lichess-input text-sm rounded-sm"
+                                    placeholder="filename.json"
+                                />
+                            </div>
+
+                            <div className="flex-grow">
+                                <label className="block text-[11px] font-bold text-[#707070] uppercase mb-2 tracking-wider">Validation</label>
+                                <div className={`p-4 rounded-sm text-xs border ${isValid ? 'border-green-900/30 bg-green-950/10 text-green-400' : 'border-red-900/30 bg-red-950/10 text-red-400'}`}>
+                                    {isValid ? (
+                                        <div className="flex items-center gap-2 font-bold">
+                                            <span>●</span> JSON is valid
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-1">
+                                            <div className="font-bold">● Invalid format</div>
+                                            <div className="opacity-70 font-mono text-[10px] break-all">{error}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={handleDownload}
+                                disabled={!isValid || !jsonText.trim()}
+                                className="w-full py-4 lichess-button rounded-sm text-sm active:translate-y-[1px]"
+                            >
+                                Download JSON
+                            </button>
+                        </aside>
+
+                        {/* Editor Main */}
+                        <section className="flex-grow p-4 md:p-8 bg-[#161512]">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-[11px] font-bold text-[#707070] uppercase tracking-wider">Paste Text Below</span>
+                                <span className="text-[10px] text-[#444] font-mono tracking-tighter">PLAINTEXT / JSON</span>
+                            </div>
+                            <textarea 
+                                value={jsonText}
+                                onChange={(e) => setJsonText(e.target.value)}
+                                spellCheck={false}
+                                placeholder='{ "status": "ok", "message": "paste here" }'
+                                className="w-full h-96 lg:h-[600px] p-6 lichess-input text-sm leading-relaxed resize-none rounded-sm border-none shadow-inner"
+                            />
+                        </section>
+                    </main>
+
+                    <footer className="mt-12 text-[10px] text-[#505050] text-center uppercase tracking-[0.2em] font-bold">
+                        Designed with Lichess aesthetics • Secure client-side processing
+                    </footer>
+                </div>
+            );
+        }
+
+        // Initialize Application
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

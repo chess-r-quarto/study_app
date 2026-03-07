@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lichess Style RSS Reader</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Register TSX Preset -->
+    <script>
+        Babel.registerPreset('tsx', {
+            presets: [
+                [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+                Babel.availablePresets['react']
+            ]
+        });
+    </script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lichess: {
+                            base: '#161512',
+                            surface: '#262421',
+                            hover: '#363431',
+                            text: '#bababa',
+                            textDull: '#8c8c8c',
+                            primary: '#b59963',
+                            primaryHover: '#cfae70',
+                            danger: '#dc322f',
+                            success: '#629924'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        body {
+            background-color: #161512;
+            color: #bababa;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #161512; }
+        ::-webkit-scrollbar-thumb { background: #363431; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8c8c8c; }
+        
+        .article-content img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 8px; }
+        .article-content a { color: #b59963; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="tsx">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Types ---
+        interface Subscription {
+            id: string;
+            name: string;
+            feedUrl: string;
+            tags: string[];
+        }
+
+        interface Article {
+            guid: string;
+            feedId: string;
+            feedName: string;
+            title: string;
+            link: string;
+            pubDate: string;
+            description: string;
+            thumbnail?: string;
+        }
+
+        type FilterType = { type: 'all' } | { type: 'tag', value: string } | { type: 'feed', value: string };
+
+        // --- Initial Data ---
+        const defaultSubscriptions: Subscription[] = [
+            { id: '1', name: 'Lichess Blog', feedUrl: 'https://lichess.org/blog.rss', tags: ['Chess'] },
+            { id: '2', name: 'GitHub Blog', feedUrl: 'https://github.blog/feed/', tags: ['Tech'] },
+            { id: '3', name: 'Hacker News', feedUrl: 'https://hnrss.org/frontpage', tags: ['Tech', 'News'] }
+        ];
+
+        // --- Utility ---
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+        const stripHtml = (html: string) => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            return doc.body.textContent || "";
+        };
+
+        // --- App Component ---
+        const App: React.FC = () => {
+            const [subscriptions, setSubscriptions] = useState<Subscription[]>(defaultSubscriptions);
+            const [articles, setArticles] = useState<Article[]>([]);
+            const [isLoading, setIsLoading] = useState<boolean>(false);
+            const [filter, setFilter] = useState<FilterType>({ type: 'all' });
+            const [isManageMode, setIsManageMode] = useState<boolean>(false);
+
+            // Fetch feeds
+            useEffect(() => {
+                const fetchFeeds = async () => {
+                    setIsLoading(true);
+                    let allArticles: Article[] = [];
+
+                    for (const sub of subscriptions) {
+                        try {
+                            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(sub.feedUrl)}`);
+                            const data = await res.json();
+
+                            if (data.status === 'ok') {
+                                const items = data.items.map((item: any) => ({
+                                    guid: item.guid || generateId(),
+                                    feedId: sub.id,
+                                    feedName: sub.name,
+                                    title: item.title,
+                                    link: item.link,
+                                    pubDate: item.pubDate,
+                                    description: item.description,
+                                    thumbnail: item.thumbnail
+                                }));
+                                allArticles = [...allArticles, ...items];
+                            }
+                        } catch (err) {
+                            console.error(`Failed to fetch ${sub.name}:`, err);
+                        }
+                    }
+
+                    allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+                    setArticles(allArticles);
+                    setIsLoading(false);
+                };
+
+                fetchFeeds();
+            }, [subscriptions]);
+
+            // Derived Data
+            const allTags = useMemo(() => {
+                const tags = new Set<string>();
+                subscriptions.forEach(s => s.tags.forEach(t => tags.add(t)));
+                return Array.from(tags).sort();
+            }, [subscriptions]);
+
+            const filteredArticles = useMemo(() => {
+                switch (filter.type) {
+                    case 'tag':
+                        const validFeedIds = subscriptions.filter(s => s.tags.includes(filter.value)).map(s => s.id);
+                        return articles.filter(a => validFeedIds.includes(a.feedId));
+                    case 'feed':
+                        return articles.filter(a => a.feedId === filter.value);
+                    case 'all':
+                    default:
+                        return articles;
+                }
+            }, [articles, filter, subscriptions]);
+
+            const headerTitle = useMemo(() => {
+                if (isManageMode) return "Manage Feeds";
+                if (filter.type === 'tag') return `# ${filter.value}`;
+                if (filter.type === 'feed') return subscriptions.find(s => s.id === filter.value)?.name || 'Unknown Feed';
+                return "All Articles";
+            }, [filter, isManageMode, subscriptions]);
+
+            const formatDate = (dateStr: string) => {
+                const d = new Date(dateStr);
+                return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            };
+
+            // Manage Feed Form State
+            const [newFeedUrl, setNewFeedUrl] = useState('');
+            const [newFeedName, setNewFeedName] = useState('');
+            const [newFeedTags, setNewFeedTags] = useState('');
+
+            const handleAddSubscription = (e: React.FormEvent) => {
+                e.preventDefault();
+                if (!newFeedUrl || !newFeedName) return;
+
+                const tags = newFeedTags.split(',').map(t => t.trim()).filter(t => t);
+                const newSub: Subscription = {
+                    id: generateId(),
+                    name: newFeedName,
+                    feedUrl: newFeedUrl,
+                    tags
+                };
+
+                setSubscriptions([...subscriptions, newSub]);
+                setNewFeedUrl('');
+                setNewFeedName('');
+                setNewFeedTags('');
+            };
+
+            const handleDeleteSubscription = (id: string) => {
+                setSubscriptions(subscriptions.filter(s => s.id !== id));
+                if (filter.type === 'feed' && filter.value === id) {
+                    setFilter({ type: 'all' });
+                }
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* Sidebar */}
+                    <aside className="w-64 bg-lichess-surface border-r border-lichess-hover flex flex-col flex-shrink-0">
+                        <div className="p-4 border-b border-lichess-hover">
+                            <h1 className="text-xl font-bold text-white flex items-center gap-2 cursor-pointer" onClick={() => { setIsManageMode(false); setFilter({ type: 'all' }); }}>
+                                <i className="ph-fill ph-book-open-text text-lichess-primary"></i>
+                                Reader
+                            </h1>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto py-2">
+                            {/* All Articles */}
+                            <div className="px-2 mb-4">
+                                <button 
+                                    onClick={() => { setIsManageMode(false); setFilter({ type: 'all' }); }}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded text-left transition-colors ${!isManageMode && filter.type === 'all' ? 'bg-lichess-hover text-white font-medium' : 'hover:bg-lichess-hover text-lichess-text'}`}
+                                >
+                                    <i className="ph ph-list-dashes text-lg"></i>
+                                    All Articles
+                                </button>
+                            </div>
+
+                            {/* Tags */}
+                            <div className="px-2 mb-4">
+                                <div className="px-3 mb-1 text-xs font-semibold text-lichess-textDull uppercase tracking-wider">TAGS</div>
+                                {allTags.map(tag => (
+                                    <button 
+                                        key={tag}
+                                        onClick={() => { setIsManageMode(false); setFilter({ type: 'tag', value: tag }); }}
+                                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-left transition-colors text-sm ${!isManageMode && filter.type === 'tag' && filter.value === tag ? 'bg-lichess-hover text-white font-medium' : 'hover:bg-lichess-hover text-lichess-text'}`}
+                                    >
+                                        <i className="ph ph-hash text-lichess-textDull"></i>
+                                        {tag}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Feeds */}
+                            <div className="px-2">
+                                <div className="px-3 mb-1 text-xs font-semibold text-lichess-textDull uppercase tracking-wider">FEEDS</div>
+                                {subscriptions.map(sub => (
+                                    <button 
+                                        key={sub.id}
+                                        onClick={() => { setIsManageMode(false); setFilter({ type: 'feed', value: sub.id }); }}
+                                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-left transition-colors text-sm truncate ${!isManageMode && filter.type === 'feed' && filter.value === sub.id ? 'bg-lichess-hover text-white font-medium' : 'hover:bg-lichess-hover text-lichess-text'}`}
+                                        title={sub.name}
+                                    >
+                                        <i className="ph ph-rss text-lichess-primary"></i>
+                                        <span className="truncate">{sub.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Settings / Manage */}
+                        <div className="p-4 border-t border-lichess-hover">
+                            <button 
+                                onClick={() => setIsManageMode(true)}
+                                className={`w-full flex items-center justify-center gap-2 px-3 py-2 border border-lichess-hover rounded transition-colors ${isManageMode ? 'bg-lichess-hover text-white border-lichess-textDull' : 'hover:bg-lichess-hover text-lichess-textDull hover:text-white'}`}
+                            >
+                                <i className="ph ph-gear"></i>
+                                Manage Feeds
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 flex flex-col min-w-0 bg-lichess-base">
+                        {/* Header */}
+                        <header className="h-14 px-6 border-b border-lichess-hover flex items-center justify-between flex-shrink-0 bg-lichess-surface">
+                            <h2 className="text-xl font-bold text-white truncate">{headerTitle}</h2>
+                            {isLoading && !isManageMode && (
+                                <div className="flex items-center gap-2 text-lichess-primary text-sm">
+                                    <i className="ph ph-spinner animate-spin text-lg"></i>
+                                    Loading...
+                                </div>
+                            )}
+                        </header>
+
+                        {/* Content Scroll Area */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            
+                            {/* Read Mode */}
+                            {!isManageMode && (
+                                <div className="max-w-4xl mx-auto space-y-4">
+                                    {articles.length === 0 && !isLoading ? (
+                                        <div className="text-center py-20 text-lichess-textDull border-2 border-dashed border-lichess-hover rounded-lg">
+                                            <i className="ph ph-newspaper text-4xl mb-3"></i>
+                                            <p>No articles found.</p>
+                                        </div>
+                                    ) : (
+                                        filteredArticles.map(article => (
+                                            <article key={article.guid} className="bg-lichess-surface border border-lichess-hover rounded-lg p-5 hover:border-lichess-text transition-colors">
+                                                <div className="flex items-center gap-2 text-xs text-lichess-textDull mb-2">
+                                                    <span className="text-lichess-primary font-medium">{article.feedName}</span>
+                                                    <span>•</span>
+                                                    <span>{formatDate(article.pubDate)}</span>
+                                                </div>
+                                                <h3 className="text-xl font-bold text-white mb-2 line-clamp-2">
+                                                    <a href={article.link} target="_blank" rel="noopener noreferrer" className="hover:text-lichess-primary transition-colors">
+                                                        {article.title}
+                                                    </a>
+                                                </h3>
+                                                <div className="text-sm text-lichess-textDull line-clamp-3 mb-3">
+                                                    {stripHtml(article.description)}
+                                                </div>
+                                                <div className="flex justify-end">
+                                                    <a href={article.link} target="_blank" rel="noopener noreferrer" className="text-xs bg-lichess-base hover:bg-lichess-hover border border-lichess-hover text-lichess-text px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+                                                        <i className="ph ph-arrow-square-out"></i>
+                                                        Read more
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Manage Mode */}
+                            {isManageMode && (
+                                <div className="max-w-3xl mx-auto">
+                                    <div className="bg-lichess-surface border border-lichess-hover rounded-lg p-6 mb-8 shadow-sm">
+                                        <h3 className="text-lg font-bold text-white mb-4">Add New Feed</h3>
+                                        <form onSubmit={handleAddSubscription} className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm text-lichess-textDull mb-1">RSS URL <span className="text-lichess-danger">*</span></label>
+                                                <input 
+                                                    type="url" 
+                                                    required
+                                                    value={newFeedUrl}
+                                                    onChange={e => setNewFeedUrl(e.target.value)}
+                                                    className="w-full bg-lichess-base border border-lichess-hover rounded px-3 py-2 text-white focus:outline-none focus:border-lichess-primary"
+                                                    placeholder="https://example.com/feed.xml"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm text-lichess-textDull mb-1">Site Name <span className="text-lichess-danger">*</span></label>
+                                                    <input 
+                                                        type="text" 
+                                                        required
+                                                        value={newFeedName}
+                                                        onChange={e => setNewFeedName(e.target.value)}
+                                                        className="w-full bg-lichess-base border border-lichess-hover rounded px-3 py-2 text-white focus:outline-none focus:border-lichess-primary"
+                                                        placeholder="Example Blog"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-lichess-textDull mb-1">Tags (comma separated)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={newFeedTags}
+                                                        onChange={e => setNewFeedTags(e.target.value)}
+                                                        className="w-full bg-lichess-base border border-lichess-hover rounded px-3 py-2 text-white focus:outline-none focus:border-lichess-primary"
+                                                        placeholder="Tech, News"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end pt-2">
+                                                <button type="submit" className="bg-lichess-primary hover:bg-lichess-primaryHover text-[#161512] font-bold px-6 py-2 rounded transition-colors">
+                                                    Add
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <h3 className="text-lg font-bold text-white mb-4">Registered Feeds</h3>
+                                    <div className="bg-lichess-surface border border-lichess-hover rounded-lg overflow-hidden">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-lichess-base border-b border-lichess-hover text-lichess-textDull">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-medium">Name</th>
+                                                    <th className="px-4 py-3 font-medium">URL</th>
+                                                    <th className="px-4 py-3 font-medium">Tags</th>
+                                                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-lichess-hover">
+                                                {subscriptions.map(sub => (
+                                                    <tr key={sub.id} className="hover:bg-lichess-base transition-colors">
+                                                        <td className="px-4 py-3 font-medium text-white">{sub.name}</td>
+                                                        <td className="px-4 py-3 text-lichess-textDull truncate max-w-xs">{sub.feedUrl}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {sub.tags.map(t => (
+                                                                    <span key={t} className="bg-lichess-hover text-lichess-textDull px-2 py-0.5 rounded text-xs">
+                                                                        {t}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <button 
+                                                                onClick={() => handleDeleteSubscription(sub.id)}
+                                                                className="text-lichess-textDull hover:text-lichess-danger transition-colors p-1"
+                                                                title="Delete"
+                                                            >
+                                                                <i className="ph ph-trash text-lg"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root')!);
+        root.render(<App />);
+    </script>
+</body>
+</html>

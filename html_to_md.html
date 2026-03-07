@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML to Markdown</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lichess: {
+              bg: '#161512',
+              panel: '#262421',
+              input: '#3c3934',
+              text: '#bababa',
+              textHover: '#ffffff',
+              green: '#629924',
+              greenHover: '#71b329',
+              border: '#403d39'
+            }
+          },
+          fontFamily: {
+            sans: ['Noto Sans', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+
+  <!-- Readability.js & Turndown.js -->
+  <script src="https://unpkg.com/@mozilla/readability/Readability.js"></script>
+  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+
+  <style>
+    body { background-color: #161512; color: #bababa; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #161512; }
+    ::-webkit-scrollbar-thumb { background: #403d39; border-radius: 5px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased flex justify-center p-4 md:p-8">
+
+  <div id="root" class="w-full max-w-4xl"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState } = React;
+
+    function App() {
+      const [url, setUrl] = useState<string>('');
+      const [markdown, setMarkdown] = useState<string>('');
+      const [isLoading, setIsLoading] = useState<boolean>(false);
+      const [error, setError] = useState<string | null>(null);
+
+      const processUrl = async () => {
+        if (!url.trim()) {
+          setError('Please enter a valid URL.');
+          return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+          // Use proxy to bypass CORS
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+          const response = await fetch(proxyUrl);
+          
+          if (!response.ok) {
+            throw new Error('Network error occurred.');
+          }
+
+          const data = await response.json();
+          const htmlString = data.contents;
+
+          if (!htmlString) {
+            throw new Error('Failed to retrieve content.');
+          }
+
+          // Parse HTML
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlString, 'text/html');
+
+          // Extract main content using Readability
+          const reader = new Readability(doc);
+          const article = reader.parse();
+
+          const contentToConvert = article ? article.content : doc.body.innerHTML;
+          const title = article ? article.title : doc.title;
+
+          // Convert to Markdown
+          const turndownService = new TurndownService({
+            headingStyle: 'atx',
+            codeBlockStyle: 'fenced'
+          });
+
+          // Remove images and unwanted tags
+          turndownService.remove(['img', 'script', 'style', 'noscript', 'iframe', 'nav', 'footer']);
+
+          let md = turndownService.turndown(contentToConvert);
+          
+          // Prepend title
+          if (title) {
+            md = `# ${title}\n\n${md}`;
+          }
+
+          setMarkdown(md);
+        } catch (err: any) {
+          setError(err.message || 'Failed to fetch or convert the page.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const handleDownload = () => {
+        if (!markdown) return;
+        
+        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        let fileName = 'document.md';
+        try {
+          const urlObj = new URL(url);
+          const path = urlObj.pathname.split('/').filter(Boolean).pop();
+          if (path) fileName = `${path}.md`;
+        } catch (e) {
+          // Fallback to default filename
+        }
+
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+      };
+
+      return (
+        <div className="flex flex-col gap-6">
+          <header className="mb-4">
+            <h1 className="text-3xl font-bold text-lichess-textHover flex items-center gap-3">
+              <svg className="w-8 h-8 text-lichess-text" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+              Web to Markdown
+            </h1>
+            <p className="text-sm mt-2">Extract the main content of a specified URL and convert it into clean, image-free Markdown.</p>
+          </header>
+
+          <main className="bg-lichess-panel rounded shadow-lg border border-lichess-border p-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input 
+                type="url" 
+                placeholder="https://example.com/article" 
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && processUrl()}
+                className="flex-1 bg-lichess-input text-lichess-textHover px-4 py-3 rounded outline-none focus:ring-2 focus:ring-lichess-border transition-shadow placeholder-lichess-text/50"
+              />
+              <button 
+                onClick={processUrl}
+                disabled={isLoading}
+                className="bg-lichess-green hover:bg-lichess-greenHover text-white font-bold px-6 py-3 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
+              >
+                {isLoading ? 'Processing...' : 'Extract'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-900/30 border border-red-800 text-red-200 rounded text-sm">
+                {error}
+              </div>
+            )}
+
+            {markdown && (
+              <div className="mt-6 flex flex-col gap-3 animate-fade-in">
+                <div className="flex justify-between items-end">
+                  <label className="text-sm font-bold text-lichess-textHover uppercase tracking-wider">Preview (Editable)</label>
+                  <button 
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 text-lichess-textHover bg-lichess-input hover:bg-lichess-border px-4 py-2 rounded text-sm font-bold transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download (.md)
+                  </button>
+                </div>
+                
+                <textarea 
+                  value={markdown}
+                  onChange={(e) => setMarkdown(e.target.value)}
+                  className="w-full h-[500px] bg-lichess-input text-lichess-textHover p-4 rounded outline-none border border-lichess-border focus:border-lichess-text font-mono text-sm resize-y leading-relaxed"
+                  spellCheck="false"
+                ></textarea>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小規模宅地等の特例シミュレーター</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        .katex { color: inherit; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            filter: invert(1);
+        }
+    </style>
+
+    <script>
+        Babel.registerPreset('tsx', {
+            presets: [
+                [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+                Babel.availablePresets['react']
+            ]
+        });
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans p-4 md:p-8">
+    <div id="root" class="max-w-7xl mx-auto"></div>
+
+    <script type="text/babel" data-presets="tsx">
+        const MathBlock = ({ math, compact = false }: { math: string, compact?: boolean }) => {
+            const containerRef = React.useRef<HTMLDivElement>(null);
+
+            React.useEffect(() => {
+                if (containerRef.current && window.katex) {
+                    window.katex.render(math, containerRef.current, {
+                        displayMode: true,
+                        throwOnError: false,
+                        strict: false
+                    });
+                }
+            }, [math]);
+
+            if (compact) {
+                return <div ref={containerRef} className="text-gray-100 text-xs md:text-sm" />;
+            }
+
+            return (
+                <div 
+                    ref={containerRef} 
+                    className="overflow-x-auto py-3 px-4 bg-gray-800 rounded-lg border border-gray-700 shadow-sm my-3 text-sm md:text-base text-gray-100"
+                />
+            );
+        };
+
+        const InputField = ({ label, name, value, unit, onChange }: any) => (
+            <div className="flex flex-col mb-3">
+                <label className="text-sm font-medium text-gray-300 mb-1">{label}</label>
+                <div className="flex items-center">
+                    <input 
+                        type="number" 
+                        name={name} 
+                        value={value} 
+                        onChange={onChange} 
+                        step="any"
+                        className="bg-gray-800 border border-gray-600 rounded-l px-3 py-1.5 w-full text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                    />
+                    <span className="bg-gray-700 border border-gray-600 border-l-0 rounded-r px-3 py-1.5 text-sm text-gray-300 whitespace-nowrap min-w-[3rem] text-center">
+                        {unit}
+                    </span>
+                </div>
+            </div>
+        );
+
+        const AreaBar = ({ total, applied, colorClass, baseClass, label, appliedLabel, taxableLabel, tooltipMath }: any) => {
+            const safeTotal = total > 0 ? total : 1;
+            const appliedPercent = Math.min((applied / safeTotal) * 100, 100);
+            const taxablePercent = 100 - appliedPercent;
+            const isZeroTotal = total === 0;
+
+            if (isZeroTotal) return null;
+
+            return (
+                <div className="w-full flex h-full min-h-[40px] relative group border border-gray-700 box-border cursor-pointer">
+                    {/* ツールチップ (数式表示) */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                        <div className="bg-gray-900 border border-gray-500 rounded-lg shadow-2xl p-4 min-w-[320px] w-max">
+                            <div className="text-gray-100 font-bold mb-2 border-b border-gray-700 pb-1">
+                                {label}: 計 {total.toFixed(1)}㎡ (減額 {applied.toFixed(1)}㎡ / 課税 {(total - applied).toFixed(1)}㎡)
+                            </div>
+                            <MathBlock math={tooltipMath} compact={true} />
+                        </div>
+                    </div>
+
+                    {/* 減額対象部分 */}
+                    {appliedPercent > 0 && (
+                        <div 
+                            style={{ width: `${appliedPercent}%` }} 
+                            className={`h-full ${colorClass} flex items-center justify-center overflow-hidden whitespace-nowrap px-1`}
+                        >
+                            <span className="text-xs font-bold text-white drop-shadow-md truncate">
+                                {appliedPercent >= 15 ? `${appliedLabel} ${applied.toFixed(1)}㎡` : ''}
+                            </span>
+                        </div>
+                    )}
+                    {/* 課税対象部分 */}
+                    {taxablePercent > 0 && (
+                        <div 
+                            style={{ width: `${taxablePercent}%` }} 
+                            className={`h-full ${baseClass} flex items-center justify-center overflow-hidden whitespace-nowrap px-1`}
+                        >
+                            <span className="text-xs font-semibold text-gray-300 truncate">
+                                {taxablePercent >= 15 ? `${taxableLabel} ${(total - applied).toFixed(1)}㎡` : ''}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [state, setState] = React.useState({
+                areaA: 198,
+                valueA: 3600,
+                totalFloorA: 300,
+                resFloorA: 100,
+                rentFloorA: 200,
+                leaseholdRatioA: 60,
+                rentRatioA: 30,
+                occupancyRatioA: 100,
+                areaB: 188,
+                valueB: 4000
+            });
+
+            const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const { name, value } = e.target;
+                setState(prev => ({ ...prev, [name]: value === '' ? '' : Number(value) }));
+            };
+
+            const fmt = (num: number) => {
+                if (isNaN(num) || !isFinite(num)) return '0';
+                return num.toLocaleString('en-US', { maximumFractionDigits: 2 }).replace(/,/g, '{,}');
+            };
+
+            const s = { ...state };
+            for (let key in s) {
+                if (s[key] === '') s[key] = 0;
+            }
+
+            const totalFloor = s.totalFloorA || 1; 
+
+            // (a) 特定居住用宅地等
+            const resArea = s.areaA * (s.resFloorA / totalFloor);
+            const resVal = s.valueA * (s.resFloorA / totalFloor);
+
+            // (b) 貸付事業用宅地等
+            const rentArea = s.areaA * (s.rentFloorA / totalFloor);
+            const rentValBase = s.valueA * (s.rentFloorA / totalFloor);
+            const rentVal = rentValBase * (1 - (s.leaseholdRatioA / 100) * (s.rentRatioA / 100) * (s.occupancyRatioA / 100));
+
+            // (c) 特定事業用宅地等
+            const busArea = s.areaB;
+            const busVal = s.valueB;
+
+            // 限度面積調整
+            const appliedBus = Math.min(busArea, 400);
+            const appliedRes = Math.min(resArea, 330);
+            const adjBus = appliedBus * (200 / 400);
+            const adjRes = appliedRes * (200 / 330);
+            
+            const allowedRentAreaRaw = 200 - adjBus - adjRes;
+            const allowedRentArea = Math.max(0, allowedRentAreaRaw);
+            const appliedRentArea = Math.min(rentArea, allowedRentArea);
+
+            // 減額計算
+            const resReduction = resVal * 0.8;
+            const busReduction = busVal * 0.8;
+            const rentReduction = rentArea > 0 ? rentVal * (appliedRentArea / rentArea) * 0.5 : 0;
+
+            // 最終価額
+            const finalValA_res = resVal - resReduction;
+            const finalValA_rent = rentVal - rentReduction;
+            const finalValA = finalValA_res + finalValA_rent;
+            const finalValB = busVal - busReduction;
+
+            // 図解用高さ比率の計算（甲土地）
+            const areaA_safe = s.areaA || 1;
+            const resHeightPercent = (resArea / areaA_safe) * 100;
+            const rentHeightPercent = (rentArea / areaA_safe) * 100;
+
+            // ツールチップ用LaTeX文字列 (課税額を追加)
+            const resMath = `\\begin{aligned}
+            \\text{評価額} &= ${fmt(s.valueA)}\\text{万} \\times \\frac{${fmt(resArea)}\\text{m}^2}{${fmt(s.areaA)}\\text{m}^2} = ${fmt(resVal)}\\text{万} \\\\
+            \\text{減額} &= ${fmt(resVal)}\\text{万} \\times 80\\% = ${fmt(resReduction)}\\text{万} \\\\
+            \\text{課税額} &= ${fmt(resVal)}\\text{万} - ${fmt(resReduction)}\\text{万} = \\mathbf{${fmt(finalValA_res)}\\text{万}}
+            \\end{aligned}`;
+
+            const rentMath = `\\begin{aligned}
+            \\text{貸家建付} &= ${fmt(rentValBase)}\\text{万} \\times ${fmt(1 - (s.leaseholdRatioA/100)*(s.rentRatioA/100)*(s.occupancyRatioA/100))} = ${fmt(rentVal)}\\text{万} \\\\
+            \\text{限度面積} &= ${fmt(allowedRentArea)}\\text{m}^2 \\text{ (併用調整)} \\\\
+            \\text{減額} &= ${fmt(rentVal)}\\text{万} \\times \\frac{${fmt(appliedRentArea)}\\text{m}^2}{${fmt(rentArea || 1)}\\text{m}^2} \\times 50\\% = ${fmt(rentReduction)}\\text{万} \\\\
+            \\text{課税額} &= ${fmt(rentVal)}\\text{万} - ${fmt(rentReduction)}\\text{万} = \\mathbf{${fmt(finalValA_rent)}\\text{万}}
+            \\end{aligned}`;
+
+            const busMath = `\\begin{aligned}
+            \\text{評価額} &= ${fmt(busVal)}\\text{万円} \\text{ (自用地)} \\\\
+            \\text{減額} &= ${fmt(busVal)}\\text{万} \\times 80\\% = ${fmt(busReduction)}\\text{万} \\\\
+            \\text{課税額} &= ${fmt(busVal)}\\text{万} - ${fmt(busReduction)}\\text{万} = \\mathbf{${fmt(finalValB)}\\text{万}}
+            \\end{aligned}`;
+
+            return (
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <aside className="w-full lg:w-1/3 bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-md h-fit shrink-0">
+                        <h2 className="text-lg font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">条件入力</h2>
+                        <div className="space-y-6">
+                            <fieldset>
+                                <legend className="font-semibold text-blue-400 mb-2">甲土地 (自宅兼賃貸アパート)</legend>
+                                <InputField label="敷地面積" name="areaA" value={state.areaA} unit="㎡" onChange={handleChange} />
+                                <InputField label="自用地評価額" name="valueA" value={state.valueA} unit="万円" onChange={handleChange} />
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <div className="col-span-2"><InputField label="アパート延床面積" name="totalFloorA" value={state.totalFloorA} unit="㎡" onChange={handleChange} /></div>
+                                    <InputField label="自宅部分床面積" name="resFloorA" value={state.resFloorA} unit="㎡" onChange={handleChange} />
+                                    <InputField label="賃貸部分床面積" name="rentFloorA" value={state.rentFloorA} unit="㎡" onChange={handleChange} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <InputField label="借地権割合" name="leaseholdRatioA" value={state.leaseholdRatioA} unit="％" onChange={handleChange} />
+                                    <InputField label="借家権割合" name="rentRatioA" value={state.rentRatioA} unit="％" onChange={handleChange} />
+                                    <InputField label="入居率" name="occupancyRatioA" value={state.occupancyRatioA} unit="％" onChange={handleChange} />
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend className="font-semibold text-purple-400 mb-2">乙土地 (特定事業用等)</legend>
+                                <InputField label="敷地面積" name="areaB" value={state.areaB} unit="㎡" onChange={handleChange} />
+                                <InputField label="自用地評価額" name="valueB" value={state.valueB} unit="万円" onChange={handleChange} />
+                            </fieldset>
+                        </div>
+                    </aside>
+
+                    <main className="w-full lg:w-2/3 space-y-8">
+                        <header className="border-b border-gray-700 pb-4">
+                            <h1 className="text-2xl font-bold text-gray-100">小規模宅地等の特例 評価額シミュレーター</h1>
+                        </header>
+
+                        {/* --- 面積図解セクション --- */}
+                        <section className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-md">
+                            <h2 className="text-lg font-semibold text-gray-200 border-l-4 border-indigo-500 pl-3 mb-4">
+                                適用面積の幾何学的可視化
+                            </h2>
+                            <div className="flex flex-col md:flex-row gap-6 mb-4 relative">
+                                {/* 甲土地 図解 */}
+                                <div className="flex-1 relative z-10">
+                                    <div className="text-sm font-bold text-gray-300 mb-2 text-center">
+                                        甲土地 ({s.areaA}㎡)
+                                    </div>
+                                    <div className="w-full h-64 flex flex-col shadow-inner bg-gray-900 p-1 border border-gray-700 rounded relative">
+                                        <div style={{ height: `${resHeightPercent}%` }} className="w-full transition-all relative">
+                                            <AreaBar 
+                                                total={resArea} applied={appliedRes} 
+                                                colorClass="bg-blue-600" baseClass="bg-blue-900/40" 
+                                                label="特定居住用" appliedLabel="特居 減額" taxableLabel="課税"
+                                                tooltipMath={resMath}
+                                            />
+                                        </div>
+                                        <div style={{ height: `${rentHeightPercent}%` }} className="w-full transition-all relative">
+                                            <AreaBar 
+                                                total={rentArea} applied={appliedRentArea} 
+                                                colorClass="bg-green-600" baseClass="bg-green-900/40" 
+                                                label="貸付事業用" appliedLabel="貸付 減額" taxableLabel="課税"
+                                                tooltipMath={rentMath}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* 乙土地 図解 */}
+                                <div className="flex-1 relative z-10">
+                                    <div className="text-sm font-bold text-gray-300 mb-2 text-center">
+                                        乙土地 ({s.areaB}㎡)
+                                    </div>
+                                    <div className="w-full h-64 flex flex-col shadow-inner bg-gray-900 p-1 border border-gray-700 rounded relative">
+                                        <div className="w-full h-full transition-all relative">
+                                            <AreaBar 
+                                                total={busArea} applied={appliedBus} 
+                                                colorClass="bg-purple-600" baseClass="bg-purple-900/40" 
+                                                label="特定事業用" appliedLabel="特事 減額" taxableLabel="課税"
+                                                tooltipMath={busMath}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-xs justify-center border-t border-gray-700 pt-4 text-gray-300">
+                                <div className="flex items-center gap-1"><span className="w-4 h-4 bg-blue-600 inline-block border border-gray-600"></span> 特定居住用 (80%減額)</div>
+                                <div className="flex items-center gap-1"><span className="w-4 h-4 bg-purple-600 inline-block border border-gray-600"></span> 特定事業用 (80%減額)</div>
+                                <div className="flex items-center gap-1"><span className="w-4 h-4 bg-green-600 inline-block border border-gray-600"></span> 貸付事業用 (50%減額)</div>
+                                <div className="flex items-center gap-1"><span className="w-4 h-4 bg-gray-700 inline-block border border-gray-600"></span> 課税対象部分 (減額なし)</div>
+                            </div>
+                            <p className="text-xs text-center text-gray-400 mt-2">※各図解にカーソルを合わせると、該当部分の計算ロジックが表示されます。</p>
+                        </section>
+
+                        {/* --- 計算ロジックセクション --- */}
+                        <section className="space-y-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-200 border-l-4 border-blue-500 pl-3 mb-3">
+                                    1. 各土地の評価額と対象面積の算出
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className="font-medium text-gray-300 text-sm">（a）特定居住用宅地等（甲土地 自宅部分）</h3>
+                                        <MathBlock math={`\\begin{aligned}
+                                        \\text{対象面積} &= ${fmt(s.areaA)}\\text{m}^2 \\times \\frac{${fmt(s.resFloorA)}\\text{m}^2}{${fmt(s.totalFloorA)}\\text{m}^2} = ${fmt(resArea)}\\text{m}^2 \\\\[8pt]
+                                        \\text{自用地評価額} &= ${fmt(s.valueA)}\\text{万円} \\times \\frac{${fmt(resArea)}\\text{m}^2}{${fmt(s.areaA)}\\text{m}^2} = ${fmt(resVal)}\\text{万円}
+                                        \\end{aligned}`} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-gray-300 text-sm">（b）貸付事業用宅地等（甲土地 賃貸部分）</h3>
+                                        <MathBlock math={`\\begin{aligned}
+                                        \\text{対象面積} &= ${fmt(s.areaA)}\\text{m}^2 \\times \\frac{${fmt(s.rentFloorA)}\\text{m}^2}{${fmt(s.totalFloorA)}\\text{m}^2} = ${fmt(rentArea)}\\text{m}^2 \\\\[8pt]
+                                        \\text{貸家建付地の評価額} &= ${fmt(s.valueA)}\\text{万円} \\times \\frac{${fmt(rentArea)}\\text{m}^2}{${fmt(s.areaA)}\\text{m}^2} \\times (1 - ${s.leaseholdRatioA}\\% \\times ${s.rentRatioA}\\% \\times ${s.occupancyRatioA}\\%) \\\\[5pt]
+                                        &= ${fmt(rentValBase)}\\text{万円} \\times ${fmt(1 - (s.leaseholdRatioA/100)*(s.rentRatioA/100)*(s.occupancyRatioA/100))} = ${fmt(rentVal)}\\text{万円}
+                                        \\end{aligned}`} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-gray-300 text-sm">（c）特定事業用宅地等（乙土地）</h3>
+                                        <MathBlock math={`\\begin{aligned}
+                                        \\text{対象面積} &= ${fmt(busArea)}\\text{m}^2 \\\\[5pt]
+                                        \\text{自用地評価額} &= ${fmt(busVal)}\\text{万円}
+                                        \\end{aligned}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-200 border-l-4 border-blue-500 pl-3 mb-3">
+                                    2. 適用限度面積の調整（併用調整）
+                                </h2>
+                                <MathBlock math={`\\begin{aligned}
+                                &\\left(\\text{特事面積} \\times \\frac{200}{400}\\right) 
+                                + \\left(\\text{特居面積} \\times \\frac{200}{330}\\right) 
+                                + \\text{貸付事業用の適用面積} \\le 200\\text{m}^2 \\\\[10pt]
+                                &\\left(${fmt(appliedBus)}\\text{m}^2 \\times \\frac{200}{400}\\right) 
+                                + \\left(${fmt(appliedRes)}\\text{m}^2 \\times \\frac{200}{330}\\right) 
+                                + \\text{貸付事業用の適用面積} \\le 200\\text{m}^2 \\\\[10pt]
+                                &${fmt(adjBus)}\\text{m}^2 + ${fmt(adjRes)}\\text{m}^2 + \\text{貸付事業用の適用面積} \\le 200\\text{m}^2 \\\\[10pt]
+                                &\\therefore \\text{貸付事業用の限度面積} = 200\\text{m}^2 - ${fmt(adjBus + adjRes)}\\text{m}^2 = ${fmt(allowedRentArea)}\\text{m}^2
+                                \\end{aligned}`} />
+                                {allowedRentAreaRaw < 0 && (
+                                    <p className="text-sm text-red-400 font-bold px-2 mt-2">※ 調整後の面積が200㎡を超えるため、優先順位の低い貸付事業用の適用面積は 0㎡ となります。</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-200 border-l-4 border-blue-500 pl-3 mb-3">
+                                    3. 減額される金額の計算
+                                </h2>
+                                <MathBlock math={`\\begin{aligned}
+                                \\text{特定居住用等} &= ${fmt(resVal)}\\text{万円} \\times 80\\% = ${fmt(resReduction)}\\text{万円} \\\\[10pt]
+                                \\text{特定事業用等} &= ${fmt(busVal)}\\text{万円} \\times 80\\% = ${fmt(busReduction)}\\text{万円} \\\\[10pt]
+                                \\text{貸付事業用等} &= ${fmt(rentVal)}\\text{万円} \\times \\frac{${fmt(appliedRentArea)}\\text{m}^2}{${fmt(rentArea || 1)}\\text{m}^2} \\times 50\\% = ${fmt(rentReduction)}\\text{万円}
+                                \\end{aligned}`} />
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-200 border-l-4 border-blue-500 pl-3 mb-3">
+                                    4. 最終的な相続税評価額
+                                </h2>
+                                <MathBlock math={`\\begin{aligned}
+                                \\textbf{① 甲土地の価額} \\\\[5pt]
+                                \\text{特定居住用} &: ${fmt(resVal)}\\text{万円} - ${fmt(resReduction)}\\text{万円} = ${fmt(finalValA_res)}\\text{万円} \\\\
+                                \\text{貸付事業用} &: ${fmt(rentVal)}\\text{万円} - ${fmt(rentReduction)}\\text{万円} = ${fmt(finalValA_rent)}\\text{万円} \\\\
+                                \\text{合計} &: ${fmt(finalValA_res)}\\text{万円} + ${fmt(finalValA_rent)}\\text{万円} = \\mathbf{${fmt(finalValA)}\\text{万円}} \\\\[12pt]
+                                \\textbf{② 乙土地の価額} \\\\[5pt]
+                                \\text{特定事業用} &: ${fmt(busVal)}\\text{万円} - ${fmt(busReduction)}\\text{万円} = \\mathbf{${fmt(finalValB)}\\text{万円}}
+                                \\end{aligned}`} />
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

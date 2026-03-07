@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Scraper</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (with TypeScript support) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Babel Custom Preset for TSX -->
+    <script>
+        Babel.registerPreset('tsx', {
+            presets: [
+                [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+                Babel.availablePresets['react']
+            ]
+        });
+    </script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" data-presets="tsx">
+    const { useState } = React;
+
+    // --- Types ---
+    interface IconProps {
+        path: React.ReactNode;
+        size?: number;
+        className?: string;
+    }
+
+    interface Post {
+        number: string;
+        name: string;
+        date: string;
+        uid: string;
+        message: string;
+    }
+
+    interface ParseResult {
+        posts: Post[];
+        title: string;
+    }
+
+    interface ThreadMeta {
+        server: string;
+        board: string;
+        thread: string;
+        domain: string;
+        original: string;
+        htmlUrl: string;
+        datUrl: string;
+    }
+
+    interface Settings {
+        autoAnchor: boolean;
+        expandImages: boolean;
+        exportJson: boolean;
+    }
+
+    interface ToggleProps {
+        active: boolean;
+        onToggle: () => void;
+    }
+
+    // --- Global Styles ---
+    const GlobalStyle: React.FC = () => (
+        <style>{`
+            body {
+                background-color: #161512;
+                color: #bababa;
+                margin: 0;
+                font-family: sans-serif;
+            }
+            ::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #262421; 
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #404040; 
+                border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #505050; 
+            }
+        `}</style>
+    );
+
+    // --- Icons ---
+    const Icon: React.FC<IconProps> = ({ path, size = 16, className = "" }) => (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width={size} 
+            height={size} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={className}
+        >
+            {path}
+        </svg>
+    );
+
+    const Icons = {
+        GlobeReal: <g><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></g>,
+        Settings: <g><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></g>,
+        AlertCircle: <g><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></g>,
+        RefreshCw: <g><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></g>,
+        Terminal: <g><polyline points="4 17 10 11 4 5" /><line x1="12" x2="20" y1="19" y2="19" /></g>,
+        Download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></g>,
+        Check: <polyline points="20 6 9 17 4 12" />,
+        Copy: <g><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></g>,
+        FileText: <g><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><line x1="10" x2="8" y1="9" y2="9" /></g>,
+        Link: <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />,
+        Image: <g><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></g>,
+        Code: <g><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></g>
+    };
+
+    // --- Main Application ---
+    const App: React.FC = () => {
+        const [url, setUrl] = useState<string>('');
+        const [outputData, setOutputData] = useState<string>('');
+        const [loading, setLoading] = useState<boolean>(false);
+        const [error, setError] = useState<string>('');
+        const [parsedMeta, setParsedMeta] = useState<ThreadMeta | null>(null);
+        const [copySuccess, setCopySuccess] = useState<boolean>(false);
+        const [statusMsg, setStatusMsg] = useState<string>('');
+        
+        const [settings, setSettings] = useState<Settings>({
+            autoAnchor: true,
+            expandImages: true,
+            exportJson: false
+        });
+
+        const styles = {
+            container: "min-h-screen bg-[#161512] text-[#bababa] font-sans selection:bg-[#3692e7] selection:text-white",
+            header: "bg-[#262421] border-b border-[#302e2c] px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md",
+            title: "text-lg font-bold tracking-tight text-[#dcdcdc] flex items-center gap-2",
+            main: "max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-6",
+            card: "bg-[#262421] rounded-lg shadow-lg border border-[#302e2c] overflow-hidden flex flex-col h-[80vh]",
+            cardHeader: "px-4 py-3 border-b border-[#302e2c] bg-[#211f1d] flex items-center justify-between",
+            cardTitle: "text-sm font-bold text-[#8c8c8c] uppercase tracking-wide",
+            inputArea: "p-6 flex flex-col gap-4 overflow-y-auto flex-1",
+            outputArea: "p-0 flex flex-col h-full bg-[#1c1b19]",
+            input: "w-full p-3 bg-[#302e2c] border border-[#404040] rounded text-sm text-[#dcdcdc] focus:outline-none focus:ring-2 focus:ring-[#3692e7] focus:border-transparent transition-all placeholder-[#666]",
+            button: "px-4 py-2 bg-[#3692e7] hover:bg-[#489dec] text-white rounded text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center shadow-sm uppercase tracking-wider",
+            secondaryButton: "px-3 py-1.5 text-xs font-bold text-[#8c8c8c] hover:text-[#dcdcdc] hover:bg-[#302e2c] rounded transition-colors flex items-center gap-1 uppercase",
+            label: "block text-xs font-bold text-[#666] uppercase tracking-wider mb-1",
+            codeBlock: "w-full h-full p-4 bg-[#101010] text-[#a0a0a0] font-mono text-xs leading-relaxed resize-none focus:outline-none border-none",
+            badge: "inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-[#302e2c] text-[#8c8c8c] border border-[#404040]",
+            infoBox: "bg-[#302e2c] p-3 rounded border border-[#404040] text-xs space-y-1 text-[#a0a0a0]",
+            errorBox: "bg-[#3c1f1f] text-[#ff8080] p-3 rounded text-sm flex gap-2 items-start border border-[#5c2b2b]",
+            loadingBox: "bg-[#1d2633] text-[#3692e7] p-3 rounded text-sm flex gap-2 items-center border border-[#233347]",
+            toggleRow: "flex items-center justify-between py-2 border-b border-[#302e2c] last:border-0",
+            toggleText: "text-xs font-medium text-[#a0a0a0]"
+        };
+
+        const toggleSetting = (key: keyof Settings) => {
+            setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+        };
+
+        const Toggle: React.FC<ToggleProps> = ({ active, onToggle }) => (
+            <div 
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer ${active ? 'bg-[#3692e7]' : 'bg-[#404040]'}`}
+                onClick={onToggle}
+            >
+                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition duration-200 ${active ? 'translate-x-5' : 'translate-x-1'}`} />
+            </div>
+        );
+
+        const parseUrl = (inputUrl: string): ThreadMeta | null => {
+            try {
+                const urlObj = new URL(inputUrl);
+                const pathParts = urlObj.pathname.split('/').filter(p => p);
+                let server, board, thread;
+
+                if (urlObj.hostname.endsWith('2ch.sc')) {
+                    server = urlObj.hostname.split('.')[0];
+                    if (pathParts.length >= 4 && pathParts[0] === 'test' && pathParts[1] === 'read.cgi') {
+                        board = pathParts[2];
+                        thread = pathParts[3];
+                    }
+                } else if (urlObj.hostname === 'itest.5ch.net') {
+                    if (pathParts.length >= 5 && pathParts[1] === 'test' && pathParts[2] === 'read.cgi') {
+                        server = pathParts[0];
+                        board = pathParts[3];
+                        thread = pathParts[4];
+                    }
+                } else if (urlObj.hostname.endsWith('5ch.net')) {
+                    server = urlObj.hostname.split('.')[0];
+                    if (pathParts.length >= 4 && pathParts[0] === 'test' && pathParts[1] === 'read.cgi') {
+                        board = pathParts[2];
+                        thread = pathParts[3];
+                    }
+                }
+
+                if (server && board && thread) {
+                    const domain = urlObj.hostname.endsWith('2ch.sc') ? '2ch.sc' : '5ch.net';
+                    return {
+                        server, board, thread, domain, original: inputUrl,
+                        htmlUrl: `https://${server}.${domain}/test/read.cgi/${board}/${thread}/1-1000`,
+                        datUrl: `http://${server}.${domain}/${board}/dat/${thread}.dat`
+                    };
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const fetchWithProxy = async (targetUrl: string): Promise<ArrayBuffer> => {
+            const proxies = [
+                (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+            ];
+            let lastError: unknown = null;
+            for (const proxyGen of proxies) {
+                try {
+                    const response = await fetch(proxyGen(targetUrl));
+                    if (!response.ok) throw new Error(`Status ${response.status}`);
+                    const buffer = await response.arrayBuffer();
+                    if (buffer.byteLength === 0) throw new Error('Empty response');
+                    return buffer;
+                } catch (e) {
+                    lastError = e;
+                    continue;
+                }
+            }
+            throw lastError || new Error('All proxies failed');
+        };
+
+        const decodeBuffer = (buffer: ArrayBuffer): string => {
+            const decoderSJIS = new TextDecoder('shift-jis');
+            const textSJIS = decoderSJIS.decode(buffer);
+            const replacementCount = (textSJIS.match(/\uFFFD/g) || []).length;
+            const decoderUTF8 = new TextDecoder('utf-8');
+            const textUTF8 = decoderUTF8.decode(buffer);
+            const replacementCountUTF8 = (textUTF8.match(/\uFFFD/g) || []).length;
+
+            if (textSJIS.includes('2ch.sc') || textSJIS.includes('書き込み')) return textSJIS;
+            if (replacementCount > replacementCountUTF8 && textUTF8.includes('2ch.sc')) return textUTF8;
+            return textSJIS;
+        };
+
+        const parseDat = (text: string, threadTitle: string): ParseResult => {
+            const lines = text.split('\n');
+            const posts: Post[] = [];
+            let title = threadTitle;
+            lines.forEach((line, index) => {
+                if (!line.trim()) return;
+                const parts = line.split('<>');
+                if (parts.length >= 4) {
+                    const name = parts[0].replace(/<[^>]+>/g, '').trim();
+                    const dateIdRaw = parts[2];
+                    let message = parts[3];
+                    if (index === 0 && parts[4]) title = parts[4].trim();
+                    let date = dateIdRaw;
+                    let uid = '';
+                    if (dateIdRaw.includes(' ID:')) {
+                        const dParts = dateIdRaw.split(' ID:');
+                        date = dParts[0];
+                        uid = 'ID:' + dParts[1];
+                    }
+                    message = message
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&amp;/g, '&')
+                        .replace(/&quot;/g, '"')
+                        .replace(/<a[^>]+>(.*?)<\/a>/g, '$1')
+                        .replace(/<[^>]+>/g, '')
+                        .trim();
+                    posts.push({ number: (index + 1).toString(), name, date, uid, message });
+                }
+            });
+            return { posts, title };
+        };
+
+        const parseHtml = (text: string, defaultTitle: string): ParseResult => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const posts: Post[] = [];
+            const title = doc.title.replace(' - 2ちゃんねる', '').replace('5ちゃんねる掲示板', '').trim() || defaultTitle;
+            
+            const dl = doc.querySelector('dl.thread') || doc.querySelector('dl');
+            if (dl) {
+                const dts = dl.querySelectorAll('dt');
+                const dds = dl.querySelectorAll('dd');
+                dts.forEach((dt, i) => {
+                    if (dds[i]) {
+                        const dtText = dt.textContent?.trim() || '';
+                        const ddContent = dds[i].innerHTML;
+                        const numMatch = dtText.match(/^(\d+)\s*:/);
+                        const number = numMatch ? numMatch[1] : (i + 1).toString();
+                        let name = "Unknown", date = "", uid = "";
+                        const parts = dtText.split(/：|:/);
+                        if (parts.length >= 2) {
+                            name = dtText.substring(dtText.indexOf('：') + 1 || dtText.indexOf(':') + 1).trim();
+                            const dateMatch = name.match(/(\d{4}\/\d{2}\/\d{2}.*)/);
+                            if (dateMatch) {
+                                date = dateMatch[1];
+                                name = name.replace(date, '').trim();
+                            }
+                        }
+                        if (date.includes('ID:')) {
+                            const dParts = date.split('ID:');
+                            date = dParts[0].trim();
+                            uid = 'ID:' + dParts[1].trim();
+                        }
+                        const message = ddContent.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                        posts.push({ number, name, date, uid, message });
+                    }
+                });
+            } else {
+                const postDivs = doc.querySelectorAll('.post');
+                if (postDivs.length > 0) {
+                    postDivs.forEach(div => {
+                        const number = div.querySelector('.number, .post-id')?.textContent?.trim() || div.id;
+                        const name = div.querySelector('.name')?.textContent?.trim() || 'Name';
+                        const date = div.querySelector('.date')?.textContent?.trim() || '';
+                        const uid = div.querySelector('.uid')?.textContent?.trim() || '';
+                        const message = div.querySelector('.message, .post-content')?.innerHTML?.replace(/<br\s*\/?>/gi, '\n')?.replace(/<[^>]+>/g, '')?.trim();
+                        if (message) posts.push({ number, name, date, uid, message });
+                    });
+                } else {
+                    const regex = /<dt>(\d+)\s*[：:]([\s\S]*?)<dd>([\s\S]*?)<br><br>/g;
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        const number = match[1];
+                        const meta = match[2];
+                        const rawMsg = match[3];
+                        let name = "Unknown", date = "";
+                        if (meta.includes('：')) {
+                            const mParts = meta.split('：');
+                            name = mParts[0].replace(/<[^>]+>/g, '').trim();
+                            date = mParts.slice(1).join('：').replace(/<[^>]+>/g, '').trim();
+                        } else {
+                            name = meta.replace(/<[^>]+>/g, '').trim();
+                        }
+                        const message = rawMsg.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                        posts.push({ number, name, date, uid: '', message });
+                    }
+                }
+            }
+            return { posts, title };
+        };
+
+        const fetchThread = async () => {
+            setLoading(true);
+            setError('');
+            setOutputData('');
+            setCopySuccess(false);
+            setStatusMsg('URL解析中...');
+
+            const meta = parseUrl(url);
+            if (!meta) {
+                setError('有効なURL（5ch.net または 2ch.sc）を入力してください。');
+                setLoading(false);
+                setStatusMsg('');
+                return;
+            }
+            setParsedMeta(meta);
+
+            try {
+                let posts: Post[] = [];
+                let title = meta.thread;
+
+                try {
+                    setStatusMsg('Datファイルを取得中...');
+                    const buffer = await fetchWithProxy(meta.datUrl);
+                    const text = decodeBuffer(buffer);
+                    if (text.includes('<>') && text.split('\n').length > 0) {
+                        const result = parseDat(text, meta.thread);
+                        posts = result.posts;
+                        title = result.title;
+                    } else throw new Error('Invalid DAT format');
+                } catch (datErr) {
+                    console.log('DAT fallback:', datErr);
+                    setStatusMsg('HTML解析モードへ切り替え中...');
+                    const buffer = await fetchWithProxy(meta.htmlUrl);
+                    const text = decodeBuffer(buffer);
+                    if (text.includes('Forbidden') || text.includes('アクセスを許可')) throw new Error('アクセスが拒否されました (403/Blocked)。');
+                    const result = parseHtml(text, meta.thread);
+                    posts = result.posts;
+                    title = result.title;
+                }
+
+                if (posts.length === 0) throw new Error('解析可能なレスが見つかりませんでした。');
+
+                const timestamp = new Date().toISOString();
+
+                if (settings.exportJson) {
+                    const jsonPayload = {
+                        type: "5ch_thread_archive",
+                        parsed_at: timestamp,
+                        source_url: meta.original,
+                        thread_title: title,
+                        posts: posts.map(p => ({
+                            number: p.number,
+                            name: p.name,
+                            date: p.date,
+                            uid: p.uid,
+                            message: p.message
+                        }))
+                    };
+                    setOutputData(JSON.stringify(jsonPayload, null, 2));
+                } else {
+                    const yamlHeader = `---
+type: 5ch_thread_archive
+parsed_at: "${timestamp}"
+source_url: "${meta.original}"
+thread_title: "${title}"
+structure_info:
+  description: "This document is an archive of a Japanese bulletin board thread."
+  format: "Markdown"
+  post_structure:
+    header: "### {Post Number} : {Poster Name}"
+    metadata: "> {Date} {User ID}"
+    body: "{Message Content}"
+  attention: |
+    - Content is raw user-generated text from 2ch/5ch.
+    - Context may include internet slang, colloquialisms, or sarcasm.
+    - User ID (ID:xxxx) indicates unique posters within the thread day.
+---
+
+`;
+
+                    let md = yamlHeader + `# ${title}\n\nSource: ${meta.original}\n\n---\n\n`;
+                    
+                    posts.forEach(p => {
+                        let message = p.message;
+                        
+                        if (settings.autoAnchor) {
+                            message = message.replace(/>>(\d+)/g, '[>>$1](#$1)');
+                        }
+
+                        if (settings.expandImages) {
+                            message = message.replace(
+                                /(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp))/gi, 
+                                '![]($1)'
+                            );
+                        }
+
+                        md += `### ${p.number} : ${p.name}\n`;
+                        md += `> ${p.date} ${p.uid}\n\n`;
+                        md += `${message}\n\n`;
+                        md += `---\n\n`;
+                    });
+
+                    setOutputData(md);
+                }
+
+                setStatusMsg('完了');
+            } catch (err) {
+                console.error(err);
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                setError(`エラー: ${errorMessage}\n\nヒント: しばらく待って再試行するか、ブラウザで該当URLが開けるか確認してください。`);
+            } finally {
+                setLoading(false);
+                if (!error) setTimeout(() => setStatusMsg(''), 2000);
+            }
+        };
+
+        const copyToClipboard = () => {
+            const textArea = document.createElement("textarea");
+            textArea.value = outputData;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "-9999px"; 
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2000);
+            } catch (err) {
+                console.error('コピーに失敗しました', err);
+            }
+            document.body.removeChild(textArea);
+        };
+
+        const downloadData = () => {
+            if (!outputData) return;
+            const isJson = settings.exportJson;
+            const extension = isJson ? '.json' : '.md';
+            const mimeType = isJson ? 'application/json;charset=utf-8' : 'text/markdown;charset=utf-8';
+            let fileName = 'thread' + extension;
+            
+            if (isJson) {
+                try {
+                    const parsed = JSON.parse(outputData);
+                    if (parsed.thread_title) {
+                        fileName = parsed.thread_title.trim().replace(/[\\/:*?"<>|]/g, '_') + extension;
+                    }
+                } catch(e) {}
+            } else {
+                const titleMatch = outputData.match(/^# (.*)\n/m); 
+                if (titleMatch && titleMatch[1]) {
+                    fileName = titleMatch[1].trim().replace(/[\\/:*?"<>|]/g, '_') + extension;
+                }
+            }
+
+            const blob = new Blob(['\uFEFF' + outputData], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        return (
+            <div className={styles.container}>
+                <GlobalStyle />
+                <header className={styles.header}>
+                    <div className={styles.title}>
+                        <Icon path={Icons.GlobeReal} size={20} className="text-[#3692e7]" />
+                        <span>Universal Thread Parser</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className={styles.badge}>v3.3 TS (JSON Output)</span>
+                    </div>
+                </header>
+
+                <main className={styles.main}>
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardTitle}>Input</span>
+                            <Icon path={Icons.Settings} size={16} className="text-[#666]" />
+                        </div>
+                        
+                        <div className={styles.inputArea}>
+                            <div>
+                                <label className={styles.label}>Thread URL</label>
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    placeholder="https://nozomi.2ch.sc/test/read.cgi/..."
+                                    value={url}
+                                    onChange={(e) => setUrl(e.target.value)}
+                                />
+                                <p className="text-xs text-[#666] mt-2 ml-1">
+                                    2ch.sc (全サーバー) / 5ch.net 対応。
+                                </p>
+                            </div>
+
+                            <div className="bg-[#211f1d] p-3 rounded border border-[#302e2c] space-y-1">
+                                <label className={styles.label}>Formatting Options</label>
+                                <div className={styles.toggleRow}>
+                                    <div className="flex items-center gap-2">
+                                        <Icon path={Icons.Link} size={14} className="text-[#666]" />
+                                        <span className={styles.toggleText}>Auto-link Anchors (&gt;&gt;1)</span>
+                                    </div>
+                                    <Toggle 
+                                        active={settings.autoAnchor} 
+                                        onToggle={() => toggleSetting('autoAnchor')} 
+                                    />
+                                </div>
+                                <div className={styles.toggleRow}>
+                                    <div className="flex items-center gap-2">
+                                        <Icon path={Icons.Image} size={14} className="text-[#666]" />
+                                        <span className={styles.toggleText}>Expand Image URLs</span>
+                                    </div>
+                                    <Toggle 
+                                        active={settings.expandImages} 
+                                        onToggle={() => toggleSetting('expandImages')} 
+                                    />
+                                </div>
+                                <div className={styles.toggleRow}>
+                                    <div className="flex items-center gap-2">
+                                        <Icon path={Icons.Code} size={14} className="text-[#666]" />
+                                        <span className={styles.toggleText}>Output as JSON</span>
+                                    </div>
+                                    <Toggle 
+                                        active={settings.exportJson} 
+                                        onToggle={() => toggleSetting('exportJson')} 
+                                    />
+                                </div>
+                            </div>
+
+                            {parsedMeta && (
+                                <div className={styles.infoBox}>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#666]">Server:</span>
+                                        <span className="font-mono text-[#3692e7]">{parsedMeta.server}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#666]">Board/Thread:</span>
+                                        <span className="font-mono">{parsedMeta.board} / {parsedMeta.thread}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#666]">Dat URL:</span>
+                                        <span className="font-mono text-[#555] truncate w-48">{parsedMeta.datUrl}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className={styles.errorBox}>
+                                    <Icon path={Icons.AlertCircle} size={16} className="mt-0.5 shrink-0" />
+                                    <div className="whitespace-pre-wrap text-xs">{error}</div>
+                                </div>
+                            )}
+                            
+                            {loading && !error && (
+                                <div className={styles.loadingBox}>
+                                    <Icon path={Icons.RefreshCw} size={14} className="animate-spin" />
+                                    <span className="text-xs">{statusMsg}</span>
+                                </div>
+                            )}
+
+                            <div className="mt-auto pt-4">
+                                <button 
+                                    onClick={fetchThread} 
+                                    className={`${styles.button} w-full`}
+                                    disabled={loading || !url}
+                                >
+                                    {loading ? <Icon path={Icons.RefreshCw} size={16} className="animate-spin" /> : <Icon path={Icons.Terminal} size={16} />}
+                                    {loading ? 'PROCESSING...' : 'PARSE THREAD'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardTitle}>Output</span>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={downloadData} 
+                                    disabled={!outputData}
+                                    className={styles.secondaryButton}
+                                    title={`Download ${settings.exportJson ? '.json' : '.md'}`}
+                                >
+                                    <Icon path={Icons.Download} size={14} />
+                                    DOWNLOAD
+                                </button>
+                                <button 
+                                    onClick={copyToClipboard} 
+                                    disabled={!outputData}
+                                    className={styles.secondaryButton}
+                                    title="Copy"
+                                >
+                                    {copySuccess ? <Icon path={Icons.Check} size={14} className="text-green-500" /> : <Icon path={Icons.Copy} size={14} />}
+                                    {copySuccess ? 'COPIED' : 'COPY'}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className={styles.outputArea}>
+                            {outputData ? (
+                                <textarea 
+                                    className={styles.codeBlock} 
+                                    value={outputData} 
+                                    readOnly 
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-[#404040] gap-3">
+                                    <Icon path={Icons.FileText} size={48} className="opacity-10" />
+                                    <span className="text-xs font-bold uppercase tracking-widest">Ready to Parse</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    };
+
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    }
+</script>
+</body>
+</html>

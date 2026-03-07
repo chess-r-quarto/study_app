@@ -644,7 +644,7 @@ function App() {
                     {Math.round((score / activeQuestions.length) * 100)}%
                   </div>
                 </div>
-                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-2xl">
                   <p className="text-base sm:text-lg text-[#dbd9d6]">
                     <span className="text-[#629924] font-bold">{score}</span> correct out of <span className="font-bold">{activeQuestions.length}</span>
                   </p>
@@ -658,7 +658,7 @@ function App() {
                     {activeQuestions.length}
                   </div>
                 </div>
-                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-2xl">
                   <p className="text-base sm:text-lg text-[#dbd9d6]">
                     Reading session completed.
                   </p>

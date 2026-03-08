@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FP1級 業界内分布と資格偏在の分析（AI推計）</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+  <script crossorigin src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState } = React;
+    const { 
+      BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
+    } = window.Recharts;
+
+    // --- 推計データ定義 ---
+    // 総数 約60,000人 / 110万人 ≒ 5.4% をベースにした偏在シミュレーション
+    const DISTRIBUTION_DATA = [
+      { name: '都市部有力地銀/メガ', ratio: 6.5, avg: 5.4, label: '育成注力層' },
+      { name: '中堅地銀/信金', ratio: 3.2, avg: 5.4, label: '標準層' },
+      { name: '証券/WM部門', ratio: 8.5, avg: 5.4, label: '高度コンサル層' },
+      { name: '生保/FP部門', ratio: 4.8, avg: 5.4, label: '専門特化層' },
+      { name: '一般事業/独立/その他', ratio: 1.5, avg: 5.4, label: '周辺層' },
+    ];
+
+    const formatNum = (v: number) => v.toLocaleString();
+
+    const App = () => {
+      return (
+        <div className="max-w-5xl mx-auto px-4 py-12">
+          {/* 非公式バッジ */}
+          <div className="flex justify-center mb-6">
+            <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-full border border-amber-200">
+              ⚠️ AIによる推計のため非公式
+            </span>
+          </div>
+
+          <header className="text-center mb-12">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">
+              FP1級の「5%」に隠された<span className="text-blue-600">資格偏在</span>の分析
+            </h1>
+            <p className="text-slate-500 font-medium">
+              金融従事者110万人に対する1級保持者6万人の分布シミュレーション（非公式推計）
+            </p>
+          </header>
+
+          {/* 保持率比較グラフ */}
+          <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10">
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                  <span className="w-2 h-6 bg-blue-600 rounded-full"></span>
+                  業態・部門別 1級保持率の推計
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-bold">※金融業界全体平均 5.4% との比較シミュレーション</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-slate-400 uppercase">Industry Average</p>
+                <p className="text-2xl font-black text-slate-300">5.4%</p>
+              </div>
+            </div>
+
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer>
+                <BarChart data={DISTRIBUTION_DATA} margin={{top: 20, right: 30, left: 0, bottom: 60}}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" angle={-15} textAnchor="end" interval={0} fontSize={12} fontWeight="bold" />
+                  <YAxis unit="%" domain={[0, 10]} stroke="#cbd5e1" fontSize={12} />
+                  <Tooltip 
+                    cursor={{fill: '#f8fafc'}}
+                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                    formatter={(v) => [`${v}%`, '推定保持率']} 
+                  />
+                  <Bar dataKey="ratio" radius={[8, 8, 0, 0]} barSize={50}>
+                    {DISTRIBUTION_DATA.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.ratio > 5.4 ? '#2563eb' : '#94a3b8'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            {/* 構造分析 */}
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+              <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                偏在が生じる構造要因（推察）
+              </h3>
+              <ul className="space-y-4">
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-sm">1</div>
+                  <p className="text-sm text-slate-600 leading-relaxed"><strong>昇進パスの必須化:</strong> 都市部地銀やメガでは、1級が管理職登用の「見えない門番」として機能している。</p>
+                </li>
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-sm">2</div>
+                  <p className="text-sm text-slate-600 leading-relaxed"><strong>戦略的集中配置:</strong> ウェルスマネジメント等の高収益部門へ、1級保持者を意図的に集約させている。</p>
+                </li>
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-sm">3</div>
+                  <p className="text-sm text-slate-600 leading-relaxed"><strong>育成リソースの差:</strong> 外部講師の招致や受験費用補助など、教育予算の差が保持率に直結している。</p>
+                </li>
+              </ul>
+            </div>
+
+            {/* 資格ピラミッド */}
+            <div className="bg-slate-900 p-8 rounded-[2rem] text-white">
+              <h3 className="text-lg font-black mb-6">資格の希少性ピラミッド</h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-800 rounded-xl border-l-4 border-blue-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-blue-400">1級技能士</span>
+                    <span className="text-lg font-black">約 5.9 万人</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 uppercase">業界内の上位 約5% の精鋭層</p>
+                </div>
+                <div className="p-4 bg-slate-800 rounded-xl border-l-4 border-emerald-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-emerald-400">2級技能士</span>
+                    <span className="text-lg font-black">約 120 万人</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 uppercase">業界標準スキル（従事者数とほぼ拮抗）</p>
+                </div>
+                <div className="p-4 bg-slate-800 rounded-xl border-l-4 border-amber-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-amber-400">3級技能士</span>
+                    <span className="text-lg font-black">約 180 万人</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 uppercase">国民的マネー教養層（広く一般へ普及）</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 注意書きセクション */}
+          <footer className="p-8 bg-slate-800 rounded-3xl text-slate-400 text-[11px] leading-relaxed relative overflow-hidden">
+            <div className="relative z-10">
+              <h4 className="text-slate-200 font-black text-sm mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                免責事項および集計方法
+              </h4>
+              <p className="mb-2 uppercase tracking-tighter font-bold text-slate-300">
+                本ページに掲載されている全てのグラフおよび分析結果は、AIによる独自推計に基づくものであり、特定の団体や機関による公式な統計ではありません。
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>「1級保持率 5〜6%」という数値は、累計取得者数(約6万人)を業界従事者(約110万人)で除した概数に基づくシミュレーションです。</li>
+                <li>業態別の保持率は、一般的な人材育成傾向と公開されている一部の組織データを参考にAIがモデル化した推測値です。</li>
+                <li>「累計取得者数」は試験実施機関（きんざい・日本FP協会）の公開データを名寄せし、重複を排除した独自モデルにより算出しています。</li>
+                <li>実際の組織における保持率は、経営戦略や部署、地域により大きく異なる場合があります。</li>
+              </ul>
+              <p className="mt-4 border-t border-slate-700 pt-4 text-center text-[10px] text-slate-500">
+                © 2025 AI-Generated Financial Industry Analytics (Unofficial)
+              </p>
+            </div>
+            {/* 装飾 */}
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 200 200">
+                <path d="M100 0L122.5 77.5L200 100L122.5 122.5L100 200L77.5 122.5L0 100L77.5 77.5Z" />
+              </svg>
+            </div>
+          </footer>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

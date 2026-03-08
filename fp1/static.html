@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FP技能士 人数分布円グラフ</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- PropTypes (Recharts dependency) -->
+  <script crossorigin src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+  
+  <!-- Recharts -->
+  <script crossorigin src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+  
+  <!-- Babel Standalone for in-browser TypeScript compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState } = React;
+    const { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } = window.Recharts;
+
+    /**
+     * データポイントのインターフェース定義
+     */
+    interface DataPoint {
+      name: string;
+      value: number;
+      color: string;
+    }
+
+    type ChartType = 'TOTAL' | 'GRADE_2' | 'GRADE_3';
+
+    // 抽出した累計データ（2002年度～2025年度）
+    const TOTAL_DATA: DataPoint[] = [
+      { name: '1級', value: 33806, color: '#3B82F6' },    // Blue
+      { name: '2級', value: 602291, color: '#10B981' },   // Emerald
+      { name: '3級', value: 1082069, color: '#F59E0B' },  // Amber
+    ];
+
+    const GRADE_2_DATA: DataPoint[] = [
+      { name: '個人資産相談', value: 373736, color: '#059669' },
+      { name: '中小事業主', value: 57606, color: '#34D399' },
+      { name: '生保顧客資産', value: 162884, color: '#10B981' },
+      { name: '損保顧客資産', value: 5266, color: '#6EE7B7' },
+      { name: '資産設計提案', value: 2799, color: '#A7F3D0' },
+    ];
+
+    const GRADE_3_DATA: DataPoint[] = [
+      { name: '個人資産相談', value: 674620, color: '#D97706' },
+      { name: '保険顧客資産', value: 406403, color: '#F59E0B' },
+      { name: '資産設計提案', value: 1046, color: '#FBBF24' },
+    ];
+
+    /**
+     * 数値をカンマ区切りの文字列にフォーマットする関数
+     */
+    const formatNumber = (num: number): string => {
+      return num.toLocaleString();
+    };
+
+    /**
+     * メインアプリケーションコンポーネント
+     */
+    const App = () => {
+      const [activeChart, setActiveChart] = useState<ChartType>('TOTAL');
+
+      const getChartData = (): DataPoint[] => {
+        switch (activeChart) {
+          case 'GRADE_2': return GRADE_2_DATA;
+          case 'GRADE_3': return GRADE_3_DATA;
+          default: return TOTAL_DATA;
+        }
+      };
+
+      const getChartTitle = (): string => {
+        switch (activeChart) {
+          case 'GRADE_2': return '2級 科目別割合';
+          case 'GRADE_3': return '3級 科目別割合';
+          default: return '級別 全体割合';
+        }
+      };
+
+      // カスタムラベルの描画（パーセンテージが小さすぎる場合は非表示）
+      const renderCustomizedLabel = (props: any) => {
+        const { cx, cy, midAngle, outerRadius, percent, name } = props;
+        const radius = outerRadius * 1.15;
+        const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+        const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+        if (percent < 0.015) return null; // 1.5%未満はラベルを非表示にして重複を防ぐ
+
+        return (
+          <text
+            x={x}
+            y={y}
+            fill="#475569"
+            textAnchor={x > cx ? 'start' : 'end'}
+            dominantBaseline="central"
+            className="text-xs md:text-sm font-medium"
+          >
+            {name} ({(percent * 100).toFixed(1)}%)
+          </text>
+        );
+      };
+
+      // カスタムツールチップの描画
+      const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+          const data = payload[0].payload;
+          return (
+            <div className="bg-white/95 backdrop-blur-sm p-3 shadow-lg rounded-lg border border-slate-200">
+              <p className="font-bold text-slate-800">{data.name}</p>
+              <p className="text-slate-600 font-medium">
+                {formatNumber(data.value)} <span className="text-sm font-normal">人</span>
+              </p>
+            </div>
+          );
+        }
+        return null;
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto py-10 px-4 md:px-6">
+          <header className="mb-10 text-center">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 mb-3 tracking-tight">
+              ファイナンシャル・プランニング技能士 人数分布
+            </h1>
+            <p className="text-slate-500 text-sm font-medium bg-slate-100 inline-block px-4 py-1.5 rounded-full">
+              データ基準日: 2025年10月31日現在 (2002年度～2025年度 累計)
+            </p>
+          </header>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-8 mb-8">
+            {/* タブナビゲーション */}
+            <div className="flex flex-wrap gap-2 justify-center mb-8 bg-slate-50 p-1.5 rounded-lg border border-slate-100 max-w-fit mx-auto">
+              <button
+                onClick={() => setActiveChart('TOTAL')}
+                className={`px-5 py-2.5 rounded-md text-sm font-bold transition-all ${
+                  activeChart === 'TOTAL'
+                    ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                全体の割合
+              </button>
+              <button
+                onClick={() => setActiveChart('GRADE_2')}
+                className={`px-5 py-2.5 rounded-md text-sm font-bold transition-all ${
+                  activeChart === 'GRADE_2'
+                    ? 'bg-white text-emerald-600 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                2級 の内訳
+              </button>
+              <button
+                onClick={() => setActiveChart('GRADE_3')}
+                className={`px-5 py-2.5 rounded-md text-sm font-bold transition-all ${
+                  activeChart === 'GRADE_3'
+                    ? 'bg-white text-amber-600 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                3級 の内訳
+              </button>
+            </div>
+
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-slate-700">{getChartTitle()}</h2>
+            </div>
+
+            {/* 円グラフ */}
+            <div className="w-full h-[350px] md:h-[450px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                  <Pie
+                    data={getChartData()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={activeChart === 'TOTAL' ? "45%" : "35%"}
+                    outerRadius={"75%"}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={renderCustomizedLabel}
+                    labelLine={{ stroke: '#94A3B8', strokeWidth: 1 }}
+                    animationDuration={800}
+                    animationBegin={0}
+                  >
+                    {getChartData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* データテーブル */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="font-bold text-slate-700">データ詳細</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">区分</th>
+                    <th className="px-6 py-4 font-semibold text-right">人数</th>
+                    <th className="px-6 py-4 font-semibold text-right">構成比</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {getChartData().map((item, idx) => {
+                    const total = getChartData().reduce((sum, d) => sum + d.value, 0);
+                    const percentage = ((item.value / total) * 100).toFixed(1);
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-3 flex items-center gap-3 font-medium text-slate-700">
+                          <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: item.color }}></span>
+                          {item.name}
+                        </td>
+                        <td className="px-6 py-3 text-right font-medium text-slate-700">
+                          {formatNumber(item.value)}
+                        </td>
+                        <td className="px-6 py-3 text-right text-slate-500">{percentage}%</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="bg-slate-50 font-bold text-slate-800">
+                    <td className="px-6 py-4 text-center">合計</td>
+                    <td className="px-6 py-4 text-right text-base">
+                      {formatNumber(getChartData().reduce((sum, d) => sum + d.value, 0))}
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-500">100.0%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<App />);
+    }
+  </script>
+</body>
+</html>

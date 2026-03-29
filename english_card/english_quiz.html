@@ -392,12 +392,9 @@
           const parsedStart = parseInt(startPositionStr, 10);
           const targetId = isNaN(parsedStart) ? 1 : parsedStart;
           
-          // 【修正】配列のインデックスではなく「ID」ベースで検索
-          // 入力された数値以上のIDを持つ最初の要素を探す
           let startIndex = pool.findIndex(q => q.id >= targetId);
           
           if (startIndex === -1) {
-            // 指定されたIDが大きすぎて見つからなかった場合は、安全のため最初からスタート
             startIndex = 0;
           }
           
@@ -481,16 +478,13 @@
         returnToStart();
       };
 
-      // 【修正】上限を2000までに制御
+      // 【修正】入力制限を緩め、純粋に4桁まで入力可能にする
       const handleStartPositionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         if (val === "") {
           setStartPositionStr("");
         } else if (/^\d{1,4}$/.test(val)) {
-          const num = parseInt(val, 10);
-          if (num <= 2000) {
-            setStartPositionStr(val);
-          }
+          setStartPositionStr(val);
         }
       };
 

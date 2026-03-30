@@ -155,6 +155,9 @@
       const [showFeedback, setShowFeedback] = useState(false);
       const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
       const [shuffledChoices, setShuffledChoices] = useState<Choice[]>([]);
+      
+      // 【追加】間違えた問題を記録するState
+      const [mistakes, setMistakes] = useState<QuestionData[]>([]);
 
       const [questionCount, setQuestionCount] = useState<QuestionCountOption>('all');
       const [isRandomOrder, setIsRandomOrder] = useState<boolean>(false);
@@ -379,6 +382,8 @@
       const startSession = (mode: SessionMode) => {
         setSessionMode(mode);
         setIsAutoplay(true);
+        setMistakes([]); // 【追加】新規セッション開始時に間違えた問題リストをリセット
+        
         if (audioRef.current) {
           audioRef.current.play().catch(e => console.warn("MediaSession dummy audio requires interaction", e));
         }
@@ -412,11 +417,34 @@
         setGameState('playing');
       };
 
+      // 【追加】間違えた問題だけをやり直すモード
+      const startReviewSession = () => {
+        setActiveQuestions([...mistakes]);
+        setScore(0);
+        setCurrentIndex(0);
+        setShowFeedback(false);
+        setMistakes([]); // 復習モード中にさらに間違えた問題を記録できるようクリア
+        setIsAutoplay(true);
+        setGameState('playing');
+      };
+
       const handleAnswer = (isCorrect: boolean) => {
         window.speechSynthesis.cancel();
         setIsPlayingAudio(false);
         setLastAnswerCorrect(isCorrect);
-        if (isCorrect) setScore(s => s + 1);
+        
+        if (isCorrect) {
+          setScore(s => s + 1);
+        } else {
+          // 【追加】間違えたら記録（重複しないように追加）
+          setMistakes(prev => {
+            if (!prev.find(q => q.id === currentQuestion.id)) {
+              return [...prev, currentQuestion];
+            }
+            return prev;
+          });
+        }
+        
         setShowFeedback(true);
       };
 
@@ -708,7 +736,13 @@
                   </>
                 )}
 
-                <div className="pt-4 sm:pt-8 w-full max-w-xs">
+                {/* 【追加】間違えた問題がある場合、復習ボタンを表示 */}
+                <div className="pt-4 sm:pt-8 w-full max-w-xs space-y-3">
+                  {sessionMode === 'quiz' && mistakes.length > 0 && (
+                    <Button onClick={startReviewSession} variant="blue" className="w-full py-4" icon={RotateCcw}>
+                      Review Mistakes ({mistakes.length})
+                    </Button>
+                  )}
                   <Button onClick={returnToStart} className="w-full py-4" icon={RefreshCw}>
                     Return to Start
                   </Button>

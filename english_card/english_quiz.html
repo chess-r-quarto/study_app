@@ -156,7 +156,6 @@
       const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
       const [shuffledChoices, setShuffledChoices] = useState<Choice[]>([]);
       
-      // 【追加】間違えた問題を記録するState
       const [mistakes, setMistakes] = useState<QuestionData[]>([]);
 
       const [questionCount, setQuestionCount] = useState<QuestionCountOption>('all');
@@ -382,7 +381,7 @@
       const startSession = (mode: SessionMode) => {
         setSessionMode(mode);
         setIsAutoplay(true);
-        setMistakes([]); // 【追加】新規セッション開始時に間違えた問題リストをリセット
+        setMistakes([]); 
         
         if (audioRef.current) {
           audioRef.current.play().catch(e => console.warn("MediaSession dummy audio requires interaction", e));
@@ -417,13 +416,12 @@
         setGameState('playing');
       };
 
-      // 【追加】間違えた問題だけをやり直すモード
       const startReviewSession = () => {
         setActiveQuestions([...mistakes]);
         setScore(0);
         setCurrentIndex(0);
         setShowFeedback(false);
-        setMistakes([]); // 復習モード中にさらに間違えた問題を記録できるようクリア
+        setMistakes([]); 
         setIsAutoplay(true);
         setGameState('playing');
       };
@@ -436,7 +434,6 @@
         if (isCorrect) {
           setScore(s => s + 1);
         } else {
-          // 【追加】間違えたら記録（重複しないように追加）
           setMistakes(prev => {
             if (!prev.find(q => q.id === currentQuestion.id)) {
               return [...prev, currentQuestion];
@@ -656,8 +653,9 @@
                   className="hidden"
                 />
 
+                {/* --- 変更部分: Saveボタンを上部（Cancelボタンの横）に移動 --- */}
                 <div className="bg-[#1b1a19] border-b border-[#383634] p-2 flex justify-between items-center shrink-0">
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     <Button variant="ghost" onClick={triggerFileUpload} className="h-8 text-xs px-2 sm:px-4" icon={UploadCloud}>
                       <span className="hidden sm:inline">Load File</span>
                     </Button>
@@ -665,7 +663,12 @@
                       <span className="hidden sm:inline">Paste</span>
                     </Button>
                   </div>
-                  <Button variant="ghost" onClick={returnToStart} className="h-8 text-xs">Cancel</Button>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={returnToStart} className="h-8 text-xs px-2 sm:px-4">Cancel</Button>
+                    <Button onClick={handleImport} icon={Check} className="h-8 text-xs px-2 sm:px-4 shrink-0">
+                      Save
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex-1 relative">
@@ -678,8 +681,9 @@
                   />
                 </div>
 
-                <div className="bg-[#1b1a19] p-4 border-t border-[#383634] flex justify-between items-center shrink-0">
-                  <div className="flex-1 pr-4">
+                {/* --- 変更部分: 下部はエラーなどのステータス表示のみ --- */}
+                <div className="bg-[#1b1a19] p-3 sm:p-4 border-t border-[#383634] flex justify-center items-center shrink-0">
+                  <div className="flex-1">
                     {jsonError ? (
                       <span className="text-[#cc3333] text-xs sm:text-sm font-bold flex items-center gap-2">
                         <X size={16} className="shrink-0" /> <span className="truncate">{jsonError}</span>
@@ -690,9 +694,6 @@
                       </span>
                     )}
                   </div>
-                  <Button onClick={handleImport} icon={Check} className="shrink-0 text-xs sm:text-sm">
-                    Save
-                  </Button>
                 </div>
               </div>
             </BaseWrapper>
@@ -736,7 +737,6 @@
                   </>
                 )}
 
-                {/* 【追加】間違えた問題がある場合、復習ボタンを表示 */}
                 <div className="pt-4 sm:pt-8 w-full max-w-xs space-y-3">
                   {sessionMode === 'quiz' && mistakes.length > 0 && (
                     <Button onClick={startReviewSession} variant="blue" className="w-full py-4" icon={RotateCcw}>

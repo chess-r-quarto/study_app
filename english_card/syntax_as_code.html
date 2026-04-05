@@ -1,357 +1,520 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>English Syntax as Code: 英語構文のプログラミング的解剖書</title>
-  <style>
-    /* Quarto/Academic Document Style for e-Readers */
-    :root {
-      --text-color: #212529;
-      --heading-color: #212529;
-      --bg-color: #ffffff;
-      --code-bg: #f8f9fa;
-      --code-border: #e9ecef;
-      --accent-color: #495057;
-      --muted-text: #6c757d;
-      --callout-border: #0d6efd;
-      --callout-bg: #f8f9fa;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Syntax as Code (v2.0)</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #212529;
+            --heading-color: #1a1a1a;
+            --sidebar-bg: #f8f9fa;
+            --sidebar-border: #e9ecef;
+            --link-color: #0d6efd;
+            --code-bg: #f8f9fa;
+            --code-border: #dee2e6;
+            --python-color: #3572A5;
+            --r-color: #198CE7;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+            --font-heading: Georgia, "Times New Roman", Times, serif;
+            --font-code: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
 
-    body {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-      font-size: 16px;
-      line-height: 1.8;
-      color: var(--text-color);
-      background-color: var(--bg-color);
-      word-wrap: break-word;
-      text-align: justify;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    header {
-      margin-bottom: 3rem;
-      text-align: center;
-      padding-bottom: 2rem;
-      border-bottom: 2px solid var(--accent-color);
-    }
+        body {
+            font-family: var(--font-main);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            background-color: var(--bg-color);
+        }
 
-    h1 {
-      font-size: 2.4rem;
-      color: var(--heading-color);
-      margin-bottom: 0.5rem;
-      line-height: 1.3;
-    }
+        /* Sidebar Navigation */
+        nav {
+            width: 250px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
 
-    .subtitle {
-      font-size: 1.2rem;
-      color: var(--muted-text);
-      margin-top: 0;
-    }
+        nav h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 1rem;
+            font-family: var(--font-main);
+        }
 
-    h2 {
-      font-size: 1.6rem;
-      color: var(--heading-color);
-      border-bottom: 1px solid #dee2e6;
-      padding-bottom: 0.4rem;
-      margin-top: 3rem;
-      margin-bottom: 1.5rem;
-    }
+        nav ul {
+            list-style: none;
+        }
 
-    h3 {
-      font-size: 1.2rem;
-      color: var(--heading-color);
-      margin-top: 2rem;
-      margin-bottom: 1rem;
-    }
+        nav ul li {
+            margin-bottom: 0.5rem;
+        }
 
-    p {
-      margin-bottom: 1.2rem;
-    }
+        nav ul li a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            display: block;
+            padding: 0.2rem 0;
+            transition: color 0.2s;
+        }
 
-    ul, ol {
-      margin-bottom: 1.5rem;
-      padding-left: 1.5rem;
-    }
+        nav ul li a:hover {
+            color: var(--link-color);
+        }
 
-    li {
-      margin-bottom: 0.5rem;
-    }
+        /* Main Content */
+        main {
+            flex-grow: 1;
+            padding: 3rem 4rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-    /* Etymology styling */
-    .etymology {
-      font-size: 0.9em;
-      color: var(--muted-text);
-      font-style: italic;
-      background-color: #f8f9fa;
-      padding: 0.5rem 0.8rem;
-      border-left: 3px solid var(--muted-text);
-      margin-bottom: 1rem;
-    }
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            color: var(--heading-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
 
-    /* Code styling */
-    code {
-      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-      background-color: var(--code-bg);
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-size: 0.9em;
-      border: 1px solid var(--code-border);
-    }
+        h1 { font-size: 2.5rem; border-bottom: 1px solid var(--sidebar-border); padding-bottom: 1rem; margin-top: 0; }
+        h2 { font-size: 1.75rem; border-bottom: 1px solid var(--sidebar-border); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.25rem; }
 
-    pre {
-      background-color: var(--code-bg);
-      padding: 1.2rem;
-      border-radius: 5px;
-      border: 1px solid var(--code-border);
-      overflow-x: auto;
-      line-height: 1.5;
-      margin-bottom: 1.5rem;
-    }
+        p { margin-bottom: 1rem; }
 
-    pre code {
-      background-color: transparent;
-      padding: 0;
-      border: none;
-      font-size: 0.9em;
-    }
+        ul { margin-bottom: 1rem; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
 
-    /* Example block styling */
-    .example-block {
-      margin: 1.5rem 0;
-      padding: 1rem 1.5rem;
-      background-color: #fdfdfe;
-      border-left: 4px solid #adb5bd;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+        .abstract {
+            background-color: var(--sidebar-bg);
+            border-left: 4px solid var(--link-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
 
-    .example-block strong {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.95em;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted-text);
-    }
+        /* Definition List styling */
+        dt {
+            font-weight: bold;
+            color: var(--heading-color);
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+        dd {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .etymology {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.2rem;
+        }
 
-    .example-sentence {
-      font-size: 1.1em;
-      font-weight: bold;
-      margin-bottom: 0.3rem;
-      font-family: serif;
-    }
+        /* Code Comparison Layout */
+        .code-comparison {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
 
-    .example-translation {
-      font-size: 0.95em;
-      color: var(--muted-text);
-    }
+        .code-col {
+            flex: 1;
+            min-width: 0; /* for flexbox wrapping */
+        }
 
-    .example-note {
-      margin-top: 0.5rem;
-      font-size: 0.9em;
-      font-family: Consolas, monospace;
-      color: var(--accent-color);
-    }
+        .code-block {
+            background-color: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
 
-    /* Callout / Note styling */
-    .callout {
-      margin: 1.5rem 0;
-      padding: 1.2rem 1.5rem;
-      background-color: var(--callout-bg);
-      border-left: 4px solid var(--callout-border);
-    }
+        .code-header {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+        }
 
-    .callout-title {
-      font-weight: bold;
-      color: var(--callout-border);
-      margin-bottom: 0.5rem;
-      font-size: 0.95em;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+        .code-header.python { background-color: var(--python-color); }
+        .code-header.r { background-color: var(--r-color); }
 
-    /* Print/e-Ink optimizations */
-    @media print {
-      body {
-        font-size: 12pt;
-        padding: 0;
-        max-width: 100%;
-      }
-      pre, .example-block, .callout, .etymology {
-        page-break-inside: avoid;
-      }
-      h2, h3 {
-        page-break-after: avoid;
-      }
-      header {
-        border-bottom: 1pt solid #000;
-      }
-    }
-  </style>
+        pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: #24292e;
+        }
+
+        p code, li code {
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        .example-box {
+            background-color: #fdfdfe;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #10b981;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 4px 4px 0;
+        }
+        .example-box strong { color: #047857; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        th, td {
+            border: 1px solid var(--code-border);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th { background-color: var(--sidebar-bg); }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            nav { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--sidebar-border); }
+            main { padding: 2rem 1.5rem; }
+            .code-comparison { flex-direction: column; }
+        }
+    </style>
 </head>
 <body>
 
-  <header>
-    <h1>English Syntax as Code</h1>
-    <p class="subtitle">自然言語を「プログラミングコード」として解釈する構文仕様書（完全版）</p>
-  </header>
+    <nav>
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#intro">Introduction</a></li>
+            <li><a href="#variables">1. 変数と型の定義</a></li>
+            <li><a href="#signatures">2. 関数シグネチャ (5文型)</a></li>
+            <li><a href="#runtime">3. ランタイム実行 (時制と相)</a></li>
+            <li><a href="#routing">4. 引数設計 (SVOOルーティング)</a></li>
+            <li><a href="#debugging">5. 実践的デバッグ (Modifier)</a></li>
+        </ul>
+    </nav>
 
-  <main>
-    <p>本ドキュメントは、英語の構文を曖昧な自然言語としてではなく、厳密な型定義と関数シグネチャを持つ「コード」として解釈するための公式リファレンスである。「5文型」という伝統的な分類を、ソフトウェアエンジニアリングの視点から再構築した。</p>
+    <main>
+        <h1 id="intro">English Syntax as Code (v2.0)</h1>
+        
+        <div class="abstract">
+            <p><strong>自然言語を「プログラミングコード」として解釈する構文仕様書</strong></p>
+            <p>本ドキュメントは、英語の構文を曖昧な自然言語としてではなく、厳密な型定義と関数シグネチャを持つ「コード」として解釈するための公式リファレンスである。「5文型」という伝統的な分類を、ソフトウェアエンジニアリングの視点（型の制約、メモリ操作、実行スレッド）から再構築した。</p>
+        </div>
 
-    <section>
-      <h2>1. 引数（変数）の定義と語源</h2>
-      <p>英語を構成する各要素は、プログラムにおける変数、インスタンス、メソッド、アノテーションとして定義される。</p>
+        <h2 id="variables">1. 引数（変数）の定義と語源</h2>
+        <p>英語を構成する各要素は、プログラムにおける変数、インスタンス、メソッド、アノテーションとして厳密に型定義される。</p>
 
-      <h3>Subject（主語）</h3>
-      <div class="etymology">語源：sub（下に） + iacere（投げる） ＝ 下に置かれた土台</div>
-      <p><strong>[プログラミング定義]</strong> 処理の実行主体となる <code>Instance</code> または <code>Object</code>。メソッドを呼び出す大元。</p>
+        <dl>
+            <dt>Subject (S) / 主語</dt>
+            <dd>
+                <div class="etymology">語源：sub（下に） + iacere（投げる） ＝ 下に置かれた土台</div>
+                <strong>[プログラミング定義]</strong> 処理の実行主体となる <code>Instance</code> または <code>Object</code>。メソッドを呼び出す大元（レシーバー）。
+            </dd>
 
-      <h3>Verb（動詞）</h3>
-      <div class="etymology">語源：verbum（言葉そのもの）</div>
-      <p><strong>[プログラミング定義]</strong> 主体（Subject）が実行する <code>Method</code> や関数。文の処理内容（振る舞い）を決定する。状態を更新する代入演算子（=）の役割を果たすこともある。</p>
+            <dt>Verb (V) / 動詞</dt>
+            <dd>
+                <div class="etymology">語源：verbum（言葉そのもの）</div>
+                <strong>[プログラミング定義]</strong> 主体が実行する <code>Method</code> や関数。文の処理内容（振る舞い）を決定する。状態を更新する代入演算子（<code>=</code>, <code>&lt;-</code>）の役割を果たすこともある。
+            </dd>
 
-      <h3>Object（目的語）</h3>
-      <div class="etymology">語源：ob（向かって） + iacere（投げる） ＝ 動作の標的</div>
-      <p><strong>[プログラミング定義]</strong> メソッド（Verb）に渡される必須の <code>Argument</code>（引数）。nullを許容しない。</p>
+            <dt>Object (O) / 目的語</dt>
+            <dd>
+                <div class="etymology">語源：ob（向かって） + iacere（投げる） ＝ 動作の標的</div>
+                <strong>[プログラミング定義]</strong> メソッド（Verb）に渡される必須の <code>Argument</code>（引数）。<code>null</code>（欠損値）を許容しない。
+            </dd>
 
-      <h3>Complement（補語）</h3>
-      <div class="etymology">語源：complere（満たす、補完する）</div>
-      <p><strong>[プログラミング定義]</strong> Subject または Object のプロパティに代入される <code>State</code> や <code>Value</code>。型は文字列（名詞）または論理値・列挙型（形容詞）。これがないとメソッドの意味が未完成になる。</p>
+            <dt>Complement (C) / 補語</dt>
+            <dd>
+                <div class="etymology">語源：complere（満たす、補完する）</div>
+                <strong>[プログラミング定義]</strong> Subject または Object のプロパティに代入される <code>State</code> や <code>Value</code>。型は文字列（名詞）または論理値・列挙型（形容詞）。
+            </dd>
 
-      <h3>Modifier（修飾語）</h3>
-      <div class="etymology">語源：modificare（制限する、調整する）</div>
-      <p><strong>[プログラミング定義]</strong> 実行結果のメインロジックに影響を与えない <code>Annotation</code> またはコード内の <code>/* Comment */</code>。型のインターフェース（前置詞＋名詞、副詞など）さえ守れば、どこに挿入してもコンパイルエラー（文法エラー）にならない。</p>
-    </section>
+            <dt>Modifier (M) / 修飾語</dt>
+            <dd>
+                <div class="etymology">語源：modificare（制限する、調整する）</div>
+                <strong>[プログラミング定義]</strong> 実行結果のメインロジックに影響を与えない <code>Annotation</code> またはコード内の <code>/* Comment */</code>。型のインターフェース（前置詞＋名詞など）さえ守れば、どこに挿入してもコンパイルエラーにならない。
+            </dd>
+        </dl>
 
-    <section>
-      <h2>2. 関数シグネチャ（5つの基本構文）</h2>
-      <p>いわゆる「5文型」は、メソッドの引数の渡し方（関数シグネチャ）のパターンに過ぎない。</p>
+        <h2 id="signatures">2. 関数シグネチャ（5つの基本構文）</h2>
+        <p>いわゆる「5文型」は、メソッドの引数の渡し方とメモリ操作のパターン（関数シグネチャ）に過ぎない。Pythonのオブジェクト指向と、Rの関数型アプローチの両面から定義する。</p>
 
-      <h3>パターン1：自己完結メソッド (SV)</h3>
-      <p>外部引数を必要としない、主体のみで完結するVoid型メソッド。</p>
-      <pre><code>// Syntax: Subject & Verb
-Subject.executeVerb();</code></pre>
-      <div class="example-block">
-        <strong>Example</strong>
-        <div class="example-sentence">The sun rises.</div>
-        <div class="example-translation">太陽が昇る。</div>
-        <div class="example-note">-> 外部へエネルギー（引数）が漏れず、自己完結する（自動詞）。</div>
-      </div>
+        <h3>パターン1：自己完結メソッド (SV)</h3>
+        <p>外部引数を必要としない、主体のみで完結するVoid型メソッド。副作用（Side Effect）はSubject内部に限定される。</p>
+        
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python (OOP)</span></div>
+                    <pre><code># Syntax: Subject.execute_verb()
+def process(sun):
+    sun.rise()</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R (Functional)</span></div>
+                    <pre><code># Syntax: execute_verb(Subject)
+process <- function(sun) {
+    rise(sun)
+}</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <strong>EXAMPLE:</strong> The sun rises. (太陽が昇る)<br>
+            -> 外部へエネルギー（引数）が漏れず、自己完結する。
+        </div>
 
-      <h3>パターン2：プロパティの代入 (SVC)</h3>
-      <p>Verbが単なるセッター（代入演算子 <code>=</code>）として機能し、Subjectの状態を更新する。</p>
-      <pre><code>// Syntax: Subject & Verb = Complement
-Subject.property = Complement;</code></pre>
-      <div class="example-block">
-        <strong>Example</strong>
-        <div class="example-sentence">The soup is hot.</div>
-        <div class="example-translation">そのスープは熱い。</div>
-        <div class="example-note">-> The soup = hot の関係。Verbは繋ぐだけの連結動詞（Linking Verb）。</div>
-      </div>
+        <h3>パターン2：プロパティの代入 (SVC)</h3>
+        <p>Verbが単なるセッター（代入演算子）として機能し、Subjectの属性（Property）を同期的に更新する。</p>
 
-      <h3>パターン3：引数実行メソッド (SVO)</h3>
-      <p>外部の引数（Object）を受け取り、それに対して処理を実行する。</p>
-      <pre><code>// Syntax: Subject & Verb to Object
-Subject.executeVerb(Object);</code></pre>
-      <div class="example-block">
-        <strong>Example</strong>
-        <div class="example-sentence">I read a book.</div>
-        <div class="example-translation">私は本を読む。</div>
-        <div class="example-note">-> Iがbookに対してreadを実行。I ≠ book。</div>
-      </div>
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python</span></div>
+                    <pre><code># Syntax: Subject.state = Complement
+soup.state = "hot"</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R</span></div>
+                    <pre><code># Syntax: Subject$state <- Complement
+soup$state <- "hot"</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <strong>EXAMPLE:</strong> The soup is hot. (そのスープは熱い)<br>
+            -> <code>The soup = hot</code> の関係。Verbは繋ぐだけの連結動詞。
+        </div>
 
-      <h3>パターン4：複数引数のルーティング (SVOO)</h3>
-      <p>IndirectObject（受取人・アドレス）と DirectObject（対象物・ペイロード）の2つの引数を順番に渡す。</p>
-      <pre><code>// Syntax: Subject & Verb to IndirectObject to DirectObject
-Subject.executeVerb({
-  target: IndirectObject,
-  payload: DirectObject
-});</code></pre>
-      <div class="example-block">
-        <strong>Example</strong>
-        <div class="example-sentence">He gave me a pen.</div>
-        <div class="example-translation">彼は私にペンをくれた。</div>
-        <div class="example-note">-> target: me に payload: a pen を転送。</div>
-      </div>
+        <h3>パターン3：引数実行メソッド (SVO)</h3>
+        <p>外部の引数（Object）を受け取り、それに対して処理を実行する単一引数関数。</p>
 
-      <h3>パターン5：オブジェクト状態の書き換え (SVOC)</h3>
-      <p>Subjectが処理を実行した結果（副作用）として、ObjectのプロパティがComplementに書き換わる。文の中に「小さな文（O=C）」が入れ子構造（スモール・クローズ）として含まれる。</p>
-      <pre><code>// Syntax: Subject & Verb to (Object = Complement)
-Subject.executeVerb(Object);
-Object.state = Complement; // 副作用による状態変化</code></pre>
-      <div class="example-block">
-        <strong>Example</strong>
-        <div class="example-sentence">They made him happy.</div>
-        <div class="example-translation">彼らは彼を幸せにした。</div>
-        <div class="example-note">-> make処理の結果、him = happy という状態が生成される。</div>
-      </div>
-    </section>
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python</span></div>
+                    <pre><code># Syntax: Subject.execute_verb(Object)
+i.read(book)</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R</span></div>
+                    <pre><code># Syntax: execute_verb(Subject, Object)
+read(subject = i, object = book)</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <strong>EXAMPLE:</strong> I read a book. (私は本を読む)<br>
+            -> <code>I</code> が <code>book</code> に対して <code>read</code> を実行。
+        </div>
 
-    <section>
-      <h2>3. SVOOの引数設計：ターゲットとペイロード</h2>
-      <p>パターン4（SVOO）において、2つの引数（Object）は等価ではない。プログラミングの視点から見ると、「宛先」と「実データ」という役割の違いがある。</p>
+        <h3>パターン4：複数引数のルーティング (SVOO)</h3>
+        <p>IndirectObject（宛先）と DirectObject（ペイロード）の2つの引数を転送する。</p>
 
-      <ul>
-        <li><strong>IndirectObject (O1 / 人):</strong> Routing Target（宛先情報）</li>
-        <li><strong>DirectObject (O2 / 物):</strong> Payload（送信される実データ / 直接の対象）</li>
-      </ul>
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python</span></div>
+                    <pre><code># Syntax: Subject.execute_verb(target, payload)
+he.give(target=me, payload=pen)</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R</span></div>
+                    <pre><code># Syntax: execute_verb(Subj, target, payload)
+give(he, target = me, payload = pen)</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <strong>EXAMPLE:</strong> He gave me a pen. (彼は私にペンをくれた)<br>
+            -> 宛先 <code>me</code> に 実データ <code>a pen</code> を転送。
+        </div>
 
-      <h3>原則：Payload（O2）が必須であり、Target（O1）はオプション</h3>
-      <p>動詞が直接働きかけるのは O2（物）である。そのため、原則として <strong>O1（人）は省略するか、Modifier（修飾語）として外部に追い出す（to/for をつける）ことが可能</strong>である。「SVOOはMの派生」と感じる直感の正体はこれである。</p>
+        <h3>パターン5：オブジェクト状態の書き換え (SVOC)</h3>
+        <p>高階関数/副作用の極致。Subjectが処理を実行した副作用として、文の中に「小さな代入式（O=C）」がスレッドとして発生する。</p>
 
-      <pre><code>// 1. フルパラメーター (SVOO)
-Subject.send(target_Him, payload_Gift);
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python</span></div>
+                    <pre><code># Nested Logic (Side Effect)
+they.make(him)
+him.state = "happy" # 同期的な状態変化</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R</span></div>
+                    <pre><code># Mutable state simulation
+him <- make(they, target = him)
+attr(him, "state") <- "happy"</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <strong>EXAMPLE:</strong> They made him happy. (彼らは彼を幸せにした)<br>
+            -> <code>make</code> 処理の結果、<code>him = happy</code> という状態が動的に生成される。
+        </div>
 
-// 2. Mへのダウングレード (SVO + M) -> targetを外部アノテーション化
-Subject.send(payload_Gift) /* [Modifier: to Him] */;
+        <h2 id="runtime">3. ランタイム実行：時制(Tense)と相(Aspect)</h2>
+        <p>時制は、単なる時間ではなく、<strong>「スレッドの実行スケジューリング」と「処理結果のメモリライフサイクル（保持期間）」</strong>を決定するランタイム・フラグである。</p>
 
-// 3. Targetの省略 (SVO) -> 宛先が自明、または重要でない場合
-Subject.send(payload_Gift);</code></pre>
+        <table>
+            <thead>
+                <tr>
+                    <th>相 (Aspect)</th>
+                    <th>概念</th>
+                    <th>擬似コードによる挙動定義</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Simple</strong><br>(単純形)</td>
+                    <td>点としての実行</td>
+                    <td><code>execute(Action)</code><br>単発の処理。持続性は定義されない。現在形の場合は <code>static const</code> として時間軸に依存しない仕様として定義される。</td>
+                </tr>
+                <tr>
+                    <td><strong>Progressive</strong><br>(進行形)</td>
+                    <td>リソースの占有</td>
+                    <td><code>while(Action.is_running()): yield</code><br>処理がスタックに積まれ、<strong>現在進行でCPUリソースを消費している</strong>（終了点に到達していない）状態。</td>
+                </tr>
+                <tr>
+                    <td><strong>Perfect</strong><br>(完了形)</td>
+                    <td>メモリの保持</td>
+                    <td><code>if(pastAction.executed()): current_memory.update()</code><br>過去の実行結果（Return Value）が、<strong>現在のコンテキスト（メモリ空間）にロードされ続けている</strong>状態。</td>
+                </tr>
+            </tbody>
+        </table>
 
-      <div class="callout">
-        <div class="callout-title">End-Focus（文末重心）の法則</div>
-        英語のメモリ配置ルールとして、「配列（文）の後ろにある変数ほど、新しく重要なデータとして処理される」という原則がある。<br>
-        ・<code>send(him, a gift)</code> → Payloadである <strong>gift</strong> に焦点。<br>
-        ・<code>send(a gift, to him)</code> → 宛先である <strong>him</strong> に焦点。
-      </div>
+        <div class="example-box">
+            <strong>メモリ管理の観点から見る過去形と現在完了形の違い:</strong><br><br>
+            <code>I lost my key. (過去形)</code><br>
+            過去のログに <code>Action_Loss</code> が書き込まれただけ。現在の変数 <code>key.is_available</code> が True か False かは保証されない（今持っているかもしれない）。<br><br>
+            <code>I have lost my key. (現在完了形)</code><br>
+            過去の <code>Action_Loss</code> の結果が現在のメモリにロードされている。したがって、現在の変数 <code>key.is_available == False</code> であることが保証される。
+        </div>
 
-      <h3>例外：Payload（O2）が消える特殊なメソッド</h3>
-      <p>原則とは逆に、「O1（宛先・人）だけを残し、O2（実データ・物）を省略できる」オーバーロードされたメソッド（動詞）が存在する。これは、処理の主目的が「データを送ること」から「対象（人）に影響を与えること」にシフトした場合に起こる。</p>
+        <h2 id="routing">4. SVOOの引数設計：ターゲットとペイロード</h2>
+        <p>パターン4（SVOO）において、2つの引数（Object）は等価ではない。「宛先情報」と「実データ」という役割の違いがある。</p>
+        <ul>
+            <li><code>IndirectObject (O1)</code>: <strong>Routing Target</strong>（宛先情報 / オプション）</li>
+            <li><code>DirectObject (O2)</code>: <strong>Payload</strong>（送信される実データ / 必須）</li>
+        </ul>
+        <p>原則としてPayloadが必須であり、Targetは省略するか、Modifierとして外部に追い出すことが可能である。</p>
 
-      <div class="example-block">
-        <strong>Exception: targetを直接操作するメソッド</strong>
-        <div class="example-sentence">She teaches kids. (SVO)</div>
-        <div class="example-translation">彼女は子供たちを教えている。</div>
-        <div class="example-note">-> 本来は teaches(kids, math) のようにペイロードが必要だが、「子供たちを指導する」という対象操作自体が目的となっているため、O2が省略（Null許容）されている。</div>
-      </div>
-    </section>
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python: Parameter Downgrade</span></div>
+                    <pre><code># 1. Full Parameters (SVOO)
+subject.send(target=him, payload=gift)
 
-    <section>
-      <h2>4. Modifier（修飾語）の実践的デバッグ</h2>
-      <p>実際の英文が複雑化し、<code>SMVMOM</code> のように肥大化する原因は、すべて Modifier（M）の追加によるものである。構文解析（リーディング）を行う際は、これらをコメントアウトしてメインロジックから切り離すことで、全体の構造が明確になる。</p>
+# 2. Downgrade to Modifier (SVO + M)
+# targetがアノテーション化
+subject.send(payload=gift) # [Mod: to him]
 
-      <pre><code>/* [Modifier: Yesterday] */
-Subject_I /* [Modifier: who usually save money] */
-  .executeVerb_bought(
-    Object_a_book /* [Modifier: about space] */
+# 3. Target Omission (SVO)
+subject.send(payload=gift)</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R: Parameter Downgrade</span></div>
+                    <pre><code># 1. Full Parameters (SVOO)
+send(target = him, payload = gift)
+
+# 2. Downgrade to Modifier (SVO + M)
+# Mは attributes 等で付加されるイメージ
+res <- send(payload = gift)
+attr(res, "target") <- "him"
+
+# 3. Target Omission (SVO)
+send(payload = gift)</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="debugging">5. Modifier（修飾語）の実践的デバッグ</h2>
+        <p>実際の英文が複雑化し、<code>SMVMOM</code> のように肥大化する原因は、すべて Modifier（M）の追加によるものである。構文解析を行う際は、これらを<strong>コメントアウトしてメインロジックから切り離す</strong>ことで、全体の構造が明確になる。</p>
+
+        <div class="code-comparison">
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header python"><span>Python: Parsed Syntax</span></div>
+                    <pre><code># [Modifier: Yesterday]
+subject_I \
+  .execute_bought( # [Mod: who usually save...]
+    object_a_book  # [Mod: about space]
   )
-/* [Modifier: safely] */
-/* [Modifier: on the internet] */;</code></pre>
+# [Modifier: safely]
+# [Modifier: on the internet]
 
-      <div class="example-block">
-        <strong>Example (Parsed)</strong>
-        <div class="example-sentence">Yesterday, I, who usually save money, bought a book about space safely on the internet.</div>
-        <div class="example-translation">昨日、普段はお金を貯めている私が、宇宙に関する本をインターネットで安全に買った。</div>
-        <div class="example-note">-> /* M */ を全て無視すると、実行されるメインロジックは <strong>I bought a book (Subject & Verb to Object)</strong> のみとなる。</div>
-      </div>
-      
-      <p>英語読解における最大のコツは、前置詞（in, at, for, to等）や関係代名詞（who, which等）を見つけた瞬間に、そこから先を <code>/* ... */</code> として脳内で不可視化することである。</p>
-    </section>
+# Execution Logic:
+# subject_I.execute_bought(object_a_book)</code></pre>
+                </div>
+            </div>
+            <div class="code-col">
+                <div class="code-block">
+                    <div class="code-header r"><span>R: Parsed Syntax</span></div>
+                    <pre><code># attr: Yesterday
+bought(
+  subject = I, # attr: who usually save...
+  object = a_book # attr: about space
+)
+# attr: safely
+# attr: on the internet
 
-  </main>
+# Execution Logic:
+# bought(subject = I, object = a_book)</code></pre>
+                </div>
+            </div>
+        </div>
 
+        <div class="example-box">
+            <strong>Original Text:</strong><br>
+            Yesterday, I, who usually save money, bought a book about space safely on the internet.<br><br>
+            <strong>Parsed (Mを不可視化):</strong><br>
+            <del style="color: #94a3b8">Yesterday,</del> <strong>I</strong>, <del style="color: #94a3b8">who usually save money</del>, <strong>bought a book</strong> <del style="color: #94a3b8">about space safely on the internet.</del><br><br>
+            英語読解における最大のコツは、前置詞（in, at, for, to等）や関係代名詞（who, which等）を見つけた瞬間に、そこから先を <code>/* ... */</code> として脳内で不可視化することである。
+        </div>
+
+    </main>
 </body>
 </html>

@@ -230,13 +230,24 @@
     /* 12 Tenses Grid Styling */
     .matrix-table th {
       text-align: center;
+      background-color: var(--sidebar-bg);
     }
     
     .matrix-table td {
       text-align: center;
       font-family: var(--font-code);
       font-size: 0.9rem;
-      background-color: #f8f9fa;
+      background-color: #ffffff;
+    }
+
+    .graph-container {
+      background: #ffffff;
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      overflow-x: auto;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .tense-grid {
@@ -496,43 +507,161 @@ attr(him, "state") &lt;- "happy"</code></pre>
     </div>
 
     <h2 id="runtime">3. ランタイム実行：Stockfish Engine の状態空間（12の時制と相）</h2>
-    <p>英語の時制（Tense）と相（Aspect）は、チェスエンジン（Stockfish）における **「探索木の時間軸（Tense）」** と **「メモリ・評価状態の幾何学的次元（Aspect）」** のマトリクスとして完全に表現できる。</p>
+    <p>英語の時制（Tense）と相（Aspect）は、チェスエンジン（Stockfish）のGUI画面（コンソール）における **「評価値の表示状態」** のメタファーとして直感的に理解できる。</p>
     <ul>
-      <li><strong>Tense (時間軸)</strong>: Root Node（現在）、PGN History（過去）、Future Nodes（未来/予測）。</li>
-      <li><strong>Aspect (次元)</strong>: Point（静的評価）、Vector（探索中）、Area（TTキャッシュによる影響面）、Volume（深さの蓄積）。</li>
+      <li><strong>Past (過去)</strong>: PGNに書き出された過去ログ。画面にはもう表示されていない（<span style="color: #94a3b8; font-weight:bold;">グレーアウト</span>）。</li>
+      <li><strong>Present (現在)</strong>: 今まさに計算中で、画面にアクティブに表示されている（<span style="color: #ef4444; font-weight:bold;">実色</span>）。</li>
+      <li><strong>Future (未来)</strong>: キューに積まれたタスク。これから画面に表示される予定のもの（<span style="border-bottom: 2px dashed #6366f1; color: #6366f1; font-weight:bold;">点線枠</span>）。</li>
     </ul>
 
+    <!-- 12時制 すべてをプロットしたインフォグラフィック -->
+    <div class="graph-container">
+      <h4 style="margin-top: 0; text-align: center; color: #495057; font-family: var(--font-heading);">Engine State Plot: All 12 Tenses Visualized</h4>
+      <svg viewBox="0 0 900 420" style="width: 100%; min-width: 700px; height: auto; font-family: var(--font-main);">
+        <defs>
+          <!-- 背景ゾーン用グラデーション -->
+          <linearGradient id="gradPast" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f8fafc" stop-opacity="1" />
+            <stop offset="100%" stop-color="#f1f5f9" stop-opacity="1" />
+          </linearGradient>
+          <linearGradient id="gradFuture" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f1f5f9" stop-opacity="1" />
+            <stop offset="100%" stop-color="#f8fafc" stop-opacity="1" />
+          </linearGradient>
+          
+          <!-- Accumulate (Volume) 用グラデーション -->
+          <linearGradient id="volPresent" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.05" />
+          </linearGradient>
+          
+          <!-- 矢印マーカー -->
+          <marker id="arrowPast" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+          </marker>
+          <marker id="arrowPresent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+          </marker>
+          <marker id="arrowFuture" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="none" stroke="#f59e0b" stroke-width="2" />
+          </marker>
+        </defs>
+
+        <!-- === 背景ゾーン (Time) === -->
+        <rect x="0" y="0" width="300" height="380" fill="url(#gradPast)" />
+        <rect x="300" y="0" width="300" height="380" fill="#ffffff" />
+        <rect x="600" y="0" width="300" height="380" fill="url(#gradFuture)" />
+
+        <!-- 境界線 -->
+        <line x1="300" y1="0" x2="300" y2="380" stroke="#cbd5e1" stroke-dasharray="4,4" stroke-width="2" />
+        <line x1="600" y1="0" x2="600" y2="380" stroke="#cbd5e1" stroke-dasharray="4,4" stroke-width="2" />
+
+        <!-- X-Axis -->
+        <line x1="0" y1="360" x2="900" y2="360" stroke="#64748b" stroke-width="2" />
+
+        <!-- X-Axis Labels (Tense) -->
+        <text x="150" y="390" text-anchor="middle" font-weight="bold" fill="#64748b" font-size="14">PAST (PGN History)</text>
+        <text x="450" y="390" text-anchor="middle" font-weight="bold" fill="#2563eb" font-size="16">PRESENT (Root Node)</text>
+        <text x="750" y="390" text-anchor="middle" font-weight="bold" fill="#64748b" font-size="14">FUTURE (Task Queue)</text>
+        
+        <!-- Y-Axis Label -->
+        <text x="15" y="25" font-weight="bold" fill="#94a3b8" font-size="12">Evaluation Depth (Effort)</text>
+
+
+        <!-- === 1. Perfect Progressive (Volume / Accumulate) === -->
+        <!-- 時間経過とともに深さが増していく背景の面グラフ -->
+        <!-- Past (グレーアウト) -->
+        <path d="M 0 360 L 0 310 Q 150 280 300 240 L 300 360 Z" fill="#e2e8f0" />
+        <text x="150" y="340" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I had been calculating (Vol)</text>
+        
+        <!-- Present (青グラデ) -->
+        <path d="M 300 360 L 300 240 Q 450 180 600 120 L 600 360 Z" fill="url(#volPresent)" />
+        <path d="M 300 240 Q 450 180 600 120" fill="none" stroke="#6366f1" stroke-width="2" />
+        <text x="450" y="320" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">I have been calculating (Vol)</text>
+        
+        <!-- Future (点線枠・透過) -->
+        <path d="M 600 360 L 600 120 Q 750 60 900 40 L 900 360" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="4,4" />
+        <text x="750" y="280" text-anchor="middle" font-size="11" font-weight="bold" fill="#6366f1">I will have been calculating (Vol)</text>
+
+
+        <!-- === 2. Perfect (Area / TT Cached) === -->
+        <!-- Past (グレーアウトの面) -->
+        <rect x="100" y="210" width="100" height="30" rx="4" fill="#cbd5e1" fill-opacity="0.6" stroke="#94a3b8" />
+        <text x="150" y="230" text-anchor="middle" font-size="11" font-weight="bold" fill="#475569">I had solved (Area)</text>
+
+        <!-- Present (緑の実色面) -->
+        <rect x="400" y="150" width="100" height="30" rx="4" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="2" />
+        <text x="450" y="170" text-anchor="middle" font-size="12" font-weight="bold" fill="#047857">I have solved (Area)</text>
+
+        <!-- Future (緑の点線枠) -->
+        <rect x="700" y="90" width="100" height="30" rx="4" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4" />
+        <text x="750" y="110" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">I will have solved (Area)</text>
+
+
+        <!-- === 3. Progressive (Vector / Searching) === -->
+        <!-- Past (グレーの波線) -->
+        <path d="M 100 160 Q 150 130 190 160" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowPast)" />
+        <text x="150" y="145" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I was searching (Vector)</text>
+
+        <!-- Present (オレンジの実線) -->
+        <path d="M 400 100 Q 450 60 490 100" fill="none" stroke="#f59e0b" stroke-width="3" marker-end="url(#arrowPresent)" />
+        <text x="450" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#d97706">I am searching (Vector)</text>
+
+        <!-- Future (オレンジの点線波線) -->
+        <path d="M 700 40 Q 750 10 790 40" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrowFuture)" />
+        <text x="750" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#f59e0b">I will be searching (Vector)</text>
+
+
+        <!-- === 4. Simple (Point / Static Eval) === -->
+        <!-- Past (グレーアウトの点) -->
+        <circle cx="150" cy="100" r="5" fill="#94a3b8" />
+        <text x="150" y="118" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I evaluated (Point)</text>
+
+        <!-- Present (赤の実色の点) -->
+        <circle cx="450" cy="40" r="6" fill="#ef4444" />
+        <text x="450" y="60" text-anchor="middle" font-size="12" font-weight="bold" fill="#ef4444">I evaluate (Point)</text>
+
+        <!-- Future (赤の中抜き点線円) -->
+        <circle cx="750" cy="-20" r="6" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2" transform="translate(0, 100)" />
+        <text x="750" y="100" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">I will evaluate (Point)</text>
+
+      </svg>
+    </div>
+
+    <!-- 表のマトリクス -->
     <table class="matrix-table">
       <thead>
         <tr>
-          <th>探索木ノード位置 <br><small>(Tense)</small> \ 状態空間 <br><small>(Aspect)</small></th>
-          <th>Simple<br><small>(点: Static Eval)</small></th>
-          <th>Progressive<br><small>(線/ベクトル: Searching)</small></th>
-          <th>Perfect<br><small>(面: TT Cached)</small></th>
-          <th>Perfect Progressive<br><small>(体積: Depth Accumulation)</small></th>
+          <th>計算状態 <br><small>(Aspect)</small> \ 探索木ノード位置 <br><small>(Tense)</small></th>
+          <th>Past <br><small>(グレーアウト / PGN)</small></th>
+          <th>Present <br><small>(実色 / GUI表示中)</small></th>
+          <th>Future <br><small>(点線枠 / キュー予測)</small></th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <th>Present<br>(現在の Root Node)</th>
-          <td>I evaluate</td>
-          <td>I am searching</td>
-          <td>I have solved</td>
-          <td>I have been calculating</td>
+          <th>Simple<br><small>(点: Static Eval)</small></th>
+          <td style="color: #64748b;">I evaluated</td>
+          <td style="color: #ef4444; font-weight: bold;">I evaluate</td>
+          <td style="color: #ef4444; border: 1px dashed #ef4444; background: #fff5f5;">I will evaluate</td>
         </tr>
         <tr>
-          <th>Past<br>(PGN History)</th>
-          <td>I evaluated</td>
-          <td>I was searching</td>
-          <td>I had solved</td>
-          <td>I had been calculating</td>
+          <th>Progressive<br><small>(線: Searching Vector)</small></th>
+          <td style="color: #64748b;">I was searching</td>
+          <td style="color: #d97706; font-weight: bold;">I am searching</td>
+          <td style="color: #d97706; border: 1px dashed #d97706; background: #fffbeb;">I will be searching</td>
         </tr>
         <tr>
-          <th>Future<br>(探索木の子孫ノード)</th>
-          <td>I will evaluate</td>
-          <td>I will be searching</td>
-          <td>I will have solved</td>
-          <td>I will have been calculating</td>
+          <th>Perfect<br><small>(面: TT Cached Area)</small></th>
+          <td style="color: #64748b;">I had solved</td>
+          <td style="color: #047857; font-weight: bold;">I have solved</td>
+          <td style="color: #047857; border: 1px dashed #047857; background: #f0fdf4;">I will have solved</td>
+        </tr>
+        <tr>
+          <th>Perfect Progressive<br><small>(体積: Depth Accumulate)</small></th>
+          <td style="color: #64748b;">I had been calculating</td>
+          <td style="color: #4338ca; font-weight: bold;">I have been calculating</td>
+          <td style="color: #4338ca; border: 1px dashed #4338ca; background: #eef2ff;">I will have been calculating</td>
         </tr>
       </tbody>
     </table>
@@ -541,19 +670,19 @@ attr(him, "state") &lt;- "happy"</code></pre>
 
     <!-- Present Tense Group -->
     <h3>1. Present (Root Node / 現在の盤面)</h3>
-    <p>エンジンが現在注目しているルートノード（現在の盤面）に対する評価と処理。</p>
+    <p>今まさにGUI画面にアクティブに表示されている実色の評価値。</p>
     <div class="tense-grid">
       <div class="tense-card">
         <h4><span class="geom-icon">🔴</span> Present Simple (現在単純形)</h4>
         <div class="example">The engine evaluates the position.</div>
-        <p><strong>【幾何イメージ: Point / 点】</strong><br>NNUE等による静的評価（Static Evaluation）。時間幅を持たず、特定のノードにおける瞬間的なスナップショット値（スコア）。</p>
+        <p><strong>【状態: Point / 点】</strong><br>静的評価（Static Evaluation）。時間幅を持たず、特定のノードにおける瞬間的なスナップショット値（スコア）。</p>
         <pre><code>// 0次元的な静的評価値
-const score = nnue_evaluate(current_pos);</code></pre>
+const score = evaluate(current_pos);</code></pre>
       </div>
       <div class="tense-card">
         <h4><span class="geom-icon">↗️</span> Present Progressive (現在進行形)</h4>
         <div class="example">The engine is searching the lines.</div>
-        <p><strong>【幾何イメージ: Vector / ベクトル・波】</strong><br>現在進行形でCPUのノード数（NPS）を消費し、アルファ・ベータ探索を実行中。状態が動的に遷移しているベクトル。</p>
+        <p><strong>【状態: Vector / ベクトル・波】</strong><br>現在進行形でCPUリソースを消費し、探索を実行中。状態が動的に遷移しているベクトル。</p>
         <pre><code>// 1次元的なリソースの流動
 while (time_allocated > 0) {
   search_tree(current_pos);
@@ -561,103 +690,102 @@ while (time_allocated > 0) {
 }</code></pre>
       </div>
       <div class="tense-card">
-        <h4><span class="geom-icon">🟦</span> Present Perfect (現在完了形)</h4>
+        <h4><span class="geom-icon">🟩</span> Present Perfect (現在完了形)</h4>
         <div class="example">The engine has cached the position.</div>
-        <p><strong>【幾何イメージ: Area / 面・領域】</strong><br>過去の探索結果がトランスポジションテーブル（TT）に保存され、現在のノード評価を「面」としてカバー（Cutoff）している状態。</p>
+        <p><strong>【状態: Area / 面・領域】</strong><br>過去の探索結果がTT（Transposition Table）に保存され、現在のノード評価を「面」としてカバーしている完了状態。</p>
         <pre><code>// 2次元的なカバー範囲（キャッシュ）
-if (TranspositionTable.contains(hash)) {
-  // 過去の計算結果が現在に影響を及ぼす
-  return TranspositionTable.get(hash).score;
+if (TT.contains(hash)) {
+  return TT.get(hash).score;
 }</code></pre>
       </div>
       <div class="tense-card">
-        <h4><span class="geom-icon">🧊</span> Present Perf. Prog. (現在完了進行形)</h4>
+        <h4><span class="geom-icon">🟦</span> Present Perf. Prog. (現在完了進行形)</h4>
         <div class="example">The engine has been calculating depth 40.</div>
-        <p><strong>【幾何イメージ: Volume / 体積・軌跡】</strong><br>過去から継続して同一局面の探索（Pondering等）を行っており、到達深度（Depth）が層のように蓄積され、体積を持っている状態。</p>
-        <pre><code>// 3次元的な計算量の積み上げ（Depth）
+        <p><strong>【状態: Volume / 体積・蓄積】</strong><br>過去から継続して同一局面の探索を行っており、到達深度（Depth）やノード数が蓄積されている状態。</p>
+        <pre><code>// 3次元的な計算量の積み上げ
 while (engine.uptime() > 0) {
-  PrincipalVariation.accumulate_depth();
-  display_info(current_depth);
+  depth.accumulate();
+  update_stats(depth);
 }</code></pre>
       </div>
     </div>
 
     <!-- Past Tense Group -->
     <h3>2. Past (Game History / 過去のPGN履歴)</h3>
-    <p>すでに指されて確定した手（PGN）や、過去のタイムスタンプに紐づくエンジンの状態ログ。</p>
+    <p>すでにPGN等にログとして保存され、現在のGUI画面からは消えたグレーアウト状態。</p>
     <div class="tense-grid">
-      <div class="tense-card">
-        <h4><span class="geom-icon">⚪</span> Past Simple (過去単純形)</h4>
-        <div class="example">The engine played e4.</div>
-        <p><strong>【幾何イメージ: Past Point】</strong><br>ゲーム履歴に書き込まれた単なる点（Ply）。現在の探索スレッドには影響を与えない完了したトランザクション。</p>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">⚪</span> Past Simple (過去単純形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine played e4.</div>
+        <p><strong>【状態: Past Point】</strong><br>履歴に書き込まれた単なる点（Ply）。現在の探索スレッドには影響を与えない完了したトランザクション。</p>
         <pre><code>// 履歴への固定化
 game_history.push({
   move: "e2e4",
-  timestamp: "10_mins_ago"
+  time: "yesterday"
 });</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">〰️</span> Past Progressive (過去進行形)</h4>
-        <div class="example">The engine was analyzing the blunder.</div>
-        <p><strong>【幾何イメージ: Past Vector】</strong><br>過去の特定の時間枠において、エンジンがリソースを割いて探索ベクトルを伸ばしていたという状態ログ。</p>
-        <pre><code>// 過去のある時点での状態トレース
-let log = engine_logs.get("move_15");
-assert(log.status === "searching_deeply");</code></pre>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">〰️</span> Past Progressive (過去進行形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine was analyzing the blunder.</div>
+        <p><strong>【状態: Past Vector】</strong><br>過去の特定の時間枠において、エンジンがリソースを割いて探索を行っていたという状態ログ。</p>
+        <pre><code>// 過去の特定時点での状態トレース
+let log = logs.get("move_15");
+assert(log.status === "searching");</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">🔲</span> Past Perfect (過去完了形)</h4>
-        <div class="example">The engine had already found a mate.</div>
-        <p><strong>【幾何イメージ: Past Area】</strong><br>過去の特定時点を基準とした時、それより以前の探索によって既に結論（Mate in X）の面が構築され、準備されていた状態。</p>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">🔲</span> Past Perfect (過去完了形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine had already found a mate.</div>
+        <p><strong>【状態: Past Area】</strong><br>過去の特定時点を基準とした時、それより以前の探索によって既に結論の面が構築され、準備されていた状態。</p>
         <pre><code>// 過去のある時点でのキャッシュヒット
-let snapshot_ply_20 = db.get("ply_20");
-assert(snapshot_ply_20.mate_found === true);</code></pre>
+let snapshot = db.get("ply_20");
+assert(snapshot.mate_found === true);</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">📦</span> Past Perf. Prog. (過去完了進行形)</h4>
-        <div class="example">The engine had been pondering the move.</div>
-        <p><strong>【幾何イメージ: Past Volume】</strong><br>相手の手番中（Ponder中）などに、過去のある時点までずっと計算量を蓄積し続けていたという計算資源の塊。</p>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">📦</span> Past Perf. Prog. (過去完了進行形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine had been pondering the move.</div>
+        <p><strong>【状態: Past Volume】</strong><br>過去のある時点までずっと計算量を蓄積し続けていたという計算資源の塊の記録。</p>
         <pre><code>// 過去の蓄積エネルギー量
-let ponder_stats = stats.get("opponent_turn");
-assert(ponder_stats.nodes_searched > 1_000_000);</code></pre>
+let stats = db.get("opponent_turn");
+assert(stats.nodes > 1_000_000);</code></pre>
       </div>
     </div>
 
     <!-- Future Tense Group -->
     <h3>3. Future (Future Nodes / 探索木の未来展開)</h3>
-    <p>現在の局面から展開される数手先のバリエーション、または計算タスクのキュー予測。</p>
+    <p>これから計算され、未来のタイミングでGUI画面に表示される予定の点線枠（予測）。</p>
     <div class="tense-grid">
-      <div class="tense-card">
-        <h4><span class="geom-icon">⭕</span> Future Simple (未来単純形)</h4>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">⭕</span> Future Simple (未来単純形)</h4>
         <div class="example">The engine will evaluate this branch.</div>
-        <p><strong>【幾何イメージ: Future Point】</strong><br>探索キューに積まれたタスク（Promise）。将来、到達した瞬間に静的評価（点）が行われる予定のノード。</p>
+        <p><strong>【状態: Future Point】</strong><br>探索キューに積まれたタスク（Promise）。将来、到達した瞬間に静的評価（点）が行われる予定。</p>
         <pre><code>// タスクキューへの追加
-task_queue.push(future_node);
+task_queue.push(node);
 // or
-Promise.resolve(evaluate(future_node));</code></pre>
+Promise.resolve(evaluate(node));</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">〽️</span> Future Progressive (未来進行形)</h4>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">〽️</span> Future Progressive (未来進行形)</h4>
         <div class="example">The engine will be searching the endgame.</div>
-        <p><strong>【幾何イメージ: Future Vector】</strong><br>探索木が特定の手順まで進んだ未来時点で、そこでアルファ・ベータ探索（波）が展開されているだろうという予測。</p>
+        <p><strong>【状態: Future Vector】</strong><br>探索が特定の手順まで進んだ未来時点で、そこで探索スレッドがアクティブになっているだろうという予測。</p>
         <pre><code>// 未来のフェーズ移行予測
-let projected_phase = estimate_phase(depth + 10);
-expect(projected_phase).toBe("endgame_search");</code></pre>
+let phase = estimate(depth + 10);
+expect(phase).toBe("endgame_search");</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">🏁</span> Future Perfect (未来完了形)</h4>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">🏁</span> Future Perfect (未来完了形)</h4>
         <div class="example">The engine will have solved the puzzle.</div>
-        <p><strong>【幾何イメージ: Future Area】</strong><br>未来の特定時点（例: Depth 30到達時）において、必要な評価空間が完全にカバー（面化）し終わっているという状態の確約。</p>
+        <p><strong>【状態: Future Area】</strong><br>未来の特定時点において、必要な評価空間が完全にカバー（完了・面化）し終わっているという状態の確約。</p>
         <pre><code>// 未来の完了条件の充足
-await engine.search_until(depth == 30);
-state.is_solved = true; // 面が完成</code></pre>
+await search_until(depth == 30);
+state.is_solved = true;</code></pre>
       </div>
-      <div class="tense-card">
-        <h4><span class="geom-icon">📶</span> Future Perf. Prog. (未来完了進行形)</h4>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">📶</span> Future Perf. Prog. (未来完了進行形)</h4>
         <div class="example">The engine will have been running for hours.</div>
-        <p><strong>【幾何イメージ: Future Volume】</strong><br>未来の特定時点において、累積したNPS（Nodes Per Second）が巨大な体積となり、依然として増え続けている状態。</p>
-        <pre><code>// 未来時点での累積リソース
-let projected_time = target_depth_time - start_time;
-assert(projected_time > hours(5));</code></pre>
+        <p><strong>【状態: Future Volume】</strong><br>未来の特定時点において、累積したノード数が巨大な体積となり、依然として増え続けている状態予測。</p>
+        <pre><code>// 未来時点での累積リソース予測
+let time = target_time - start_time;
+assert(time > hours(5));</code></pre>
       </div>
     </div>
 

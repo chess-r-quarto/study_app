@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文法用語集 (スーパーステップ準拠)</title>
+    <style>
+      :root {
+        --body-bg: #ffffff;
+        --text-color: #212529;
+        --heading-color: #333333;
+        --border-color: #dee2e6;
+        --table-stripe: #f8f9fa;
+        --link-color: #0d6efd;
+        --chapter-color: #c92a2a; /* スーパーステップの赤系をイメージ */
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--body-bg);
+        margin: 0;
+        padding: 2rem 1rem;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      h1, h2, h3 {
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--heading-color);
+      }
+
+      h1 { 
+        font-size: 2.25rem; 
+        border-bottom: 2px solid var(--border-color); 
+        padding-bottom: 0.5rem;
+      }
+      
+      h2 { 
+        font-size: 1.5rem; 
+        color: var(--chapter-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.3rem;
+        display: flex;
+        align-items: baseline;
+      }
+      
+      h2 span.chap-num {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-right: 0.5rem;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 1rem;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 2rem;
+      }
+
+      table {
+        width: 100%;
+        margin-bottom: 1rem;
+        vertical-align: top;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+
+      th, td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+      }
+
+      th {
+        font-weight: 600;
+        background-color: var(--body-bg);
+        border-bottom: 2px solid var(--border-color);
+        border-top: 2px solid var(--border-color);
+      }
+
+      tbody tr:nth-of-type(odd) {
+        background-color: var(--table-stripe);
+      }
+
+      strong {
+        font-weight: 700;
+        color: #000;
+        background-color: #fff3cd; 
+        padding: 0 0.2rem;
+        border-radius: 3px;
+      }
+
+      .toc {
+        background-color: var(--table-stripe);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+      }
+      .toc h2 {
+        margin-top: 0;
+        border-bottom: none;
+        font-size: 1.2rem;
+        color: var(--heading-color);
+      }
+      .toc ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-bottom: 0;
+        column-count: 2; /* 目次を2段組みに */
+      }
+      @media (max-width: 600px) {
+        .toc ul { column-count: 1; }
+      }
+      .toc li {
+        margin-bottom: 0.5rem;
+      }
+      .toc a {
+        color: var(--link-color);
+        text-decoration: none;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+
+    <h1>英文法用語集 <br><small style="font-size: 1.2rem; color: #666;">(スーパーステップ目次構成版)</small></h1>
+    <p>日常学習やKindleでの振り返りに最適な、体系的な英文法用語の対照表です。</p>
+
+    <div class="toc">
+      <h2>目次 (Contents)</h2>
+      <ul>
+        <li><a href="#chap1">1. 文のしくみ</a></li>
+        <li><a href="#chap2">2. 動詞と助動詞</a></li>
+        <li><a href="#chap3">3. 名詞と代名詞</a></li>
+        <li><a href="#chap4">4. 冠詞と形容詞と副詞</a></li>
+        <li><a href="#chap5">5. さまざまな文</a></li>
+        <li><a href="#chap6">6. 文型と句</a></li>
+        <li><a href="#chap7">7. 比較表現</a></li>
+        <li><a href="#chap8">8. 受け身表現</a></li>
+        <li><a href="#chap9">9. 現在完了</a></li>
+        <li><a href="#chap10">10. 句で表す</a></li>
+        <li><a href="#chap11">11. 不定詞と動名詞と分詞</a></li>
+        <li><a href="#chap12">12. 前置詞</a></li>
+        <li><a href="#chap13">13. 節で表す(1) 接続詞と疑問詞</a></li>
+        <li><a href="#chap14">14. 節で表す(2) 関係代名詞</a></li>
+        <li><a href="#chap15">15. 仮定法と発展学習</a></li>
+      </ul>
+    </div>
+
+    <!-- 1章 -->
+    <h2 id="chap1"><span class="chap-num">1</span> 文のしくみ</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>一般動詞</td><td>Action / Ordinary Verb</td><td>I <strong>play</strong> baseball.</td></tr>
+          <tr><td>be動詞</td><td>be Verb</td><td>He <strong>is</strong> a doctor.</td></tr>
+          <tr><td>主語 (S)</td><td>Subject</td><td><strong>My mother</strong> is kind.</td></tr>
+          <tr><td>目的語 (O)</td><td>Object</td><td>I know <strong>him</strong>.</td></tr>
+          <tr><td>補語 (C)</td><td>Complement</td><td>She became <strong>a teacher</strong>.</td></tr>
+          <tr><td>肯定文</td><td>Affirmative Sentence</td><td><strong>I like apples.</strong></td></tr>
+          <tr><td>否定文</td><td>Negative Sentence</td><td>I <strong>do not</strong> like apples.</td></tr>
+          <tr><td>疑問文</td><td>Interrogative Sentence</td><td><strong>Do</strong> you like apples<strong>?</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2章 -->
+    <h2 id="chap2"><span class="chap-num">2</span> 動詞と助動詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>過去形</td><td>Past Tense</td><td>I <strong>watched</strong> TV yesterday.</td></tr>
+          <tr><td>未来表現</td><td>Future Expression</td><td>I <strong>will</strong> call you. / I <strong>am going to</strong> run.</td></tr>
+          <tr><td>進行形</td><td>Progressive / Continuous</td><td>He <strong>is reading</strong> a book now.</td></tr>
+          <tr><td>助動詞</td><td>Auxiliary / Modal Verb</td><td>You <strong>can</strong> swim fast.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3章 -->
+    <h2 id="chap3"><span class="chap-num">3</span> 名詞と代名詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>可算名詞 (数えられる)</td><td>Countable Noun</td><td>I have an <strong>apple</strong>.</td></tr>
+          <tr><td>不可算名詞 (数えられない)</td><td>Uncountable Noun</td><td>I drink <strong>water</strong>.</td></tr>
+          <tr><td>複数形</td><td>Plural Form</td><td>I like <strong>dogs</strong>.</td></tr>
+          <tr><td>指示代名詞</td><td>Demonstrative Pronoun</td><td><strong>This</strong> is my pen.</td></tr>
+          <tr><td>所有格</td><td>Possessive Case</td><td>This is <strong>my</strong> book.</td></tr>
+          <tr><td>所有代名詞</td><td>Possessive Pronoun</td><td>That car is <strong>hers</strong>.</td></tr>
+          <tr><td>不定代名詞</td><td>Indefinite Pronoun</td><td>Do you have <strong>any</strong> questions?</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4章 -->
+    <h2 id="chap4"><span class="chap-num">4</span> 冠詞と形容詞と副詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>不定冠詞 (a/an)</td><td>Indefinite Article</td><td>It is <strong>a</strong> cat.</td></tr>
+          <tr><td>定冠詞 (the)</td><td>Definite Article</td><td>Look at <strong>the</strong> sky.</td></tr>
+          <tr><td>形容詞</td><td>Adjective</td><td>It is a <strong>big</strong> tree.</td></tr>
+          <tr><td>副詞</td><td>Adverb</td><td>He runs <strong>very fast</strong>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5章 -->
+    <h2 id="chap5"><span class="chap-num">5</span> さまざまな文</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>疑問詞</td><td>Interrogative Word</td><td><strong>What</strong> is this?</td></tr>
+          <tr><td>存在を表す文</td><td>Existential Sentence</td><td><strong>There is</strong> a book on the desk.</td></tr>
+          <tr><td>命令文</td><td>Imperative Sentence</td><td><strong>Stand up.</strong> / <strong>Be</strong> quiet.</td></tr>
+          <tr><td>感嘆文</td><td>Exclamatory Sentence</td><td><strong>How</strong> beautiful this flower is<strong>!</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6章 -->
+    <h2 id="chap6"><span class="chap-num">6</span> 文型と句</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>補語のある文 (SVC)</td><td>SVC Pattern</td><td>She <strong>looks happy</strong>.</td></tr>
+          <tr><td>目的語が2つある文 (SVOO)</td><td>SVOO Pattern</td><td>He gave <strong>me a ring</strong>.</td></tr>
+          <tr><td>目的語に補語がつく文 (SVOC)</td><td>SVOC Pattern</td><td>We call <strong>him Ken</strong>.</td></tr>
+          <tr><td>句</td><td>Phrase</td><td>The cat <strong>under the table</strong> is cute.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 7章 -->
+    <h2 id="chap7"><span class="chap-num">7</span> 比較表現</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>原級</td><td>Positive Degree</td><td>He is <strong>as tall as</strong> you.</td></tr>
+          <tr><td>比較級</td><td>Comparative Degree</td><td>This bag is <strong>bigger than</strong> that one.</td></tr>
+          <tr><td>最上級</td><td>Superlative Degree</td><td>Mt. Fuji is <strong>the highest</strong> in Japan.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 8章 -->
+    <h2 id="chap8"><span class="chap-num">8</span> 受け身表現</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>能動態</td><td>Active Voice</td><td><strong>Everybody loves</strong> him.</td></tr>
+          <tr><td>受動態 (受け身)</td><td>Passive Voice</td><td>He <strong>is loved by</strong> everybody.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 9章 -->
+    <h2 id="chap9"><span class="chap-num">9</span> 現在完了</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>完了・結果</td><td>Completion / Result</td><td>I <strong>have just finished</strong> my homework.</td></tr>
+          <tr><td>経験</td><td>Experience</td><td>I <strong>have visited</strong> Kyoto twice.</td></tr>
+          <tr><td>継続</td><td>Continuation</td><td>I <strong>have lived</strong> here for 10 years.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 10章 & 11章 -->
+    <h2 id="chap10"><span class="chap-num">10-11</span> 句で表す (不定詞・動名詞・分詞)</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>不定詞 (名詞的用法)</td><td>Infinitive (Noun Use)</td><td>I like <strong>to play</strong> soccer.</td></tr>
+          <tr><td>不定詞 (形容詞的用法)</td><td>Infinitive (Adjective Use)</td><td>I have a lot of homework <strong>to do</strong>.</td></tr>
+          <tr><td>不定詞 (副詞的用法)</td><td>Infinitive (Adverb Use)</td><td>I went to the park <strong>to play</strong> soccer.</td></tr>
+          <tr><td>動名詞</td><td>Gerund</td><td><strong>Playing</strong> soccer is fun.</td></tr>
+          <tr><td>分詞 (現在分詞)</td><td>Present Participle</td><td>Look at the <strong>sleeping</strong> baby.</td></tr>
+          <tr><td>分詞 (過去分詞)</td><td>Past Participle</td><td>This is a <strong>broken</strong> window.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 12章 -->
+    <h2 id="chap12"><span class="chap-num">12</span> 前置詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>前置詞 (場所・時など)</td><td>Preposition</td><td>I live <strong>in</strong> Tokyo. / See you <strong>on</strong> Sunday.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 13章 -->
+    <h2 id="chap13"><span class="chap-num">13</span> 節で表す(1) 接続詞と疑問詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>等位接続詞</td><td>Coordinating Conjunction</td><td>I am tired <strong>but</strong> happy.</td></tr>
+          <tr><td>従属接続詞 (副詞節)</td><td>Subordinating Conjunction</td><td><strong>When</strong> I was a child, I lived here.</td></tr>
+          <tr><td>thatの節 (名詞節)</td><td>That-clause (Noun Clause)</td><td>I think <strong>that</strong> he is right.</td></tr>
+          <tr><td>間接疑問</td><td>Indirect Question</td><td>I don't know <strong>where he lives</strong>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 14章 -->
+    <h2 id="chap14"><span class="chap-num">14</span> 節で表す(2) 関係代名詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>主格の関係代名詞</td><td>Subjective Relative Pronoun</td><td>I know a boy <strong>who</strong> speaks French.</td></tr>
+          <tr><td>目的格の関係代名詞</td><td>Objective Relative Pronoun</td><td>This is the book <strong>which</strong> I bought.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 15章 -->
+    <h2 id="chap15"><span class="chap-num">15</span> 仮定法と発展学習</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%;">日本語名称</th>
+            <th style="width: 25%;">英語名称</th>
+            <th style="width: 55%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>仮定法</td><td>Subjunctive Mood</td><td>If I <strong>were</strong> a bird, I <strong>could</strong> fly.</td></tr>
+          <tr><td>付加疑問</td><td>Tag Question</td><td>You are a student, <strong>aren't you?</strong></td></tr>
+          <tr><td>直接話法・間接話法</td><td>Direct / Indirect Speech</td><td>He <strong>said to me, "I am tired."</strong></td></tr>
+          <tr><td>知覚動詞</td><td>Verb of Perception</td><td>I <strong>saw</strong> him <strong>cross</strong> the street.</td></tr>
+          <tr><td>使役動詞</td><td>Causative Verb</td><td>He <strong>made</strong> me <strong>cry</strong>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </body>
+</html>

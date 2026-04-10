@@ -128,6 +128,26 @@
         color: var(--tip-text);
       }
 
+      .guide-box {
+        background-color: #e9ecef;
+        border-left: 4px solid var(--chapter-color);
+        padding: 1rem;
+        border-radius: 0 4px 4px 0;
+        margin-bottom: 2rem;
+      }
+      .guide-box h3 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        border-bottom: none;
+      }
+      .guide-box ul {
+        padding-left: 1.5rem;
+        margin-bottom: 0;
+      }
+      .guide-box li {
+        margin-bottom: 0.5rem;
+      }
+
       .toc {
         background-color: var(--table-stripe);
         padding: 1.5rem;
@@ -170,6 +190,7 @@
     <div class="toc">
       <h2>目次 (Contents)</h2>
       <ul>
+        <li><a href="#matrix">🌟 特別マップ：文の要素と品詞の対応表</a></li>
         <li><a href="#chap1">1. 文のしくみ</a></li>
         <li><a href="#chap2">2. 動詞と助動詞</a></li>
         <li><a href="#chap3">3. 名詞と代名詞</a></li>
@@ -185,6 +206,52 @@
         <li><a href="#chap14">14. 節で表す(2) 関係代名詞</a></li>
         <li><a href="#chap15">15. 仮定法と発展学習</a></li>
       </ul>
+    </div>
+
+    <!-- 特別マップ -->
+    <h2 id="matrix"><span style="font-size: 1.5rem; margin-right: 0.5rem;">🌟</span> 特別マップ：文の要素と品詞の対応リスト</h2>
+    <p>この表は、<strong>「ある特定の席（エレメント）に、どの材料（品詞）を放り込めるか」</strong>を一覧化したものです。</p>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40%;">エレメント / 文の要素 (Sentence Element)</th>
+            <th style="width: 60%;">活用される品詞 (Parts of Speech)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>S：Subject</strong>（主語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)</td>
+          </tr>
+          <tr>
+            <td><strong>V：Verb</strong>（述語動詞）</td>
+            <td>動詞 (Verb)</td>
+          </tr>
+          <tr>
+            <td><strong>O：Object</strong>（目的語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)</td>
+          </tr>
+          <tr>
+            <td><strong>C：Complement</strong>（補語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)<br>形容詞 (Adjective)</td>
+          </tr>
+          <tr>
+            <td><strong>M：Modifier</strong>（修飾語）</td>
+            <td>形容詞 (Adjective)<br>副詞 (Adverb)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="guide-box">
+      <h3>このリストの活用ガイド</h3>
+      <ul>
+        <li><strong>骨組み（S / V / O）：</strong> ここには基本的に「名詞」と「動詞」しか入りません。文のメインメッセージを作る、重厚なパーツたちです。</li>
+        <li><strong>説明役（C）：</strong> 「S＝C」や「O＝C」というイコール関係を作る席です。名前（名詞）を置くこともあれば、様子（形容詞）を置くこともあります。</li>
+        <li><strong>飾り（M）：</strong> 文を豊かにする「修飾語」の席です。名詞を詳しくするなら形容詞、それ以外（動きや程度）を詳しくするなら副詞を使い分けます。</li>
+      </ul>
+      <p style="margin-top: 1rem; margin-bottom: 0;">💡 こうして2列に絞ると、「名詞」がいかに多くの席（S, O, C）を兼任しているか、そして<strong>「副詞」がいかに「M」という役割に特化しているか</strong>が際立ちますね。</p>
     </div>
 
     <!-- 1章 -->

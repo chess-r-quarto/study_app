@@ -378,6 +378,50 @@
       </dd>
     </dl>
 
+    <h3 id="type-constraints" style="margin-top: 2.5rem; font-size: 1.35rem;">【補足】エレメントと品詞の対応マトリックス</h3>
+    <p>この表は、<strong>「ある特定の席（エレメント）に、どの材料（品詞）を放り込めるか」</strong>というプログラミングにおける型制約（Type Constraint）を一覧化したものである。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45%; text-align: left;">エレメント / 文の要素 (Sentence Element)</th>
+          <th style="text-align: left;">活用される品詞 (Parts of Speech)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S：Subject（主語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)</td>
+        </tr>
+        <tr>
+          <td><strong>V：Verb（述語動詞）</strong></td>
+          <td>動詞 (Verb)</td>
+        </tr>
+        <tr>
+          <td><strong>O：Object（目的語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)</td>
+        </tr>
+        <tr>
+          <td><strong>C：Complement（補語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)<br>形容詞 (Adjective)</td>
+        </tr>
+        <tr>
+          <td><strong>M：Modifier（修飾語）</strong></td>
+          <td>形容詞 (Adjective)<br>副詞 (Adverb)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="example-box">
+      <strong>このリストの活用ガイド</strong><br><br>
+      <ul style="margin-bottom: 1rem;">
+        <li><strong>骨組み（S / V / O）：</strong> ここには基本的に<strong>「名詞」と「動詞」</strong>しか入らない。文のメインメッセージを作る、重厚なパーツ（必須の引数）である。</li>
+        <li><strong>説明役（C）：</strong> 「S＝C」や「O＝C」というイコール関係を作る席。名前（名詞）を置くこともあれば、様子（形容詞）を置くこともある。</li>
+        <li><strong>飾り（M）：</strong> 文を豊かにする「修飾語」の席。名詞を詳しくするなら形容詞、それ以外（動きや程度）を詳しくするなら副詞を使い分ける。</li>
+      </ul>
+      <p style="margin-bottom: 0;">こうして2列に絞ると、「名詞」がいかに多くの席（S, O, C）を兼任しているか、そして<strong>「副詞」がいかに「M」という役割に特化しているか</strong>が際立つ。</p>
+    </div>
+
     <h2 id="signatures">2. 関数シグネチャ（5つの基本構文）</h2>
     <p>いわゆる「5文型」は、メソッドの引数の渡し方とメモリ操作のパターン（関数シグネチャ）に過ぎない。Pythonのオブジェクト指向と、Rの関数型アプローチの両面から定義する。</p>
 

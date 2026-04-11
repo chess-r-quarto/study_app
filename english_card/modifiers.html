@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語構文モデルの比較（Kindle最適化版）</title>
+    <style>
+        /* Kindle等で最低限読みやすくするためのベーススタイル（剥がれ落ちても問題ない設計） */
+        body {
+            font-family: serif; /* 電子書籍は明朝体・セリフ体が基本 */
+            line-height: 1.8;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 5%;
+        }
+        h1 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 1.4em;
+            margin-top: 2em;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 1.2em;
+            margin-top: 1.5em;
+        }
+        p {
+            margin-bottom: 1em;
+        }
+        .example-sentence {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        /* KindleのE-inkディスプレイで映えるPreformatted Text */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 15px;
+            font-family: monospace;
+            overflow-x: auto;
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #555;
+            border-left: 3px solid #666;
+            padding-left: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>英語構文モデルの比較<br><small>〜 M（修飾語）の扱い方 〜</small></h1>
+
+    <p>本ドキュメントでは、以下の例文を世界で異なる4つのアプローチがどのように解釈（パース）しているかを比較します。</p>
+
+    <div class="example-sentence">
+        The cute dog quickly ate the big bone.
+        <br>
+        <small>（その可愛い犬は、素早くその大きな骨を食べた。）</small>
+    </div>
+
+    <p>この文の骨組みは「dog (S) / ate (V) / bone (O)」であり、残りの単語はすべて「M（修飾語）」です。</p>
+
+    <hr>
+
+    <h2>1. アメリカ式（Reed-Kellogg図解）</h2>
+    <p>文の「階層構造」をツリー状に視覚化する伝統的なアプローチです。主幹となる「S-V-O」を一本の太い線に置き、M（修飾語）はそこから下へぶら下がる「枝」として描画されます。骨格がブレないのが特徴です。</p>
+
+<pre>
+       dog     |    ate    |    bone
+ ──────────────┼───────────┼──────────────
+      /    /   |     /     |   /     /
+    The  cute  | quickly   | the   big
+</pre>
+
+    <div class="note">
+        <strong>特徴：</strong> Mがどんなに増えても、一番上にある「S-V-O」の直線は絶対に邪魔されません。
+    </div>
+
+    <hr>
+
+    <h2>2. インド式（コア＋後乗せモジュール）</h2>
+    <p>「伝えること」に特化した実践的アプローチです。コアとなる行動（誰が・する・何を）を真っ先にブロックとして固め、M（細かい情報）は後から「追加モジュール」として放り込みます。</p>
+
+<pre>
+【1. コア ブロック】
+  [ dog ] ── does ──> [ ate bone ]
+
+【2. ＋追加モジュール (M)】
+  + (The cute)
+  + (quickly)
+  + (the big)
+</pre>
+
+    <div class="note">
+        <strong>特徴：</strong> 会話やライティングにおいて、「まずはSVOを言い切り、後からMを足せばよい」という思考プロセスに直結しています。
+    </div>
+
+    <hr>
+
+    <h2>3. オリジナル：JSON縦持ち式（Syntax as Code）</h2>
+    <p>英文をプログラミングにおけるオブジェクト（辞書型）の「キー」と「値」として解釈するアプローチです。Mがどんなに長くなっても独立したプロパティになるため、必須引数（S, V, O）が絶対に埋もれません。</p>
+
+<pre>
+{
+  "mod_S":  "The cute",
+  "Subject": "dog",
+
+  "mod_V":  "quickly",
+  "Verb":    "ate",
+
+  "mod_O":  "the big",
+  "Object":  "bone"
+}
+</pre>
+
+    <div class="note">
+        <strong>特徴：</strong> Mが肥大化しても、人間の目は縦に「Subject」「Verb」「Object」のキーだけをスキャンすれば良いため、読解時に迷子になるのを完全に防ぎます。
+    </div>
+
+    <hr>
+
+    <h2>4. 日本式（直列5文型パズル）</h2>
+    <p>日本の学校教育でよく見られる、すべての単語を「1本の線」に並べて分析するアプローチです。</p>
+
+<pre>
+[The] [cute] [dog (S)] [quickly] [ate (V)] [the] [big] [bone (O)]
+</pre>
+
+    <div class="note">
+        <strong>ジレンマの正体：</strong> すべてが1列に並ぶため、M（修飾語）が間に割り込んでくると、SとV、VとOの距離が物理的に離れてしまいます。関係代名詞などでMが長くなると、どれが文の骨組みなのか区別がつかなくなり、読解が崩壊する原因となります。
+    </div>
+
+    <hr>
+
+    <h2>まとめ</h2>
+    <p>日本の英語教育では「M」という用語の重要性が強調されませんが、実際には文を複雑にしている犯人はすべて「M」です。</p>
+    <p>長文を読む際は、日本式の「直列」で読むのをやめ、<strong>JSON縦持ち式</strong>のように「Mをコメントアウト（または別キーに隔離）して、S・V・Oの必須引数だけを抽出する」というエンジニアリング的思考を取り入れることで、読解力は飛躍的に向上します。</p>
+
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syntax Parser</title>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom Scrollbar for Lichess feel */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #161512; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3c3934; 
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #504c45; 
+    }
+    body {
+      background-color: #161512;
+      color: #bababa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    /* Ruby Alignment & Positioning */
+    ruby {
+      ruby-align: center;
+      line-height: 2.2; /* 縦並びの際にルビが重ならないように行間を確保 */
+    }
+    .ruby-under {
+      ruby-position: under;
+      -webkit-ruby-position: after;
+    }
+    .ruby-over {
+      ruby-position: over;
+      -webkit-ruby-position: before;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Babel Custom Preset Setup -->
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+
+  <!-- Main Application Logic -->
+  <script type="text/babel" data-presets="tsx">
+    const { useState, useEffect } = React;
+
+    // ==========================================
+    // 1. Default JSON Data
+    // ==========================================
+    const DEFAULT_JSON = `[
+      {
+        "id": "q016",
+        "title": "Q016 - SVO (Modifiers of Subject and Object)",
+        "sentence": "Executives at the two companies will form a joint venture to develop an electric vehicle battery.",
+        "translation": "その2社の幹部たちは、電気自動車のバッテリーを開発するための合弁会社を設立する予定だ。",
+        "tips": "主語「Executives」の後ろに「at the two companies」が付き、目的語「venture」には前に「a joint」、後ろに不定詞「to develop...」が付いています。S-V-Oの骨格が明確です。",
+        "structure": [
+          { "type": "S", "text": "Executives", "pos": "Noun", "label": "Subject", "preM": [], "postM": [{"t": "at", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "two", "p": "Adj."}, {"t": "companies", "p": "Noun"}] },
+          { "type": "V", "text": "will form", "pos": "Aux. + Verb", "label": "Verb", "preM": [], "postM": [] },
+          { "type": "O", "text": "venture", "pos": "Noun", "label": "Object", "preM": [{"t": "a", "p": "Art."}, {"t": "joint", "p": "Adj."}], "postM": [{"t": "to", "p": "Inf. to"}, {"t": "develop", "p": "Inf. Verb"}, {"t": "an", "p": "Art."}, {"t": "electric", "p": "Adj."}, {"t": "vehicle", "p": "Noun"}, {"t": "battery.", "p": "Noun"}] }
+        ]
+      },
+      {
+        "id": "q017",
+        "title": "Q017 - Gerund Subject (動名詞の主語)",
+        "sentence": "Shortening the work week of our sales representatives will allow for a better work-life balance.",
+        "translation": "当社の営業担当者の労働週を短縮することは、より良いワークライフバランスを可能にするだろう。",
+        "tips": "主語のコアは動名詞の「Shortening」です。その動名詞の目的語「the work week of our sales representatives」が後ろから巨大な修飾語としてぶら下がっています。",
+        "structure": [
+          { "type": "S", "text": "Shortening", "pos": "Gerund", "label": "Subject", "preM": [], "postM": [{"t": "the", "p": "Art."}, {"t": "work", "p": "Noun"}, {"t": "week", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "our", "p": "Pron."}, {"t": "sales", "p": "Noun"}, {"t": "representatives", "p": "Noun"}] },
+          { "type": "V", "text": "will allow for", "pos": "Phrasal Verb", "label": "Verb", "preM": [], "postM": [] },
+          { "type": "O", "text": "balance.", "pos": "Noun", "label": "Object", "preM": [{"t": "a", "p": "Art."}, {"t": "better", "p": "Adj."}, {"t": "work-life", "p": "Adj."}], "postM": [] }
+        ]
+      },
+      {
+        "id": "q018",
+        "title": "Q018 - Relative Clause (関係代名詞 目的格)",
+        "sentence": "The marketing strategy that the team proposed yesterday was overwhelmingly approved by the board.",
+        "translation": "チームが昨日提案したマーケティング戦略は、取締役会によって圧倒的に承認された。",
+        "tips": "主語「strategy」の後ろに「that the team proposed yesterday」という関係代名詞節が入り込み、V「was approved」との距離が離れています。Vの直前の「overwhelmingly」は前からの修飾です。",
+        "structure": [
+          { "type": "S", "text": "strategy", "pos": "Noun", "label": "Subject", "preM": [{"t": "The", "p": "Art."}, {"t": "marketing", "p": "Noun"}], "postM": [{"t": "that", "p": "Rel.Pron."}, {"t": "the", "p": "Art."}, {"t": "team", "p": "Noun"}, {"t": "proposed", "p": "Verb"}, {"t": "yesterday", "p": "Adv."}] },
+          { "type": "V", "text": "was approved", "pos": "Aux. + Verb", "label": "Verb", "preM": [{"t": "overwhelmingly", "p": "Adv."}], "postM": [{"t": "by", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "board.", "p": "Noun"}] }
+        ]
+      },
+      {
+        "id": "q019",
+        "title": "Q019 - Present Perfect (現在完了と副詞)",
+        "sentence": "Our highly motivated sales representatives have finally reached an agreement.",
+        "translation": "当社の非常に意欲的な営業担当者たちは、ついに合意に達した。",
+        "tips": "主語「representatives」の前に「Our highly motivated sales」という厚みのある前からの修飾がついています。V「have reached」の間に副詞「finally」が割り込んでいます。",
+        "structure": [
+          { "type": "S", "text": "representatives", "pos": "Noun", "label": "Subject", "preM": [{"t": "Our", "p": "Pron."}, {"t": "highly", "p": "Adv."}, {"t": "motivated", "p": "Past Part."}, {"t": "sales", "p": "Noun"}], "postM": [] },
+          { "type": "V", "text": "have reached", "pos": "Aux. + Verb", "label": "Verb", "preM": [{"t": "finally", "p": "Adv."}], "postM": [] },
+          { "type": "O", "text": "agreement.", "pos": "Noun", "label": "Object", "preM": [{"t": "an", "p": "Art."}], "postM": [] }
+        ]
+      },
+      {
+        "id": "q020",
+        "title": "Q020 - Participle Clause (分詞構文の前置き)",
+        "sentence": "Realizing the potential of the new market, the CEO decided to open a branch in Tokyo.",
+        "translation": "新市場の可能性を認識し、CEOは東京に支店を開設することを決定した。",
+        "tips": "文頭の「Realizing...」は分詞構文で、主語「CEO」に対する前からの修飾語として機能しています。コンマの後ろにある主幹「the CEO decided to open...」を素早く見つけることがポイントです。",
+        "structure": [
+          { "type": "S", "text": "CEO", "pos": "Noun", "label": "Subject", "preM": [{"t": "Realizing", "p": "Pres. Part."}, {"t": "the", "p": "Art."}, {"t": "potential", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "new", "p": "Adj."}, {"t": "market,", "p": "Noun"}, {"t": "the", "p": "Art."}], "postM": [] },
+          { "type": "V", "text": "decided", "pos": "Verb", "label": "Verb", "preM": [], "postM": [] },
+          { "type": "O", "text": "to open", "pos": "Infinitive", "label": "Object", "preM": [], "postM": [{"t": "a", "p": "Art."}, {"t": "branch", "p": "Noun"}, {"t": "in", "p": "Prep."}, {"t": "Tokyo.", "p": "Proper Noun"}] }
+        ]
+      }
+    ]`;
+
+    // ==========================================
+    // 2. TTS Helper
+    // ==========================================
+    const speakText = (text, isEnabled) => {
+      if (!isEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.85;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // ==========================================
+    // 3. UI Components
+    // ==========================================
+    const MenuScreen = ({ jsonInput, setJsonInput, ttsEnabled, setTtsEnabled, hideModifiersInit, setHideModifiersInit, onParse }) => {
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            JSON.parse(e.target.result);
+            setJsonInput(e.target.result);
+          } catch (error) {
+            alert("The uploaded file does not contain valid JSON.");
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-start pt-8">
+          <div className="md:col-span-4 flex flex-col gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">SYNTAX PARSER</h1>
+              <p className="text-[#888888] text-sm leading-relaxed">Visualize English syntax cleanly. Import JSON to practice parsing SVOC cores.</p>
+            </div>
+            
+            <div className="bg-[#262421] p-5 rounded border border-[#3c3934]">
+              <h2 className="text-xs font-bold text-[#888888] mb-5 uppercase tracking-widest border-b border-[#3c3934] pb-2">SETTINGS</h2>
+              
+              <label className="flex items-center justify-between cursor-pointer group mb-5">
+                <span className="text-[#bababa] group-hover:text-white transition-colors text-sm font-medium">Text-to-Speech</span>
+                <div className="relative">
+                  <input type="checkbox" className="sr-only" checked={ttsEnabled} onChange={(e) => setTtsEnabled(e.target.checked)} />
+                  <div className={`block w-10 h-5 rounded-full transition-colors ${ttsEnabled ? 'bg-[#629924]' : 'bg-[#161512] border border-[#3c3934]'}`}></div>
+                  <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${ttsEnabled ? 'transform translate-x-5' : ''}`}></div>
+                </div>
+              </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-[#bababa] group-hover:text-white transition-colors text-sm font-medium">Hide Modifiers by Default</span>
+                <div className="relative">
+                  <input type="checkbox" className="sr-only" checked={hideModifiersInit} onChange={(e) => setHideModifiersInit(e.target.checked)} />
+                  <div className={`block w-10 h-5 rounded-full transition-colors ${hideModifiersInit ? 'bg-[#3692e7]' : 'bg-[#161512] border border-[#3c3934]'}`}></div>
+                  <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${hideModifiersInit ? 'transform translate-x-5' : ''}`}></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="md:col-span-8 flex flex-col h-[70vh]">
+            <div className="flex justify-between items-end mb-3">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xs font-bold text-[#888888] uppercase tracking-widest">JSON IMPORT</h2>
+                <label className="cursor-pointer bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide flex items-center gap-2 border border-[#3c3934] transition-colors">
+                  UPLOAD .JSON
+                  <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </div>
+              <button onClick={onParse} className="bg-[#629924] hover:bg-[#7bc42f] text-white px-8 py-2.5 rounded text-sm font-bold uppercase tracking-widest transition-colors shadow-[0_3px_0_0_#49741a] active:translate-y-[3px] active:shadow-none">
+                PARSE DATA
+              </button>
+            </div>
+            <textarea 
+              className="w-full flex-grow bg-[#161512] border border-[#3c3934] p-4 text-[#bababa] font-mono text-sm rounded outline-none focus:border-[#3692e7] resize-none"
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              spellCheck="false"
+            />
+          </div>
+        </div>
+      );
+    };
+
+    const ParserScreen = ({ dataList, currentIndex, setCurrentIndex, ttsEnabled, hideModifiersInit, onBack }) => {
+      const [hideM, setHideM] = useState(hideModifiersInit);
+      const currentData = dataList[currentIndex];
+
+      useEffect(() => {
+        setHideM(hideModifiersInit);
+        if (ttsEnabled && currentData) {
+          speakText(currentData.sentence, ttsEnabled);
+        }
+      }, [currentIndex, currentData, ttsEnabled, hideModifiersInit]);
+
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          
+          if (e.key.toLowerCase() === 'm') {
+            setHideM(prev => !prev);
+          } else if (e.key === 'ArrowRight') {
+            handleNext();
+          } else if (e.key === 'ArrowLeft') {
+            onBack(); 
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [currentIndex, dataList.length]);
+
+      const handleToggle = () => {
+        setHideM(!hideM);
+      };
+
+      const handleNext = () => {
+        if (currentIndex < dataList.length - 1) {
+          setCurrentIndex(currentIndex + 1);
+        } else {
+          setCurrentIndex(0);
+        }
+      };
+
+      if (!currentData) return null;
+
+      const getCoreColors = (type) => {
+        switch(type.replace(/[0-9]/g, '')) {
+          case 'S': return { text: 'text-[#db5353]', border: 'border-[#db5353]' };
+          case 'V': return { text: 'text-[#e69138]', border: 'border-[#e69138]' };
+          case 'O': return { text: 'text-[#f1c232]', border: 'border-[#f1c232]' };
+          case 'C': return { text: 'text-[#8e7cc3]', border: 'border-[#8e7cc3]' };
+          default: return { text: 'text-[#888888]', border: 'border-[#504c45]' };
+        }
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-4">
+          
+          {/* Top Control Bar */}
+          <div className="flex justify-between items-center bg-[#262421] p-3 rounded border border-[#3c3934]">
+            <button onClick={onBack} className="bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-4 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 border border-[#3c3934] transition-colors">
+              MENU
+            </button>
+            <div className="text-[#888888] font-mono text-sm">
+              {currentIndex + 1} <span className="mx-1 text-[#504c45]">/</span> {dataList.length}
+            </div>
+            <button onClick={handleNext} className="bg-[#3692e7] hover:bg-[#5fb0fc] text-white px-6 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-[0_3px_0_0_#1b5c97] active:translate-y-[3px] active:shadow-none">
+              NEXT
+            </button>
+          </div>
+
+          {/* Left-Aligned Vertical Block Viewer */}
+          <div className="bg-[#262421] px-6 py-12 md:px-16 md:py-16 rounded border border-[#3c3934] min-h-[300px] flex flex-col justify-start items-start w-full overflow-x-auto">
+            <div className="flex flex-col gap-12 w-full font-medium tracking-wide">
+              {currentData.structure.map((el, i) => {
+                const colors = getCoreColors(el.type);
+                return (
+                  <div key={`frag-${i}`} className="flex flex-col items-start gap-3 w-full">
+                    
+                    {/* Pre-Modifiers (GREEN, Indented) */}
+                    {el.preM.length > 0 && (
+                      <div className={`flex flex-wrap items-end gap-x-3 gap-y-2 pl-4 md:pl-6 border-l-[3px] transition-colors duration-300 ${hideM ? 'border-[#3c3934]' : 'border-[#7bc42f] border-opacity-40'}`}>
+                        {el.preM.map((m, j) => (
+                          <ruby key={`pre-${i}-${j}`} className="ruby-over">
+                            <span className={`transition-colors duration-300 text-[20px] md:text-[24px] ${hideM ? 'text-[#3c3934]' : 'text-[#7bc42f]'}`}>
+                              {m.t}
+                            </span>
+                            <rt className={`text-[11px] md:text-[13px] font-bold tracking-wider transition-opacity duration-300 ${hideM ? 'opacity-0' : 'text-[#7bc42f] opacity-80'}`}>
+                              {m.p}
+                            </rt>
+                          </ruby>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Core Element (SVOC, Leftmost) */}
+                    <div className="flex flex-wrap items-end my-1">
+                      <ruby className="ruby-under">
+                        <span className={`font-bold text-[28px] md:text-[36px] text-white border-b-[3px] pb-2 ${colors.border}`}>
+                          {el.text}
+                        </span>
+                        <rt className={`text-[12px] md:text-[14px] font-black tracking-widest ${colors.text} pt-2`}>
+                          {el.type} <span className="text-[10px] md:text-[12px] text-[#888888] font-normal tracking-normal ml-1.5">{el.pos}</span>
+                        </rt>
+                      </ruby>
+                    </div>
+
+                    {/* Post-Modifiers (BLUE, Indented) */}
+                    {el.postM.length > 0 && (
+                      <div className={`flex flex-wrap items-end gap-x-3 gap-y-2 pl-4 md:pl-6 border-l-[3px] transition-colors duration-300 ${hideM ? 'border-[#3c3934]' : 'border-[#3692e7] border-opacity-40'}`}>
+                        {el.postM.map((m, j) => (
+                          <ruby key={`post-${i}-${j}`} className="ruby-over">
+                            <span className={`transition-colors duration-300 text-[20px] md:text-[24px] ${hideM ? 'text-[#3c3934]' : 'text-[#3692e7]'}`}>
+                              {m.t}
+                            </span>
+                            <rt className={`text-[11px] md:text-[13px] font-bold tracking-wider transition-opacity duration-300 ${hideM ? 'opacity-0' : 'text-[#3692e7] opacity-80'}`}>
+                              {m.p}
+                            </rt>
+                          </ruby>
+                        ))}
+                      </div>
+                    )}
+                    
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Toggle Button */}
+          <div className="flex justify-center my-2">
+            <button 
+              onClick={handleToggle}
+              className={`px-10 py-3 rounded font-bold uppercase tracking-widest transition-all text-xs border ${
+                hideM 
+                ? 'bg-[#302e2b] text-white border-[#504c45] hover:bg-[#3c3934]' 
+                : 'bg-[#161512] text-[#bababa] border-[#3c3934] hover:border-[#629924] hover:text-white'
+              }`}
+            >
+              {hideM ? 'SHOW MODIFIERS (M)' : 'HIDE MODIFIERS (M)'}
+            </button>
+          </div>
+
+          {/* Data Display Area */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {currentData.translation && (
+              <div className="bg-[#262421] p-6 rounded border border-[#3c3934]">
+                <span className="text-[#888888] text-[10px] font-bold uppercase tracking-widest mb-3 block">
+                  TRANSLATION
+                </span>
+                <p className="text-[#bababa] text-sm md:text-base leading-relaxed pl-4 border-l-2 border-[#504c45]">
+                  {currentData.translation}
+                </p>
+              </div>
+            )}
+
+            {currentData.tips && (
+              <div className="bg-[#262421] p-6 rounded border border-[#3c3934]">
+                <span className="text-[#888888] text-[10px] font-bold uppercase tracking-widest mb-3 block">
+                  PARSING TIPS
+                </span>
+                <p className="text-[#bababa] text-sm md:text-base leading-relaxed pl-4 border-l-2 border-[#504c45]">
+                  {currentData.tips}
+                </p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [screen, setScreen] = useState('menu');
+      const [jsonInput, setJsonInput] = useState(DEFAULT_JSON);
+      const [jsonData, setJsonData] = useState([]);
+      const [ttsEnabled, setTtsEnabled] = useState(false);
+      const [hideModifiersInit, setHideModifiersInit] = useState(true);
+      const [currentIndex, setCurrentIndex] = useState(0);
+
+      const handleParseStart = () => {
+        try {
+          const parsed = JSON.parse(jsonInput);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            alert("Please provide a valid JSON array.");
+            return;
+          }
+          setJsonData(parsed);
+          setCurrentIndex(0);
+          setScreen('parser');
+        } catch (e) {
+          alert("Invalid JSON format.");
+        }
+      };
+
+      const handleBackToMenu = () => {
+        window.speechSynthesis.cancel();
+        setScreen('menu');
+      };
+
+      return (
+        <div className="min-h-screen font-sans px-4 pb-12">
+          <nav className="flex items-center py-4 px-2 mb-4 border-b border-[#262421]">
+            <div className="text-white font-black text-xl tracking-tighter mr-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleBackToMenu}>
+              syntax<span className="text-[#629924]">.parser</span>
+            </div>
+          </nav>
+
+          {screen === 'menu' && (
+            <MenuScreen 
+              jsonInput={jsonInput} 
+              setJsonInput={setJsonInput}
+              ttsEnabled={ttsEnabled}
+              setTtsEnabled={setTtsEnabled}
+              hideModifiersInit={hideModifiersInit}
+              setHideModifiersInit={setHideModifiersInit}
+              onParse={handleParseStart}
+            />
+          )}
+
+          {screen === 'parser' && (
+            <ParserScreen 
+              dataList={jsonData}
+              currentIndex={currentIndex}
+              setCurrentIndex={setCurrentIndex}
+              ttsEnabled={ttsEnabled}
+              hideModifiersInit={hideModifiersInit}
+              onBack={handleBackToMenu}
+            />
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

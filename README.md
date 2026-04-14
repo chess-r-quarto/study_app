@@ -21,10 +21,12 @@ Analytical tools, parsers, and data extraction utilities.
 * Thread Scraper (`tools/thread_scraper.html`)
 * Legal Compiler (`tools/legal_compiler.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
+* Vocal Remover (`vocal_remover_ui.html` and `app.py`)
 
 ### 📊 Data Science & Management
 Core data structuring and management principles.
 * Data Management (`data_management/data_management.html`)
+* News Feed (`news_feed/news_feed.html`)
 
 ### 🏛️ Financial Planning (FP1)
 Specialized financial planning calculators and tax matrices.
@@ -40,10 +42,18 @@ Specialized financial planning calculators and tax matrices.
 * FP1 Static (`fp1/static.html`)
 
 ### 🔤 Language
-Vocabulary drills and foundational knowledge.
+Vocabulary drills, grammar rules, and syntax parsing.
 * English Word (`english_word/dist/index.html`)
+* English Flashcard (`english_card/english_card.html`)
+* English Quiz (`english_card/english_quiz.html`)
+* Grammar Basic (`english_card/grammar.html`)
+* Grammar (High School) (`english_card/grammar_high_school.html`)
+* Grammar Structure (`english_card/grammar_structure.html`)
+* Syntax as Code (`english_card/syntax_as_code.html`)
+* Syntax Parser (`english_card/syntax_parser.html`)
 
 ## Deployment
 
-Zero-dependency architecture.
-Simply serve the root directory via any static file server (e.g., GitHub Pages, Vercel, or local `python -m http.server`). All TypeScript/React compilation is handled in-browser.
+Mostly zero-dependency architecture.
+* The frontend can be served via any static file server (e.g., GitHub Pages, Vercel, or local `python -m http.server`). All TypeScript/React compilation is handled in-browser.
+* **Note:** The `Vocal Remover` tool requires running the local Flask backend server (`python app.py`) with its dependencies to process audio separation.

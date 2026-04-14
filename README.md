@@ -36,6 +36,8 @@ Specialized financial planning calculators and tax matrices.
 * FP1 Asset Value (`fp1/fp1_asset_value.html`)
 * FP1 Sell Buy (`fp1/fp1_sell_buy.html`)
 * FP1 Inheritance (`fp1/fp1_souzoku.html`)
+* FP1 Analysis (`fp1/analysis.html`)
+* FP1 Static (`fp1/static.html`)
 
 ### 🔤 Language
 Vocabulary drills and foundational knowledge.

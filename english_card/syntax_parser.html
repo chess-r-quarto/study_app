@@ -362,6 +362,18 @@
         }
       }, [currentIndex, currentData, ttsEnabled, hideModifiersInit]);
 
+      const handleToggle = () => {
+        setHideM(!hideM);
+      };
+
+      const handleNext = () => {
+        setCurrentIndex(prev => (prev < dataList.length - 1 ? prev + 1 : 0));
+      };
+
+      const handlePrev = () => {
+        setCurrentIndex(prev => (prev > 0 ? prev - 1 : dataList.length - 1));
+      };
+
       useEffect(() => {
         const handleKeyDown = (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -371,24 +383,12 @@
           } else if (e.key === 'ArrowRight') {
             handleNext();
           } else if (e.key === 'ArrowLeft') {
-            onBack(); 
+            handlePrev(); 
           }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
       }, [currentIndex, dataList.length]);
-
-      const handleToggle = () => {
-        setHideM(!hideM);
-      };
-
-      const handleNext = () => {
-        if (currentIndex < dataList.length - 1) {
-          setCurrentIndex(currentIndex + 1);
-        } else {
-          setCurrentIndex(0);
-        }
-      };
 
       if (!currentData) return null;
 
@@ -410,12 +410,17 @@
             <button onClick={onBack} className="bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-4 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 border border-[#3c3934] transition-colors">
               MENU
             </button>
-            <div className="text-[#888888] font-mono text-sm">
-              {currentIndex + 1} <span className="mx-1 text-[#504c45]">/</span> {dataList.length}
+            <div className="flex items-center gap-3">
+              <button onClick={handlePrev} className="bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-5 py-2 rounded font-bold text-xs uppercase tracking-widest transition-colors border border-[#3c3934]">
+                PREV
+              </button>
+              <div className="text-[#888888] font-mono text-sm px-2 text-center min-w-[60px]">
+                {currentIndex + 1} <span className="mx-1 text-[#504c45]">/</span> {dataList.length}
+              </div>
+              <button onClick={handleNext} className="bg-[#3692e7] hover:bg-[#5fb0fc] text-white px-6 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-[0_3px_0_0_#1b5c97] active:translate-y-[3px] active:shadow-none">
+                NEXT
+              </button>
             </div>
-            <button onClick={handleNext} className="bg-[#3692e7] hover:bg-[#5fb0fc] text-white px-6 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-[0_3px_0_0_#1b5c97] active:translate-y-[3px] active:shadow-none">
-              NEXT
-            </button>
           </div>
 
           {/* Left-Aligned Vertical Block Viewer */}

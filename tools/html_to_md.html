@@ -3,40 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML to Markdown</title>
-
+  <title>HTML to MD & PDF Converter</title>
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            lichess: {
-              bg: '#161512',
-              panel: '#262421',
-              input: '#3c3934',
-              text: '#bababa',
-              textHover: '#ffffff',
-              green: '#629924',
-              greenHover: '#71b329',
-              border: '#403d39'
-            }
-          },
-          fontFamily: {
-            sans: ['Noto Sans', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
-          }
-        }
-      }
-    }
-  </script>
-
+  
   <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-  <!-- Babel -->
+  
+  <!-- Babel Standalone -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- External Libraries for Conversion -->
+  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <script>
     Babel.registerPreset('tsx', {
       presets: [
@@ -46,175 +29,440 @@
     });
   </script>
 
-  <!-- Readability.js & Turndown.js -->
-  <script src="https://unpkg.com/@mozilla/readability/Readability.js"></script>
-  <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
-
   <style>
-    body { background-color: #161512; color: #bababa; }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: #161512; }
-    ::-webkit-scrollbar-thumb { background: #403d39; border-radius: 5px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    /* Lichess Colors & Specifics */
+    :root {
+      --bg-dark: #161512;
+      --bg-panel: #262421;
+      --bg-accent: #3692e7;
+      --text-main: #bababa;
+      --text-bright: #ffffff;
+      --board-tan: #d5a05f;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    .lichess-card {
+      background-color: var(--bg-panel);
+      box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+    }
+
+    .drop-zone {
+      border: 2px dashed #403d39;
+      background-color: #1c1b18;
+      transition: all 0.2s ease;
+    }
+
+    .drop-zone.active {
+      border-color: var(--bg-accent);
+      background-color: rgba(54, 146, 231, 0.05);
+    }
+
+    .log-panel {
+      background: #1c1b18;
+      border-left: 3px solid #36332e;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #36332e;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #45423d;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
   </style>
 </head>
-<body class="min-h-screen font-sans antialiased flex justify-center p-4 md:p-8">
-
-  <div id="root" class="w-full max-w-4xl"></div>
+<body class="font-sans antialiased">
+  <div id="root"></div>
 
   <script type="text/babel" data-presets="tsx">
-    const { useState } = React;
+    const { useState, useEffect, useRef } = React;
 
-    function App() {
-      const [url, setUrl] = useState<string>('');
-      const [markdown, setMarkdown] = useState<string>('');
-      const [isLoading, setIsLoading] = useState<boolean>(false);
-      const [error, setError] = useState<string | null>(null);
+    /** Utility: Read file as text */
+    const readFileAsText = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    };
 
-      const processUrl = async () => {
-        if (!url.trim()) {
-          setError('Please enter a valid URL.');
+    /** Utility: Read file as DataURL */
+    const readFileAsDataURL = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
+    /** Utility: Get Image Dimensions */
+    const getImageDimensions = (dataURL: string): Promise<{width: number, height: number}> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.onerror = reject;
+        img.src = dataURL;
+      });
+    };
+
+    /** Utility: Fetch External Image as Base64 (requires CORS) */
+    const fetchImageAsBase64 = async (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            try {
+              resolve(canvas.toDataURL('image/jpeg'));
+            } catch (e) {
+              reject(new Error('CORS restriction'));
+            }
+          } else {
+            reject(new Error('Canvas context failed'));
+          }
+        };
+        img.onerror = () => reject(new Error('Load error'));
+        img.src = url;
+      });
+    };
+
+    /** Utility: Decode Quoted-Printable */
+    const decodeQuotedPrintableUTF8 = (str: string): string => {
+      str = str.replace(/=\r?\n/g, '');
+      const bytes: number[] = [];
+      for (let i = 0; i < str.length; i++) {
+        if (str[i] === '=' && i + 2 < str.length) {
+          const hex = str.substring(i + 1, i + 3);
+          if (/^[0-9a-fA-F]{2}$/.test(hex)) {
+            bytes.push(parseInt(hex, 16));
+            i += 2;
+          } else {
+            bytes.push(str.charCodeAt(i));
+          }
+        } else {
+          bytes.push(str.charCodeAt(i));
+        }
+      }
+      return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+    };
+
+    /** Parser: MHTML */
+    const parseMHTML = (mhtmlText: string): { html: string, images: Record<string, string> } | null => {
+      const boundaryMatch = mhtmlText.match(/boundary="?([^"\s;]+)"?/i);
+      if (!boundaryMatch) return null;
+      const boundary = boundaryMatch[1];
+      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedBoundary = escapeRegExp(boundary);
+      const parts = mhtmlText.split(new RegExp(`--${escapedBoundary}(?:--)?\r?\n?`));
+      
+      let html = '';
+      const images: Record<string, string> = {};
+      
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const splitIndex = part.indexOf('\r\n\r\n');
+        if (splitIndex === -1) continue;
+        
+        const headersRaw = part.substring(0, splitIndex);
+        const bodyRaw = part.substring(splitIndex + 4);
+        
+        const headers: Record<string, string> = {};
+        headersRaw.split('\r\n').forEach(line => {
+          const colIdx = line.indexOf(':');
+          if (colIdx !== -1) {
+            headers[line.substring(0, colIdx).trim().toLowerCase()] = line.substring(colIdx + 1).trim();
+          }
+        });
+        
+        const contentTypeInfo = headers['content-type'] || '';
+        const contentType = contentTypeInfo.split(';')[0].trim().toLowerCase();
+        const encoding = (headers['content-transfer-encoding'] || '').toLowerCase();
+        const location = headers['content-location'] || (headers['content-id'] || '').replace(/[<>]/g, '');
+        
+        if (contentType === 'text/html') {
+          let decodedHtml = bodyRaw;
+          if (encoding === 'quoted-printable') {
+            decodedHtml = decodeQuotedPrintableUTF8(bodyRaw);
+          } else if (encoding === 'base64') {
+            const binStr = atob(bodyRaw.replace(/\s/g, ''));
+            const bytes = new Uint8Array(binStr.length);
+            for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+            decodedHtml = new TextDecoder('utf-8').decode(bytes);
+          }
+          if (!html) html = decodedHtml; 
+        } else if (contentType.startsWith('image/')) {
+          if (encoding === 'base64' && location) {
+            images[location] = `data:${contentType};base64,${bodyRaw.replace(/\s/g, '')}`;
+          }
+        }
+      }
+      return { html, images };
+    };
+
+    const App = () => {
+      const [isDragging, setIsDragging] = useState(false);
+      const [isProcessing, setIsProcessing] = useState(false);
+      const [logs, setLogs] = useState<string[]>([]);
+      const [downloadInfo, setDownloadInfo] = useState<{url: string, name: string} | null>(null);
+      const logEndRef = useRef<HTMLDivElement>(null);
+
+      useEffect(() => {
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, [logs]);
+
+      const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
+
+      const processFiles = async (files: File[]) => {
+        const targetFile = files.find(f => {
+          const n = f.name.toLowerCase();
+          return n.endsWith('.html') || n.endsWith('.htm') || n.endsWith('.mhtml') || n.endsWith('.mht');
+        });
+        const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+        if (!targetFile) {
+          addLog("❌ Error: No valid HTML/MHTML file found.");
           return;
         }
 
-        setIsLoading(true);
-        setError(null);
+        setIsProcessing(true);
+        setLogs([`ANALYSIS: Preparing file "${targetFile.name}"...`]);
+        setDownloadInfo(null);
 
         try {
-          // Use proxy to bypass CORS
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-          const response = await fetch(proxyUrl);
-          
-          if (!response.ok) {
-            throw new Error('Network error occurred.');
+          let htmlText = "";
+          let mhtmlImages: Record<string, string> = {};
+          const isMhtml = targetFile.name.toLowerCase().endsWith('.mhtml') || targetFile.name.toLowerCase().endsWith('.mht');
+
+          if (isMhtml) {
+            addLog("MHTML: Unpacking resources...");
+            const rawText = await readFileAsText(targetFile);
+            const parsed = parseMHTML(rawText);
+            if (!parsed || !parsed.html) throw new Error("Invalid MHTML structure.");
+            htmlText = parsed.html;
+            mhtmlImages = parsed.images;
+            addLog(`MHTML: ${Object.keys(mhtmlImages).length} internal images found.`);
+          } else {
+            addLog("HTML: Loading document content...");
+            htmlText = await readFileAsText(targetFile);
           }
 
-          const data = await response.json();
-          const htmlString = data.contents;
-
-          if (!htmlString) {
-            throw new Error('Failed to retrieve content.');
-          }
-
-          // Parse HTML
           const parser = new DOMParser();
-          const doc = parser.parseFromString(htmlString, 'text/html');
+          const doc = parser.parseFromString(htmlText, 'text/html');
 
-          // Extract main content using Readability
-          const reader = new Readability(doc);
-          const article = reader.parse();
-
-          const contentToConvert = article ? article.content : doc.body.innerHTML;
-          const title = article ? article.title : doc.title;
-
-          // Convert to Markdown
-          const turndownService = new TurndownService({
-            headingStyle: 'atx',
-            codeBlockStyle: 'fenced'
-          });
-
-          // Remove images and unwanted tags
-          turndownService.remove(['img', 'script', 'style', 'noscript', 'iframe', 'nav', 'footer']);
-
-          let md = turndownService.turndown(contentToConvert);
+          addLog("EXTRACTION: Parsing image nodes...");
+          const imgTags = Array.from(doc.querySelectorAll('img, image'));
+          const imageMapping: { id: number, data: string }[] = [];
           
-          // Prepend title
-          if (title) {
-            md = `# ${title}\n\n${md}`;
+          for (const img of imgTags) {
+            const src = img.getAttribute('src') || img.getAttribute('href') || img.getAttribute('xlink:href');
+            if (!src) continue;
+
+            let base64Data: string | null = null;
+            const fileName = src.split('/').pop()?.split('?')[0];
+
+            if (src.startsWith('data:image')) {
+              base64Data = src;
+            } else if (isMhtml) {
+              const cleanSrc = src.replace(/^cid:/i, '');
+              base64Data = mhtmlImages[cleanSrc] || Object.values(mhtmlImages).find((_, i) => Object.keys(mhtmlImages)[i].endsWith(cleanSrc)) || null;
+            } else if (fileName) {
+              const matchedLocal = imageFiles.find(f => f.name === fileName);
+              if (matchedLocal) base64Data = await readFileAsDataURL(matchedLocal);
+            }
+
+            if (base64Data) {
+              const id = imageMapping.length + 1;
+              imageMapping.push({ id, data: base64Data });
+              const placeholder = doc.createElement('span');
+              placeholder.style.cssText = "color: #3692e7; font-weight: bold;";
+              placeholder.textContent = `[* See Image ${id} *]`;
+              img.parentNode?.replaceChild(placeholder, img);
+            }
+          }
+          addLog(`EXTRACTION: ${imageMapping.length} image(s) processed.`);
+
+          addLog("CONVERSION: Generating Markdown...");
+          // @ts-ignore
+          const turndown = new TurndownService({ headingStyle: 'atx' });
+          let markdown = turndown.turndown(doc.body).replace(/\n{3,}/g, '\n\n').trim();
+
+          let pdfBlob: Blob | null = null;
+          if (imageMapping.length > 0) {
+            addLog("PDF: Building image volume with bookmarks...");
+            // @ts-ignore
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.deletePage(1);
+
+            for (let i = 0; i < imageMapping.length; i++) {
+              const img = imageMapping[i];
+              try {
+                const dim = await getImageDimensions(img.data);
+                pdf.addPage([dim.width, dim.height], dim.width > dim.height ? 'l' : 'p');
+                pdf.addImage(img.data, 0, 0, dim.width, dim.height);
+                if (pdf.outline) pdf.outline.add(null, `Image ${img.id}`, { pageNumber: i + 1 });
+              } catch (e) {
+                addLog(`⚠️ PDF error on image ${img.id}`);
+              }
+            }
+            pdfBlob = pdf.output('blob');
           }
 
-          setMarkdown(md);
-        } catch (err: any) {
-          setError(err.message || 'Failed to fetch or convert the page.');
+          addLog("ARCHIVE: Creating ZIP package...");
+          // @ts-ignore
+          const zip = new JSZip();
+          const baseTitle = targetFile.name.replace(/\.[^/.]+$/, "");
+          zip.file(`${baseTitle}.md`, markdown);
+          if (pdfBlob) zip.file(`${baseTitle}_images.pdf`, pdfBlob);
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          setDownloadInfo({ url: URL.createObjectURL(zipBlob), name: `${baseTitle}_bundle.zip` });
+          addLog("COMPLETED: Assets ready for download.");
+
+        } catch (error) {
+          addLog(`❌ Error: ${(error as Error).message}`);
         } finally {
-          setIsLoading(false);
+          setIsProcessing(false);
         }
-      };
-
-      const handleDownload = () => {
-        if (!markdown) return;
-        
-        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-        const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        let fileName = 'document.md';
-        try {
-          const urlObj = new URL(url);
-          const path = urlObj.pathname.split('/').filter(Boolean).pop();
-          if (path) fileName = `${path}.md`;
-        } catch (e) {
-          // Fallback to default filename
-        }
-
-        a.href = downloadUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(downloadUrl);
       };
 
       return (
-        <div className="flex flex-col gap-6">
-          <header className="mb-4">
-            <h1 className="text-3xl font-bold text-lichess-textHover flex items-center gap-3">
-              <svg className="w-8 h-8 text-lichess-text" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-              Web to Markdown
-            </h1>
-            <p className="text-sm mt-2">Extract the main content of a specified URL and convert it into clean, image-free Markdown.</p>
+        <div className="min-h-screen flex flex-col p-4 md:p-8">
+          {/* Lichess Header */}
+          <header className="flex items-center mb-10 border-b border-[#403d39] pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#3692e7] rounded-md flex items-center justify-center text-white font-bold text-2xl">
+                C
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white leading-none">Converter</h1>
+                <span className="text-xs uppercase tracking-widest text-[#6b6b6b]">HTML / MHTML / MD / PDF</span>
+              </div>
+            </div>
+            <nav className="ml-auto flex gap-6 text-sm font-semibold uppercase tracking-wider text-[#bababa]">
+              <span className="hover:text-white cursor-pointer transition-colors">Analyzer</span>
+              <span className="hover:text-white cursor-pointer transition-colors hidden sm:inline">Settings</span>
+            </nav>
           </header>
 
-          <main className="bg-lichess-panel rounded shadow-lg border border-lichess-border p-6">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input 
-                type="url" 
-                placeholder="https://example.com/article" 
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && processUrl()}
-                className="flex-1 bg-lichess-input text-lichess-textHover px-4 py-3 rounded outline-none focus:ring-2 focus:ring-lichess-border transition-shadow placeholder-lichess-text/50"
-              />
-              <button 
-                onClick={processUrl}
-                disabled={isLoading}
-                className="bg-lichess-green hover:bg-lichess-greenHover text-white font-bold px-6 py-3 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
+          <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Main Interactive Area */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              <div 
+                className={`lichess-card rounded-md overflow-hidden p-1 transition-all
+                  ${isDragging ? 'ring-2 ring-[#3692e7]' : ''}
+                `}
               >
-                {isLoading ? 'Processing...' : 'Extract'}
-              </button>
+                <div 
+                  className={`drop-zone rounded p-16 flex flex-col items-center justify-center text-center cursor-pointer
+                    ${isDragging ? 'active' : ''}
+                    ${isProcessing ? 'opacity-40 pointer-events-none' : ''}
+                  `}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); processFiles(Array.from(e.dataTransfer.files)); }}
+                  onClick={() => document.getElementById('fileInput')?.click()}
+                >
+                  <input 
+                    type="file" id="fileInput" multiple className="hidden" 
+                    onChange={(e) => e.target.files && processFiles(Array.from(e.target.files))} 
+                    accept=".html,.htm,.mhtml,.mht,image/*"
+                  />
+                  
+                  <div className="mb-6">
+                    <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b6b6b]">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 5v12"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Ready for Conversion</h2>
+                  <p className="text-[#bababa] max-w-md mx-auto leading-relaxed">
+                    Drop your <span className="text-white font-semibold">HTML</span> or <span className="text-white font-semibold">MHTML</span> files here. 
+                    Include image folders if converting standard HTML.
+                  </p>
+                </div>
+              </div>
+
+              <div className="lichess-card rounded-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                <div>
+                  <h3 className="text-[#d5a05f] font-bold uppercase tracking-wider mb-2">HTML Conversion</h3>
+                  <p className="leading-relaxed">Provide both the HTML and its associated files (e.g., folder with images) to ensure image extraction works offline.</p>
+                </div>
+                <div>
+                  <h3 className="text-[#d5a05f] font-bold uppercase tracking-wider mb-2">MHTML Conversion</h3>
+                  <p className="leading-relaxed">Drop a single <code className="bg-[#1c1b18] px-1 rounded text-white">.mhtml</code> file. All assets are packed inside, making it the most reliable format.</p>
+                </div>
+              </div>
             </div>
 
-            {error && (
-              <div className="mt-4 p-4 bg-red-900/30 border border-red-800 text-red-200 rounded text-sm">
-                {error}
-              </div>
-            )}
-
-            {markdown && (
-              <div className="mt-6 flex flex-col gap-3 animate-fade-in">
-                <div className="flex justify-between items-end">
-                  <label className="text-sm font-bold text-lichess-textHover uppercase tracking-wider">Preview (Editable)</label>
-                  <button 
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 text-lichess-textHover bg-lichess-input hover:bg-lichess-border px-4 py-2 rounded text-sm font-bold transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Download (.md)
-                  </button>
+            {/* Sidebar (Move List Style) */}
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="lichess-card rounded-md flex flex-col h-[500px]">
+                <div className="bg-[#1c1b18] px-4 py-3 border-b border-[#36332e] flex justify-between items-center">
+                  <span className="uppercase text-xs font-bold tracking-widest text-[#6b6b6b]">Analysis Console</span>
+                  {isProcessing && <div className="w-2 h-2 rounded-full bg-[#3692e7] animate-pulse"></div>}
                 </div>
-                
-                <textarea 
-                  value={markdown}
-                  onChange={(e) => setMarkdown(e.target.value)}
-                  className="w-full h-[500px] bg-lichess-input text-lichess-textHover p-4 rounded outline-none border border-lichess-border focus:border-lichess-text font-mono text-sm resize-y leading-relaxed"
-                  spellCheck="false"
-                ></textarea>
+                <div className="flex-grow p-4 font-mono text-xs overflow-y-auto space-y-2 log-panel">
+                  {logs.length === 0 && <div className="text-[#45423d] italic">Awaiting input...</div>}
+                  {logs.map((log, idx) => (
+                    <div key={idx} className={`animate-in ${log.startsWith('❌') ? 'text-red-400' : log.startsWith('✅') || log.startsWith('COMPLETED') ? 'text-green-400' : 'text-[#bababa]'}`}>
+                      <span className="text-[#45423d] mr-2">[{idx + 1}]</span>
+                      {log}
+                    </div>
+                  ))}
+                  <div ref={logEndRef} />
+                </div>
+
+                {downloadInfo && (
+                  <div className="p-4 bg-[#1c1b18] border-t border-[#36332e] animate-in">
+                    <a 
+                      href={downloadInfo.url} 
+                      download={downloadInfo.name}
+                      className="w-full bg-[#3692e7] hover:bg-[#4a9ff0] text-white font-bold py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 5v12"/>
+                      </svg>
+                      DOWNLOAD BUNDLE
+                    </a>
+                  </div>
+                )}
               </div>
-            )}
+
+              <footer className="text-[10px] uppercase tracking-[0.2em] text-[#45423d] text-center">
+                Powered by JSZip, jsPDF & Turndown
+              </footer>
+            </div>
+
           </main>
         </div>
       );
-    }
+    };
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);

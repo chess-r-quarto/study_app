@@ -68,62 +68,198 @@
     // ==========================================
     const DEFAULT_JSON = `[
       {
-        "id": "q016",
-        "title": "Q016 - SVO (Modifiers of Subject and Object)",
-        "sentence": "Executives at the two companies will form a joint venture to develop an electric vehicle battery.",
-        "translation": "その2社の幹部たちは、電気自動車のバッテリーを開発するための合弁会社を設立する予定だ。",
-        "tips": "主語「Executives」の後ろに「at the two companies」が付き、目的語「venture」には前に「a joint」、後ろに不定詞「to develop...」が付いています。S-V-Oの骨格が明確です。",
+        "id": "q001",
+        "title": "Q001 - Prepositional Phrase (前置詞句による後置修飾)",
+        "sentence": "The development of a new digital marketing strategy is on the agenda for this afternoon’s meeting.",
+        "translation": "新たなデジタルマーケティング戦略の立案が、今日の午後の会議の議題に上がっている。",
+        "tips": "主語の「development」を、前置詞句「of a new digital marketing strategy」が後ろから修飾しています。「on the agenda...」はbe動詞の直後に置かれ、M（副詞句）として述語動詞にぶら下げる形で処理しています。",
         "structure": [
-          { "type": "S", "text": "Executives", "pos": "Noun", "label": "Subject", "preM": [], "postM": [{"t": "at", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "two", "p": "Adj."}, {"t": "companies", "p": "Noun"}] },
-          { "type": "V", "text": "will form", "pos": "Aux. + Verb", "label": "Verb", "preM": [], "postM": [] },
-          { "type": "O", "text": "venture", "pos": "Noun", "label": "Object", "preM": [{"t": "a", "p": "Art."}, {"t": "joint", "p": "Adj."}], "postM": [{"t": "to", "p": "Inf. to"}, {"t": "develop", "p": "Inf. Verb"}, {"t": "an", "p": "Art."}, {"t": "electric", "p": "Adj."}, {"t": "vehicle", "p": "Noun"}, {"t": "battery.", "p": "Noun"}] }
+          {
+            "type": "S",
+            "text": "development",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "The", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "a", "p": "Art."}, {"t": "new", "p": "Adj."}, {"t": "digital", "p": "Adj."}, {"t": "marketing", "p": "Noun"}, {"t": "strategy", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "is",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": [
+              {"t": "on", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "agenda", "p": "Noun"}, {"t": "for", "p": "Prep."}, {"t": "this", "p": "Pron."}, {"t": "afternoon’s", "p": "Noun"}, {"t": "meeting.", "p": "Noun"}
+            ]
+          }
         ]
       },
       {
-        "id": "q017",
-        "title": "Q017 - Gerund Subject (動名詞の主語)",
-        "sentence": "Shortening the work week of our sales representatives will allow for a better work-life balance.",
-        "translation": "当社の営業担当者の労働週を短縮することは、より良いワークライフバランスを可能にするだろう。",
-        "tips": "主語のコアは動名詞の「Shortening」です。その動名詞の目的語「the work week of our sales representatives」が後ろから巨大な修飾語としてぶら下がっています。",
+        "id": "q002",
+        "title": "Q002 - Adverb Modification (副詞の修飾)",
+        "sentence": "The Berovo Institute regularly publishes the results of its research in renowned scientific journals.",
+        "translation": "Berovo研究所は、著名な科学誌で定期的に研究結果を公表している。",
+        "tips": "副詞「regularly」が述語動詞「publishes」を前置修飾しています。場所を表す「in renowned scientific journals」は述語動詞への後置修飾として格納しています。",
         "structure": [
-          { "type": "S", "text": "Shortening", "pos": "Gerund", "label": "Subject", "preM": [], "postM": [{"t": "the", "p": "Art."}, {"t": "work", "p": "Noun"}, {"t": "week", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "our", "p": "Pron."}, {"t": "sales", "p": "Noun"}, {"t": "representatives", "p": "Noun"}] },
-          { "type": "V", "text": "will allow for", "pos": "Phrasal Verb", "label": "Verb", "preM": [], "postM": [] },
-          { "type": "O", "text": "balance.", "pos": "Noun", "label": "Object", "preM": [{"t": "a", "p": "Art."}, {"t": "better", "p": "Adj."}, {"t": "work-life", "p": "Adj."}], "postM": [] }
+          {
+            "type": "S",
+            "text": "Institute",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "The", "p": "Art."}, {"t": "Berovo", "p": "Noun"}
+            ],
+            "postM": []
+          },
+          {
+            "type": "V",
+            "text": "publishes",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [
+              {"t": "regularly", "p": "Adv."}
+            ],
+            "postM": [
+              {"t": "in", "p": "Prep."}, {"t": "renowned", "p": "Adj."}, {"t": "scientific", "p": "Adj."}, {"t": "journals.", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "O",
+            "text": "results",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "the", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "its", "p": "Pron."}, {"t": "research", "p": "Noun"}
+            ]
+          }
         ]
       },
       {
-        "id": "q018",
-        "title": "Q018 - Relative Clause (関係代名詞 目的格)",
-        "sentence": "The marketing strategy that the team proposed yesterday was overwhelmingly approved by the board.",
-        "translation": "チームが昨日提案したマーケティング戦略は、取締役会によって圧倒的に承認された。",
-        "tips": "主語「strategy」の後ろに「that the team proposed yesterday」という関係代名詞節が入り込み、V「was approved」との距離が離れています。Vの直前の「overwhelmingly」は前からの修飾です。",
+        "id": "q003",
+        "title": "Q003 - Infinitive as Complement (補語としての不定詞)",
+        "sentence": "Full-scale development of the lightweight aircraft is set to begin in the spring of next year.",
+        "translation": "その軽量の航空機の全面的な開発は、来春始まりそうだ。",
+        "tips": "「is set to begin」は「is（V） + set（C）」として捉え、「to begin...」は補語「set」を修飾する要素として配置しています。",
         "structure": [
-          { "type": "S", "text": "strategy", "pos": "Noun", "label": "Subject", "preM": [{"t": "The", "p": "Art."}, {"t": "marketing", "p": "Noun"}], "postM": [{"t": "that", "p": "Rel.Pron."}, {"t": "the", "p": "Art."}, {"t": "team", "p": "Noun"}, {"t": "proposed", "p": "Verb"}, {"t": "yesterday", "p": "Adv."}] },
-          { "type": "V", "text": "was approved", "pos": "Aux. + Verb", "label": "Verb", "preM": [{"t": "overwhelmingly", "p": "Adv."}], "postM": [{"t": "by", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "board.", "p": "Noun"}] }
+          {
+            "type": "S",
+            "text": "development",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "Full-scale", "p": "Adj."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "lightweight", "p": "Adj."}, {"t": "aircraft", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "is",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": []
+          },
+          {
+            "type": "C",
+            "text": "set",
+            "pos": "Past Part.",
+            "label": "Complement",
+            "preM": [],
+            "postM": [
+              {"t": "to", "p": "Inf. to"}, {"t": "begin", "p": "Inf. Verb"}, {"t": "in", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "spring", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "next", "p": "Adj."}, {"t": "year.", "p": "Noun"}
+            ]
+          }
         ]
       },
       {
-        "id": "q019",
-        "title": "Q019 - Present Perfect (現在完了と副詞)",
-        "sentence": "Our highly motivated sales representatives have finally reached an agreement.",
-        "translation": "当社の非常に意欲的な営業担当者たちは、ついに合意に達した。",
-        "tips": "主語「representatives」の前に「Our highly motivated sales」という厚みのある前からの修飾がついています。V「have reached」の間に副詞「finally」が割り込んでいます。",
+        "id": "q004",
+        "title": "Q004 - Future Continuous Tense (未来進行形)",
+        "sentence": "A nutritionist from Shaffer University will be discussing her latest research on food additives.",
+        "translation": "Shaffer大学の栄養士が、食品添加物に関する彼女の最新の研究について話す予定だ。",
+        "tips": "「will be discussing」は「discussing」をメインのVとし、「will be」を助動詞的な前置修飾として格納しています。",
         "structure": [
-          { "type": "S", "text": "representatives", "pos": "Noun", "label": "Subject", "preM": [{"t": "Our", "p": "Pron."}, {"t": "highly", "p": "Adv."}, {"t": "motivated", "p": "Past Part."}, {"t": "sales", "p": "Noun"}], "postM": [] },
-          { "type": "V", "text": "have reached", "pos": "Aux. + Verb", "label": "Verb", "preM": [{"t": "finally", "p": "Adv."}], "postM": [] },
-          { "type": "O", "text": "agreement.", "pos": "Noun", "label": "Object", "preM": [{"t": "an", "p": "Art."}], "postM": [] }
+          {
+            "type": "S",
+            "text": "nutritionist",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "A", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "from", "p": "Prep."}, {"t": "Shaffer", "p": "Noun"}, {"t": "University", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "discussing",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [
+              {"t": "will", "p": "Verb"}, {"t": "be", "p": "Verb"}
+            ],
+            "postM": []
+          },
+          {
+            "type": "O",
+            "text": "research",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "her", "p": "Pron."}, {"t": "latest", "p": "Adj."}
+            ],
+            "postM": [
+              {"t": "on", "p": "Prep."}, {"t": "food", "p": "Noun"}, {"t": "additives.", "p": "Noun"}
+            ]
+          }
         ]
       },
       {
-        "id": "q020",
-        "title": "Q020 - Participle Clause (分詞構文の前置き)",
-        "sentence": "Realizing the potential of the new market, the CEO decided to open a branch in Tokyo.",
-        "translation": "新市場の可能性を認識し、CEOは東京に支店を開設することを決定した。",
-        "tips": "文頭の「Realizing...」は分詞構文で、主語「CEO」に対する前からの修飾語として機能しています。コンマの後ろにある主幹「the CEO decided to open...」を素早く見つけることがポイントです。",
+        "id": "q005",
+        "title": "Q005 - Phrase Modification (句による修飾)",
+        "sentence": "Ms. Hopkins shared her observations regarding the company’s overseas operations with the other executive committee members.",
+        "translation": "Hopkinsさんは、会社の海外業務に関する自らの気づきを他の執行役員たちと共有した。",
+        "tips": "前置詞「regarding」以下の句は目的語「observations」を修飾し、「with」以下の句は「shared（誰と共有したか）」を修飾するため述語動詞にぶら下げています。",
         "structure": [
-          { "type": "S", "text": "CEO", "pos": "Noun", "label": "Subject", "preM": [{"t": "Realizing", "p": "Pres. Part."}, {"t": "the", "p": "Art."}, {"t": "potential", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "new", "p": "Adj."}, {"t": "market,", "p": "Noun"}, {"t": "the", "p": "Art."}], "postM": [] },
-          { "type": "V", "text": "decided", "pos": "Verb", "label": "Verb", "preM": [], "postM": [] },
-          { "type": "O", "text": "to open", "pos": "Infinitive", "label": "Object", "preM": [], "postM": [{"t": "a", "p": "Art."}, {"t": "branch", "p": "Noun"}, {"t": "in", "p": "Prep."}, {"t": "Tokyo.", "p": "Proper Noun"}] }
+          {
+            "type": "S",
+            "text": "Ms. Hopkins",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [],
+            "postM": []
+          },
+          {
+            "type": "V",
+            "text": "shared",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": [
+              {"t": "with", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "other", "p": "Adj."}, {"t": "executive", "p": "Noun"}, {"t": "committee", "p": "Noun"}, {"t": "members.", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "O",
+            "text": "observations",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "her", "p": "Pron."}
+            ],
+            "postM": [
+              {"t": "regarding", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "company’s", "p": "Noun"}, {"t": "overseas", "p": "Adj."}, {"t": "operations", "p": "Noun"}
+            ]
+          }
         ]
       }
     ]`;

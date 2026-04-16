@@ -22,7 +22,6 @@ Analytical tools, parsers, and data extraction utilities.
 * Thread Scraper (`tools/thread_scraper.html`)
 * Legal Compiler (`tools/legal_compiler.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
-* Vocal Remover (`vocal_remover_ui.html` and `app.py`)
 
 ### 📊 Data Science & Management
 Core data structuring and management principles.
@@ -58,4 +57,3 @@ Vocabulary drills, grammar rules, and syntax parsing.
 
 Mostly zero-dependency architecture.
 * The frontend can be served via any static file server (e.g., GitHub Pages, Vercel, or local `python -m http.server`). All TypeScript/React compilation is handled in-browser.
-* **Note:** The `Vocal Remover` tool requires running the local Flask backend server (`python app.py`) with its dependencies to process audio separation.

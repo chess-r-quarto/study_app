@@ -17,6 +17,7 @@ A minimalist, lichess like dark-themed gateway for accessing specialized study m
 Analytical tools, parsers, and data extraction utilities.
 * HTML to MD (`tools/html_to_md.html`)
 * JSON Downloader (`tools/json_downloader.html`)
+* JSON Merger (`tools/json_marger.html`)
 * PDF to MD (`tools/pdf_to_md.html`)
 * Thread Scraper (`tools/thread_scraper.html`)
 * Legal Compiler (`tools/legal_compiler.html`)
@@ -51,6 +52,7 @@ Vocabulary drills, grammar rules, and syntax parsing.
 * Grammar Structure (`english_card/grammar_structure.html`)
 * Syntax as Code (`english_card/syntax_as_code.html`)
 * Syntax Parser (`english_card/syntax_parser.html`)
+* No M Sentence (`english_card/no_m_sentence.html`)
 
 ## Deployment
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>高校英文法 構造と品詞の完全マッピング</title>
+  <title>高校英文法 例文・英訳付き完全マッピング</title>
   <style>
     /* Kindle等の電子書籍リーダー向け最適化スタイル */
     body {
@@ -35,12 +35,6 @@
       padding-left: 0.5em;
       border-left: 4px solid #666;
     }
-    h4 {
-      font-size: 1.05em;
-      margin-top: 1.5em;
-      margin-bottom: 0.5em;
-      font-weight: bold;
-    }
     p {
       margin-bottom: 1em;
     }
@@ -50,7 +44,7 @@
       padding-left: 1.5em;
     }
     li {
-      margin-bottom: 0.6em;
+      margin-bottom: 1.2em;
     }
     .rule-box {
       border: 1px dashed #666;
@@ -69,12 +63,27 @@
       margin-top: 0.2em;
       display: block;
     }
+    /* 例文用のスタイル */
+    .example {
+      margin-top: 0.4em;
+      padding-left: 1em;
+      border-left: 2px solid #ccc;
+      font-size: 0.95em;
+      color: #222;
+    }
+    .example-line {
+      margin-bottom: 0.3em;
+    }
+    /* 強調部分（該当する品詞・句・節） */
+    .highlight {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
 
-  <h1>高校英文法<br>構造と品詞の完全マッピング</h1>
-  <p>本書は、英語の5文型（SVOCM）の各ポジションに、どの品詞・句・節が入るのかを縦割りで整理したものです。高校で学ぶ約150の文法用語と、その英語名（英訳）をすべて網羅しています。</p>
+  <h1>高校英文法<br>例文・英訳付き完全マッピング</h1>
+  <p>本書は、英語の5文型（SVOCM）の各ポジションに、どの品詞・句・節が入るのかを整理したものです。約150の文法用語とその英訳、該当箇所を太字にした例文を収録しています。</p>
 
   <!-- ========================================== -->
   <!-- S: 主語 -->
@@ -90,19 +99,36 @@
   <ul>
     <li><strong>名詞全般 <span class="en">Nouns in General</span></strong><br>
       可算名詞 <span class="en">(Countable Noun)</span> / 不可算名詞 <span class="en">(Uncountable Noun)</span>、固有名詞 <span class="en">(Proper Noun)</span> / 抽象名詞 <span class="en">(Abstract Noun)</span>、人称代名詞 主格 <span class="en">(Personal Pronoun: Subjective Case)</span>、指示代名詞 <span class="en">(Demonstrative Pronoun: this/that)</span>、不定代名詞 <span class="en">(Indefinite Pronoun: one/some/any)</span>
+      <div class="example">
+        <div class="example-line">・<strong>Dogs</strong> are friendly animals. (可算名詞)</div>
+        <div class="example-line">・<strong>Water</strong> boils at 100 degrees. (不可算名詞)</div>
+        <div class="example-line">・<strong>She</strong> is a doctor. (人称代名詞 主格)</div>
+      </div>
     </li>
     <li><strong>特殊な主語 <span class="en">Special Subjects</span></strong><br>
       無生物主語 <span class="en">(Inanimate Subject)</span>、形式主語 <span class="en">(Formal Subject: it)</span>、状況の it <span class="en">(Impersonal "it")</span>
+      <div class="example">
+        <div class="example-line">・<strong>The news</strong> made her happy. (無生物主語)</div>
+        <div class="example-line">・<strong>It</strong> is raining heavily. (状況の it)</div>
+      </div>
     </li>
     <li><strong>例外的な名詞化 <span class="en">Nominalized Adjective</span></strong><br>
       the + 形容詞 <span class="en">(the + Adjective)</span> ※「〜な人々」の意味になる
+      <div class="example">
+        <div class="example-line">・<strong>The rich</strong> are not always happy. (the + 形容詞)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[句レベル] 名詞句 <span class="en">Noun Phrase</span></h3>
   <ul>
     <li><strong>準動詞 <span class="en">Verbal</span></strong><br>
-      不定詞 名詞的用法 <span class="en">(Infinitive: Noun Use)</span>、動名詞 <span class="en">(Gerund)</span>、意味上の主語 <span class="en">(Logical Subject: for A to V / A's V-ing)</span>
+      不定詞 名詞的用法 <span class="en">(Infinitive: Noun Use, To V)</span>、動名詞 <span class="en">(Gerund, V-ing)</span>、意味上の主語 <span class="en">(Logical Subject)</span>
+      <div class="example">
+        <div class="example-line">・<strong>To master English</strong> is difficult. (不定詞)</div>
+        <div class="example-line">・<strong>Reading books</strong> is my hobby. (動名詞)</div>
+        <div class="example-line">・<strong>For him to pass the exam</strong> is easy. (意味上の主語を伴う不定詞)</div>
+      </div>
     </li>
   </ul>
 
@@ -110,9 +136,18 @@
   <ul>
     <li><strong>接続詞・疑問詞が導く節 <span class="en">Clause led by Conjunction / Interrogative</span></strong><br>
       that 節 <span class="en">(that-clause)</span>、if / whether 節 <span class="en">(if/whether-clause)</span>、間接疑問文 <span class="en">(Indirect Question)</span>
+      <div class="example">
+        <div class="example-line">・<strong>That he is honest</strong> is known to everyone. (that節)</div>
+        <div class="example-line">・<strong>Whether she will come or not</strong> is uncertain. (whether節)</div>
+        <div class="example-line">・<strong>Where he lives</strong> is a mystery. (間接疑問文)</div>
+      </div>
     </li>
     <li><strong>関係詞が導く節 <span class="en">Relative Clause</span></strong><br>
       先行詞を含む関係代名詞 <span class="en">(Relative Pronoun with Antecedent: what)</span>、複合関係代名詞 <span class="en">(Compound Relative Pronoun: whoever/whatever)</span>
+      <div class="example">
+        <div class="example-line">・<strong>What he said</strong> is true. (関係代名詞 what)</div>
+        <div class="example-line">・<strong>Whoever comes first</strong> will get the ticket. (複合関係代名詞)</div>
+      </div>
     </li>
   </ul>
 
@@ -124,26 +159,47 @@
   
   <div class="rule-box">
     <p><strong>【役割】</strong> 文の結論「〜する/である」<br>
-    <strong>【絶対ルール】</strong> 動詞のみが入る。準動詞（不定詞・動名詞・分詞）は単独では絶対に入れない。<br>
-    <span class="note">※英文法ルールの半分以上は、このVの形をどう変化させるかに費やされます。</span></p>
+    <strong>【絶対ルール】</strong> 動詞のみが入る。準動詞（不定詞・動名詞・分詞）は単独では絶対に入れない。</p>
   </div>
 
   <h3>[単語レベル] 動詞 <span class="en">Verb</span></h3>
   <ul>
     <li><strong>動詞の種類 <span class="en">Types of Verbs</span></strong><br>
-      be動詞 <span class="en">(be-verb)</span> / 一般動詞 <span class="en">(General Verb)</span>、自動詞 <span class="en">(Intransitive Verb: vi)</span> / 他動詞 <span class="en">(Transitive Verb: vt)</span>、状態動詞 <span class="en">(Stative Verb)</span>、動作動詞 <span class="en">(Action Verb)</span>、使役動詞 <span class="en">(Causative Verb)</span>、知覚動詞 <span class="en">(Verb of Perception)</span>、授与動詞 <span class="en">(Dative Verb)</span>、群動詞 / 句動詞 <span class="en">(Phrasal Verb)</span>
+      自動詞 <span class="en">(Intransitive Verb: vi)</span> / 他動詞 <span class="en">(Transitive Verb: vt)</span>、状態動詞 <span class="en">(Stative Verb)</span> / 動作動詞 <span class="en">(Action Verb)</span>、使役動詞 <span class="en">(Causative Verb)</span>、知覚動詞 <span class="en">(Verb of Perception)</span>、群動詞 / 句動詞 <span class="en">(Phrasal Verb)</span>
+      <div class="example">
+        <div class="example-line">・He <strong>runs</strong> fast. (自動詞 動作動詞)</div>
+        <div class="example-line">・She <strong>knows</strong> the answer. (他動詞 状態動詞)</div>
+        <div class="example-line">・He <strong>looks at</strong> the picture. (群動詞)</div>
+      </div>
     </li>
     <li><strong>時制 <span class="en">Tense</span></strong><br>
       現在形 <span class="en">(Present Tense)</span> / 過去形 <span class="en">(Past Tense)</span> / 未来形 <span class="en">(Future Tense)</span>、進行形 <span class="en">(Progressive Form)</span>、完了形 <span class="en">(Perfect Form)</span>、完了進行形 <span class="en">(Perfect Progressive Form)</span>
+      <div class="example">
+        <div class="example-line">・I <strong>am studying</strong> English now. (現在進行形)</div>
+        <div class="example-line">・She <strong>has lived</strong> here for ten years. (現在完了形)</div>
+      </div>
     </li>
     <li><strong>態 <span class="en">Voice</span></strong><br>
-      能動態 <span class="en">(Active Voice)</span>、受動態 <span class="en">(Passive Voice)</span>、群動詞の受動態、by 以外の前置詞をとる受動態
+      能動態 <span class="en">(Active Voice)</span>、受動態 <span class="en">(Passive Voice)</span>、群動詞の受動態
+      <div class="example">
+        <div class="example-line">・The window <strong>was broken</strong> by Tom. (受動態)</div>
+        <div class="example-line">・He <strong>was laughed at</strong> by everyone. (群動詞の受動態)</div>
+      </div>
     </li>
     <li><strong>法 <span class="en">Mood</span></strong><br>
-      直説法 <span class="en">(Indicative Mood)</span>、命令法 <span class="en">(Imperative Mood)</span>、仮定法過去 <span class="en">(Subjunctive Past)</span> / 過去完了 <span class="en">(Subjunctive Past Perfect)</span>、仮定法未来 <span class="en">(Subjunctive Future)</span>、混合仮定法 <span class="en">(Mixed Subjunctive)</span>、ifの省略 <span class="en">(Omission)</span> と 倒置 <span class="en">(Inversion)</span>
+      直説法 <span class="en">(Indicative Mood)</span>、命令法 <span class="en">(Imperative Mood)</span>、仮定法過去 <span class="en">(Subjunctive Past)</span> / 過去完了 <span class="en">(Subjunctive Past Perfect)</span>、ifの省略 <span class="en">(Omission)</span> と 倒置 <span class="en">(Inversion)</span>
+      <div class="example">
+        <div class="example-line">・<strong>Be</strong> quiet! (命令法)</div>
+        <div class="example-line">・If I <strong>were</strong> a bird, I <strong>would fly</strong> to you. (仮定法過去)</div>
+        <div class="example-line">・<strong>Had</strong> I <strong>known</strong> the truth, I <strong>would have told</strong> you. (ifの省略と倒置)</div>
+      </div>
     </li>
     <li><strong>助動詞 <span class="en">Auxiliary Verb</span></strong><br>
-      法助動詞 <span class="en">(Modal Auxiliary)</span>、used to / ought to、need / dare、助動詞 + have + 過去分詞 <span class="en">(Past Participle)</span>
+      法助動詞 <span class="en">(Modal Auxiliary)</span>、used to / ought to、助動詞 + have + 過去分詞 <span class="en">(Past Participle)</span>
+      <div class="example">
+        <div class="example-line">・You <strong>must</strong> do it. (法助動詞)</div>
+        <div class="example-line">・He <strong>may have missed</strong> the train. (助動詞+have+過去分詞: 過去の推量)</div>
+      </div>
     </li>
   </ul>
 
@@ -162,24 +218,42 @@
   <ul>
     <li><strong>名詞全般 <span class="en">Nouns in General</span></strong><br>
       名詞全般 <span class="en">(Noun)</span>、人称代名詞 目的格 <span class="en">(Personal Pronoun: Objective Case)</span>
+      <div class="example">
+        <div class="example-line">・I like <strong>apples</strong>. (名詞)</div>
+        <div class="example-line">・She helped <strong>him</strong> yesterday. (人称代名詞 目的格)</div>
+      </div>
     </li>
     <li><strong>特殊な目的語 <span class="en">Special Objects</span></strong><br>
       形式目的語 <span class="en">(Formal Object: it)</span>、再帰代名詞 <span class="en">(Reflexive Pronoun: -self)</span>、同族目的語 <span class="en">(Cognate Object)</span>
+      <div class="example">
+        <div class="example-line">・I found <strong>it</strong> difficult to read the book. (形式目的語)</div>
+        <div class="example-line">・He introduced <strong>himself</strong> to the class. (再帰代名詞)</div>
+        <div class="example-line">・She lived <strong>a happy life</strong>. (同族目的語)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[句レベル] 名詞句 <span class="en">Noun Phrase</span></h3>
   <ul>
     <li><strong>準動詞 <span class="en">Verbal</span></strong><br>
-      不定詞 名詞的用法 <span class="en">(Infinitive: Noun Use)</span>、動名詞 <span class="en">(Gerund)</span>、疑問詞 + to V <span class="en">(Interrogative + Infinitive)</span><br>
-      <span class="note">※メガフェプス(megafeps)等、動詞によって後ろが to V か V-ing か厳格に決まる。</span>
+      不定詞 名詞的用法 <span class="en">(Infinitive: Noun Use)</span>、動名詞 <span class="en">(Gerund)</span>、疑問詞 + to V <span class="en">(Interrogative + Infinitive)</span>
+      <div class="example">
+        <div class="example-line">・I want <strong>to go there</strong>. (不定詞 名詞的用法)</div>
+        <div class="example-line">・She enjoys <strong>playing tennis</strong>. (動名詞)</div>
+        <div class="example-line">・I don't know <strong>what to do</strong>. (疑問詞 + to V)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[節レベル] 名詞節 <span class="en">Noun Clause</span></h3>
   <ul>
     <li><strong>節の種類 <span class="en">Types of Clauses</span></strong><br>
-      that 節 <span class="en">(that-clause)</span>、if / whether 節 <span class="en">(if/whether-clause)</span>、間接疑問文 <span class="en">(Indirect Question)</span>、関係代名詞 what 節 <span class="en">(what-clause)</span>、複合関係代名詞節 <span class="en">(Compound Relative Pronoun Clause)</span>
+      that 節 <span class="en">(that-clause)</span>、if / whether 節 <span class="en">(if/whether-clause)</span>、間接疑問文 <span class="en">(Indirect Question)</span>、関係代名詞 what 節 <span class="en">(what-clause)</span>
+      <div class="example">
+        <div class="example-line">・I know <strong>that he is busy</strong>. (that節)</div>
+        <div class="example-line">・Tell me <strong>where he lives</strong>. (間接疑問文)</div>
+        <div class="example-line">・I can't believe <strong>what he said</strong>. (関係代名詞 what節)</div>
+      </div>
     </li>
   </ul>
 
@@ -198,19 +272,30 @@
   <ul>
     <li><strong>名詞用法：同格的 <span class="en">Noun Use: Appositive</span></strong><br>
       主格補語 <span class="en">(Subjective Complement: SVC)</span>、目的格補語 <span class="en">(Objective Complement: SVOC)</span>
+      <div class="example">
+        <div class="example-line">・He is <strong>a teacher</strong>. (主格補語: He = a teacher)</div>
+        <div class="example-line">・They elected him <strong>president</strong>. (目的格補語: him = president)</div>
+      </div>
     </li>
     <li><strong>形容詞用法：状態 <span class="en">Adjective Use: State</span></strong><br>
       叙述用法 <span class="en">(Predicative Use)</span>
+      <div class="example">
+        <div class="example-line">・The flower is <strong>beautiful</strong>. (主格補語)</div>
+        <div class="example-line">・The news made me <strong>happy</strong>. (目的格補語)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[句レベル] 形容詞句等 <span class="en">Adjective Phrase etc.</span></h3>
   <ul>
     <li><strong>準動詞 <span class="en">Verbal</span></strong><br>
-      不定詞 形容詞的用法 <span class="en">(Infinitive: Adjective Use / be to Infinitive)</span>、現在分詞 <span class="en">(Present Participle)</span>、過去分詞 <span class="en">(Past Participle)</span>、原形不定詞 <span class="en">(Bare Infinitive)</span> ※使役/知覚動詞のSVOCでのみ出現
-    </li>
-    <li><strong>前置詞句 <span class="en">Prepositional Phrase</span></strong><br>
-      前置詞 <span class="en">(Preposition)</span> + 抽象名詞 <span class="en">(Abstract Noun)</span>
+      不定詞 形容詞的用法 <span class="en">(Infinitive: Adjective Use)</span>、現在分詞 <span class="en">(Present Participle)</span>、過去分詞 <span class="en">(Past Participle)</span>、原形不定詞 <span class="en">(Bare Infinitive)</span> ※使役/知覚動詞のC
+      <div class="example">
+        <div class="example-line">・You are <strong>to observe the rule</strong>. (be to 不定詞: 義務)</div>
+        <div class="example-line">・I saw him <strong>running</strong>. (現在分詞: 進行の状態)</div>
+        <div class="example-line">・I had my hair <strong>cut</strong>. (過去分詞: 受動の状態)</div>
+        <div class="example-line">・I made him <strong>go</strong>. (原形不定詞: 使役動詞のC)</div>
+      </div>
     </li>
   </ul>
 
@@ -218,6 +303,10 @@
   <ul>
     <li><strong>節の種類 <span class="en">Types of Clauses</span></strong><br>
       that 節 <span class="en">(that-clause)</span>、関係代名詞 what 節 <span class="en">(what-clause)</span>
+      <div class="example">
+        <div class="example-line">・The truth is <strong>that he was absent</strong>. (that節)</div>
+        <div class="example-line">・This is <strong>what I want</strong>. (関係代名詞 what節)</div>
+      </div>
     </li>
   </ul>
 
@@ -229,39 +318,70 @@
 
   <div class="rule-box">
     <p><strong>【役割】</strong> 文の骨格(SVOC)を飾るおまけの説明<br>
-    <strong>【絶対ルール】</strong> 名詞単独では入れない（前置詞が必要）。形容詞グループ（名詞を修飾）か、副詞グループ（名詞以外を修飾）が担当する。</p>
+    <strong>【絶対ルール】</strong> 名詞単独では入れない。形容詞グループ（名詞を修飾）か、副詞グループ（名詞以外を修飾）が担当する。</p>
   </div>
 
   <h3>[単語レベル] 形容詞と副詞 <span class="en">Adjective / Adverb</span></h3>
   <ul>
-    <li><strong>名詞を修飾する形容詞 <span class="en">Adjective Modifying Noun</span></strong><br>
-      限定用法 <span class="en">(Attributive Use)</span>、冠詞 <span class="en">(Article: a/an, the)</span>、数量形容詞 <span class="en">(Quantitative Adjective)</span>
+    <li><strong>名詞を修飾する形容詞 <span class="en">Adjective</span></strong><br>
+      限定用法 <span class="en">(Attributive Use)</span>、冠詞 <span class="en">(Article)</span>、数量形容詞 <span class="en">(Quantitative Adjective)</span>
+      <div class="example">
+        <div class="example-line">・Look at that <strong>tall</strong> building. (限定用法)</div>
+        <div class="example-line">・I have <strong>many</strong> books. (数量形容詞)</div>
+      </div>
     </li>
     <li><strong>名詞以外を修飾する副詞 <span class="en">Adverb</span></strong><br>
       様態 <span class="en">(Manner)</span>・場所 <span class="en">(Place)</span>・時 <span class="en">(Time)</span>・程度 <span class="en">(Degree)</span>、頻度の副詞 <span class="en">(Adverb of Frequency)</span>、疑問副詞 <span class="en">(Interrogative Adverb)</span>
+      <div class="example">
+        <div class="example-line">・He runs <strong>very fast</strong>. (程度・様態)</div>
+        <div class="example-line">・I <strong>always</strong> get up <strong>early</strong>. (頻度・時)</div>
+      </div>
     </li>
     <li><strong>否定語 <span class="en">Negative Word</span></strong><br>
       全体否定 <span class="en">(Total Negation)</span>、準否定語 <span class="en">(Quasi-Negative)</span>、部分否定 <span class="en">(Partial Negation)</span>
+      <div class="example">
+        <div class="example-line">・I do <strong>not</strong> know him. (全体否定)</div>
+        <div class="example-line">・I <strong>hardly</strong> know him. (準否定語: ほとんど〜ない)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[句レベル] 準動詞・前置詞句 <span class="en">Verbals / Prepositional Phrase</span></h3>
   <ul>
-    <li><strong>形容詞句 <span class="en">Adjective Phrase</span></strong><br>
+    <li><strong>形容詞句 (名詞修飾) <span class="en">Adjective Phrase</span></strong><br>
       不定詞 形容詞的用法 <span class="en">(Infinitive: Adjective Use)</span>、分詞の後置修飾 <span class="en">(Postmodification by Participle)</span>、前置詞句 <span class="en">(Prepositional Phrase)</span>
+      <div class="example">
+        <div class="example-line">・I have a lot of work <strong>to do</strong>. (不定詞 形容詞的用法)</div>
+        <div class="example-line">・The boy <strong>running over there</strong> is my brother. (現在分詞の後置修飾)</div>
+        <div class="example-line">・The book <strong>on the desk</strong> is mine. (前置詞句)</div>
+      </div>
     </li>
-    <li><strong>副詞句 <span class="en">Adverb Phrase</span></strong><br>
-      不定詞 副詞的用法 <span class="en">(Infinitive: Adverbial Use)</span>、独立不定詞 <span class="en">(Absolute Infinitive)</span>、分詞構文 <span class="en">(Participial Construction)</span>、独立分詞構文 <span class="en">(Absolute Participial Construction)</span>、付帯状況 <span class="en">(Attendant Circumstance)</span>、前置詞句 <span class="en">(Prepositional Phrase)</span>
+    <li><strong>副詞句 (動/形/文修飾) <span class="en">Adverb Phrase</span></strong><br>
+      不定詞 副詞的用法 <span class="en">(Infinitive: Adverbial Use)</span>、独立不定詞 <span class="en">(Absolute Infinitive)</span>、分詞構文 <span class="en">(Participial Construction)</span>、付帯状況の with <span class="en">(Attendant Circumstance)</span>
+      <div class="example">
+        <div class="example-line">・I went there <strong>to see him</strong>. (不定詞 副詞的用法: 目的)</div>
+        <div class="example-line">・<strong>To tell the truth</strong>, I don't like it. (独立不定詞)</div>
+        <div class="example-line">・<strong>Seeing me</strong>, he ran away. (分詞構文: 時)</div>
+        <div class="example-line">・He listened to the music <strong>with his eyes closed</strong>. (付帯状況の with)</div>
+      </div>
     </li>
   </ul>
 
   <h3>[節レベル] 形容詞節・副詞節 <span class="en">Adjective / Adverb Clause</span></h3>
   <ul>
-    <li><strong>形容詞節 <span class="en">Adjective Clause</span></strong><br>
-      関係代名詞 <span class="en">(Relative Pronoun)</span>、関係副詞 <span class="en">(Relative Adverb)</span>、制限用法 <span class="en">(Restrictive Use)</span> / 非制限用法 <span class="en">(Non-Restrictive Use)</span>、前置詞 + 関係代名詞 <span class="en">(Preposition + Relative Pronoun)</span>
+    <li><strong>形容詞節 (名詞修飾) <span class="en">Adjective Clause</span></strong><br>
+      関係代名詞 <span class="en">(Relative Pronoun)</span>、関係副詞 <span class="en">(Relative Adverb)</span>、非制限用法 <span class="en">(Non-Restrictive Use)</span>
+      <div class="example">
+        <div class="example-line">・I have a friend <strong>who lives in London</strong>. (関係代名詞)</div>
+        <div class="example-line">・The house <strong>where I was born</strong> is old. (関係副詞)</div>
+      </div>
     </li>
-    <li><strong>副詞節 <span class="en">Adverb Clause</span></strong><br>
+    <li><strong>副詞節 (動/形/文修飾) <span class="en">Adverb Clause</span></strong><br>
       従属接続詞 <span class="en">(Subordinating Conjunction)</span>、複合関係副詞 <span class="en">(Compound Relative Adverb)</span>
+      <div class="example">
+        <div class="example-line">・I stayed home <strong>because it rained</strong>. (従属接続詞: 原因)</div>
+        <div class="example-line">・<strong>Whenever I visit him</strong>, he is out. (複合関係副詞: 譲歩)</div>
+      </div>
     </li>
   </ul>
 
@@ -273,15 +393,25 @@
   <p>SVOCMのポジション配置が完了した文を、さらに操作・変形するためのルール群です。</p>
 
   <h4>1. 倒置 <span class="en">Inversion</span></h4>
-  <p>強調したい要素（否定副詞、場所の副詞等）を文頭に出し、後ろの語順を VS（疑問文の語順）にひっくり返す操作。<br>
-  <span class="en">Example: Never have I seen such a beautiful sunset.</span></p>
+  <p>強調したい要素（否定副詞、場所の副詞等）を文頭に出し、後ろの語順を VS（疑問文の語順）にひっくり返す操作。</p>
+  <div class="example">
+    <div class="example-line">・<strong>Never have I</strong> seen such a beautiful sunset.</div>
+    <div class="example-line">・<strong>Here comes</strong> the bus.</div>
+  </div>
 
   <h4>2. 強調構文 <span class="en">Cleft Sentence / Emphatic Construction</span></h4>
-  <p>特定の要素（S, O, M等）を It is と that の間に挟み込んでクローズアップする操作。<br>
-  <span class="en">Example: It is Tom that broke the window.</span></p>
+  <p>特定の要素（S, O, M等）を It is と that の間に挟み込んでクローズアップする操作。</p>
+  <div class="example">
+    <div class="example-line">・<strong>It was</strong> Tom <strong>that</strong> broke the window yesterday. (主語Tomの強調)</div>
+    <div class="example-line">・<strong>It was</strong> yesterday <strong>that</strong> Tom broke the window. (副詞yesterdayの強調)</div>
+  </div>
 
   <h4>3. 比較 <span class="en">Comparison</span></h4>
   <p>形容詞・副詞の語形変化（原級: <span class="en">Positive Degree</span>, 比較級: <span class="en">Comparative Degree</span>, 最上級: <span class="en">Superlative Degree</span>）と、対象を追加するルール。クジラ構文 <span class="en">(no more ~ than construction)</span> などもここに含まれます。</p>
+  <div class="example">
+    <div class="example-line">・He is <strong>taller than</strong> I. (比較級)</div>
+    <div class="example-line">・A whale is <strong>no more</strong> a fish <strong>than</strong> a horse is. (クジラ構文)</div>
+  </div>
 
   <br><br><br> <!-- 末尾の余白 -->
 </body>

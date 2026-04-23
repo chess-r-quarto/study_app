@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentence Tactics - Lichess Style</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lichess: {
+              bg: '#161512',
+              header: '#262421',
+              board: '#302e2c',
+              border: '#403e3c',
+              text: '#bababa',
+              textHover: '#ffffff',
+              blue: '#3692e7',
+              blueHover: '#2c7bb6',
+              green: '#629924',
+              greenHover: '#53821f',
+              red: '#cc3333',
+            }
+          },
+          fontFamily: {
+            sans: ['Noto Sans', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      background-color: #161512;
+      color: #bababa;
+    }
+    /* Hide scrollbar for select dropdown if possible, style dark */
+    select {
+      color-scheme: dark;
+    }
+    .word-btn {
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .word-btn:active {
+      transform: translateY(1px);
+    }
+    /* Lichess style input focus */
+    button:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(54, 146, 231, 0.5);
+    }
+  </style>
+</head>
+<body class="antialiased font-sans flex flex-col min-h-screen">
+  <div id="root" class="flex-grow flex flex-col"></div>
+
+  <!-- Babel Preset Registration for TSX -->
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+
+  <!-- Application Logic -->
+  <script type="text/babel" data-presets="tsx">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- Data Source ---
+    const rawSentences = [
+      // SV
+      ['SV', 'Birds fly', '鳥は飛ぶ'],
+      ['SV', 'Fish swim', '魚は泳ぐ'],
+      ['SV', 'Dogs bark', '犬は吠える'],
+      ['SV', 'Cats purr', '猫は喉を鳴らす'],
+      ['SV', 'Babies cry', '赤ちゃんは泣く'],
+      ['SV', 'Children play', '子供たちは遊ぶ'],
+      ['SV', 'Students study', '学生たちは勉強する'],
+      ['SV', 'Teachers wait', '教師たちは待つ'],
+      ['SV', 'Workers rest', '労働者たちは休む'],
+      ['SV', 'Stars shine', '星は輝く'],
+      ['SV', 'Fire burns', '火は燃える'],
+      ['SV', 'Water evaporates', '水は蒸発する'],
+      ['SV', 'Ice melts', '氷は溶ける'],
+      ['SV', 'Flowers bloom', '花は咲く'],
+      ['SV', 'Leaves fall', '葉は落ちる'],
+      ['SV', 'Rain falls', '雨は降る'],
+      ['SV', 'Wind blows', '風は吹く'],
+      ['SV', 'Time flies', '時は過ぎ去る'],
+      ['SV', 'History remains', '歴史は残る'],
+      ['SV', 'Accidents occur', '事故は起きる'],
+      ['SV', 'Everyone smiles', '誰もが微笑む'],
+      ['SV', 'Someone laughed', '誰かが笑った'],
+      ['SV', 'Nobody knows', '誰も知らない'],
+      ['SV', 'Everything changes', 'すべては変わる'],
+      ['SV', 'Something happened', '何かが起きた'],
+      ['SV', 'Plans failed', '計画は失敗した'],
+      ['SV', 'Prices rise', '物価は上がる'],
+      ['SV', 'Spring arrived', '春が来た'],
+      ['SV', 'Seasons rotate', '季節は巡る'],
+      ['SV', 'Life begins', '命が始まる'],
+      // SVO
+      ['SVO', 'Cats hate water', '猫は水を嫌う'],
+      ['SVO', 'Dogs eat meat', '犬は肉を食べる'],
+      ['SVO', 'Cows eat grass', '牛は草を食べる'],
+      ['SVO', 'Bees make honey', '蜂は蜂蜜を作る'],
+      ['SVO', 'Birds build nests', '鳥は巣を作る'],
+      ['SVO', 'Spiders spin webs', '蜘蛛は網を張る'],
+      ['SVO', 'Humans need oxygen', '人間は酸素を必要とする'],
+      ['SVO', 'People want money', '人々はお金を欲しがる'],
+      ['SVO', 'Students read books', '学生たちは本を読む'],
+      ['SVO', 'Teachers give homework', '教師たちは宿題を出す'],
+      ['SVO', 'Chefs cook food', '料理人は食べ物を作る'],
+      ['SVO', 'Artists paint pictures', '芸術家は絵を描く'],
+      ['SVO', 'Musicians play music', '音楽家は音楽を演奏する'],
+      ['SVO', 'Children like games', '子供たちはゲームが好きだ'],
+      ['SVO', 'Babies drink milk', '赤ちゃんはミルクを飲む'],
+      ['SVO', 'Friends keep secrets', '友達は秘密を守る'],
+      ['SVO', 'Machines require energy', '機械はエネルギーを必要とする'],
+      ['SVO', 'Computers store data', 'コンピュータはデータを保存する'],
+      ['SVO', 'Phones send messages', '電話はメッセージを送る'],
+      ['SVO', 'Cars burn fuel', '車は燃料を燃やす'],
+      ['SVO', 'Engines make noise', 'エンジンは音を立てる'],
+      ['SVO', 'Trees provide shade', '木は陰を作る'],
+      ['SVO', 'Flowers need sunlight', '花は日光を必要とする'],
+      ['SVO', 'Farmers grow crops', '農家は作物を育てる'],
+      ['SVO', 'Exercise builds muscles', '運動は筋肉を作る'],
+      ['SVO', 'Knowledge brings power', '知識は力を生む'],
+      ['SVO', 'Practice improves skills', '練習はスキルを向上させる'],
+      ['SVO', 'He loves science', '彼は科学を愛している'],
+      ['SVO', 'They play basketball', '彼らはバスケットボールをする'],
+      ['SVO', 'We study history', '私たちは歴史を勉強する'],
+      // SVC
+      ['SVC', 'Dogs are animals', '犬は動物だ'],
+      ['SVC', 'Humans are mammals', '人間は哺乳類だ'],
+      ['SVC', 'Fire is hot', '火は熱い'],
+      ['SVC', 'Ice is cold', '氷は冷たい'],
+      ['SVC', 'Roses are red', 'バラは赤い'],
+      ['SVC', 'Violets are blue', 'スミレは青い'],
+      ['SVC', 'Everyone is human', '誰もが人間だ'],
+      ['SVC', 'Knowledge is power', '知識は力だ'],
+      ['SVC', 'Health is wealth', '健康は富だ'],
+      ['SVC', 'Change is constant', '変化は不変だ'],
+      ['SVC', 'Babies become adults', '赤ちゃんは大人になる'],
+      ['SVC', 'Water becomes steam', '水は蒸気になる'],
+      ['SVC', 'Leaves become brown', '葉は茶色くなる'],
+      ['SVC', 'Days become short', '日は短くなる'],
+      ['SVC', 'Problems become serious', '問題は深刻になる'],
+      ['SVC', 'Everyone looks tired', 'みんな疲れて見える'],
+      ['SVC', 'Cities look busy', '都市は忙しそうに見える'],
+      ['SVC', 'Clouds look white', '雲は白く見える'],
+      ['SVC', 'Goals seem reachable', '目標は到達可能に思える'],
+      ['SVC', 'Tasks seem hard', 'タスクは難しく思える'],
+      ['SVC', 'Ideas seem crazy', 'アイデアは狂っているように思える'],
+      ['SVC', 'Wool feels itchy', 'ウールはちくちくする'],
+      ['SVC', 'Sunlight feels warm', '日光は暖かく感じる'],
+      ['SVC', 'Alarms sound loud', 'アラームはうるさく鳴る'],
+      ['SVC', 'Ideas sound interesting', '考えは面白そうに聞こえる'],
+      ['SVC', 'Soup tastes salty', 'スープは塩辛い味がする'],
+      ['SVC', 'Vinegar tastes sour', '酢は酸っぱい味がする'],
+      ['SVC', 'Perfume smells strong', '香水は強く香る'],
+      ['SVC', 'Garbage smells bad', 'ゴミは嫌な臭いがする'],
+      ['SVC', 'Runners stay fit', 'ランナーは健康を維持する'],
+      // SVOO
+      ['SVOO', 'Teachers give students homework', '教師は生徒に宿題を与える'],
+      ['SVOO', 'Parents buy children gifts', '親は子供に贈り物を見せる'],
+      ['SVOO', 'Friends send me messages', '友達は私にメッセージを送る'],
+      ['SVOO', 'Cows give farmers milk', '牛は農家にミルクを与える'],
+      ['SVOO', 'Chefs cook guests meals', '料理人は客に食事を作る'],
+      ['SVOO', 'I show them results', '私は彼らに結果を見せる'],
+      ['SVOO', 'He tells us stories', '彼は私たちに話を語る'],
+      ['SVOO', 'She writes him letters', '彼女は彼に手紙を書く'],
+      ['SVOO', 'They lend her money', '彼らは彼女にお金を貸す'],
+      ['SVOO', 'We offer you help', '私たちはあなたに助けを申し出る'],
+      ['SVOO', 'Banks grant users loans', '銀行は利用者にローンを認める'],
+      ['SVOO', 'Companies pay workers wages', '会社は労働者に賃金を支払う'],
+      ['SVOO', 'Neighbors bring people food', '近隣住民は人々に食べ物を持ってくる'],
+      ['SVOO', 'Doctors give patients medicine', '医者は患者に薬を与える'],
+      ['SVOO', 'Bees give plants life', '蜂は植物に命を与える'],
+      ['SVOO', 'Dogs bring owners balls', '犬は飼い主にボールを持ってくる'],
+      ['SVOO', 'Cats bring owners mice', '猫は飼い主にネズミを持ってくる'],
+      ['SVOO', 'Birds feed babies insects', '鳥は雛に虫を与える'],
+      ['SVOO', 'Coaches teach teams rules', 'コーチはチームにルールを教える'],
+      ['SVOO', 'Nature gives humans water', '自然は人間に水を与える'],
+      ['SVOO', 'Experience teaches beginners skills', '経験は初心者にスキルを教える'],
+      ['SVOO', 'Books give readers knowledge', '本は読者に知識を与える'],
+      ['SVOO', 'Exercise gives athletes strength', '運動は選手に強さを与える'],
+      ['SVOO', 'Music gives listeners peace', '音楽は聞き手に安らぎを与える'],
+      ['SVOO', 'Sun gives earth light', '太陽は地球に光を与える'],
+      ['SVOO', 'Rain gives soil moisture', '雨は土壌に水分を与える'],
+      ['SVOO', 'Farmers sell markets vegetables', '農家は市場に野菜を売る'],
+      ['SVOO', 'Shops show customers items', '店は客に商品を見せる'],
+      ['SVOO', 'Friends tell friends secrets', '友達は友達に秘密を話す'],
+      ['SVOO', 'Life gives everyone opportunities', '人生は誰にでも機会を与える'],
+      // SVOC
+      ['SVOC', 'Friends call me Ken', '友達は私をケンと呼ぶ'],
+      ['SVOC', 'Parents name babies Taro', '親は赤ん坊をタロウと名付ける'],
+      ['SVOC', 'Exercise makes bodies healthy', '運動は体を引き締める'],
+      ['SVOC', 'Sunlight makes people warm', '日光は人を暖かくする'],
+      ['SVOC', 'Music makes listeners happy', '音楽は聞き手を幸せにする'],
+      ['SVOC', 'They painted walls white', '彼らは壁を白く塗った'],
+      ['SVOC', 'I want coffee black', '私はコーヒーをブラックで欲しい'],
+      ['SVOC', 'Success made him famous', '成功は彼を有名にした'],
+      ['SVOC', 'Failure made teams stronger', '失敗はチームをより強くした'],
+      ['SVOC', 'Experts call results revolutionary', '専門家はその結果を画期的だと呼ぶ'],
+      ['SVOC', 'We found truth simple', '私たちは真実が単純だとわかった'],
+      ['SVOC', 'Scientists prove theories true', '科学者は理論が正しいと証明する'],
+      ['SVOC', 'Judges declared winners heroes', '審判は勝者を英雄と宣言した'],
+      ['SVOC', 'Time makes pain easier', '時間は痛みを和らげる'],
+      ['SVOC', 'Love makes life wonderful', '愛は人生を素晴らしくする'],
+      ['SVOC', 'They kept secrets safe', '彼らは秘密を安全に保った'],
+      ['SVOC', 'He dyed hair green', '彼は髪を緑に染めた'],
+      ['SVOC', 'History made leaders legends', '歴史はリーダーを伝説にした'],
+      ['SVOC', 'Action makes dreams reality', '行動は夢を現実にする'],
+      ['SVOC', 'Teachers find students smart', '教師は生徒が賢いと気づく'],
+      ['SVOC', 'Sunshine made fruits sweet', '日光は果物を甘くした'],
+      ['SVOC', 'We keep floors clean', '私たちは床を清潔に保つ'],
+      ['SVOC', 'Truth set prisoners free', '真実が囚人を自由にした'],
+      ['SVOC', 'Rain made streets wet', '雨は通りを濡らした'],
+      ['SVOC', 'Heat made metal soft', '熱は金属を柔らかくした'],
+      ['SVOC', 'Night made stars visible', '夜は星を見えるようにした'],
+      ['SVOC', 'Fear made people quiet', '恐怖は人々を静かにさせた'],
+      ['SVOC', 'Success makes everyone proud', '成功は誰もを誇らしくさせる'],
+      ['SVOC', 'Books make readers wise', '本は読者を賢くする'],
+      ['SVOC', 'Money makes people greedy', 'お金は人を強欲にする']
+    ];
+
+    interface Sentence {
+      id: number;
+      type: string;
+      english: string;
+      japanese: string;
+      words: string[];
+    }
+
+    interface WordItem {
+      id: string;
+      text: string;
+    }
+
+    const shuffleArray = (array: any[]) => {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    };
+
+    const allSentences: Sentence[] = rawSentences.map((row, index) => ({
+      id: index,
+      type: row[0],
+      english: row[1],
+      japanese: row[2],
+      words: row[1].split(' ')
+    }));
+
+    const App: React.FC = () => {
+      const [filterType, setFilterType] = useState<string>('All');
+      const [currentIndex, setCurrentIndex] = useState<number>(0);
+      const [availableWords, setAvailableWords] = useState<WordItem[]>([]);
+      const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
+      const [status, setStatus] = useState<'playing' | 'correct' | 'incorrect'>('playing');
+      const [streak, setStreak] = useState<number>(0);
+
+      const filteredSentences = useMemo(() => {
+        if (filterType === 'All') return allSentences;
+        return allSentences.filter(s => s.type === filterType);
+      }, [filterType]);
+
+      const currentSentence = filteredSentences[currentIndex];
+
+      const loadSentence = (index: number) => {
+        const sentence = filteredSentences[index];
+        if (!sentence) return;
+
+        const wordItems: WordItem[] = sentence.words.map((word, i) => ({
+          id: `word-${i}`,
+          text: word.toLowerCase()
+        }));
+
+        setAvailableWords(shuffleArray(wordItems));
+        setSelectedWords([]);
+        setStatus('playing');
+        setCurrentIndex(index);
+      };
+
+      useEffect(() => {
+        setCurrentIndex(0);
+        loadSentence(0);
+        setStreak(0);
+      }, [filterType]);
+
+      const handleSelectWord = (word: WordItem) => {
+        if (status !== 'playing') return;
+        setAvailableWords(prev => prev.filter(w => w.id !== word.id));
+        setSelectedWords(prev => [...prev, word]);
+      };
+
+      const handleDeselectWord = (word: WordItem) => {
+        if (status !== 'playing') return;
+        setSelectedWords(prev => prev.filter(w => w.id !== word.id));
+        setAvailableWords(prev => [...prev, word]);
+      };
+
+      const checkAnswer = () => {
+        if (selectedWords.length !== currentSentence.words.length) return;
+
+        const userAnswer = selectedWords.map(w => w.text).join(' ');
+        const correctAnswer = currentSentence.english.toLowerCase();
+
+        if (userAnswer === correctAnswer) {
+          setStatus('correct');
+          setStreak(prev => prev + 1);
+        } else {
+          setStatus('incorrect');
+          setStreak(0);
+        }
+      };
+
+      const handleNext = () => {
+        const nextIndex = Math.floor(Math.random() * filteredSentences.length);
+        loadSentence(nextIndex);
+      };
+
+      const handleReset = () => {
+        loadSentence(currentIndex);
+      };
+
+      if (!currentSentence) return <div className="text-center mt-10">Loading...</div>;
+
+      const capitalizeFirstLetter = (string: string) => {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1);
+      };
+
+      const displayText = selectedWords.length > 0 
+        ? capitalizeFirstLetter(selectedWords.map(w => w.text).join(' ')) + '.'
+        : '...';
+
+      return (
+        <>
+          {/* Top Navigation Bar */}
+          <header className="bg-lichess-header shadow-md border-b border-lichess-border">
+            <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded bg-lichess-text flex items-center justify-center text-lichess-bg font-bold text-xl">
+                  ♞
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-white hover:text-gray-300 cursor-pointer">
+                  tactics
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="text-sm font-semibold flex items-center space-x-2">
+                  <span className="text-lichess-textDim uppercase tracking-widest text-xs">Streak</span>
+                  <span className="text-xl text-white">{streak}</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-grow flex flex-col md:flex-row max-w-5xl mx-auto w-full p-4 md:p-6 gap-6">
+            
+            {/* Left Side: Board Area */}
+            <div className="w-full md:w-2/3 flex flex-col gap-4">
+              
+              {/* Puzzle Info / Filter */}
+              <div className="bg-lichess-header rounded p-3 flex justify-between items-center shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <span className="text-lichess-textDim text-sm font-semibold uppercase">Pattern</span>
+                  <select 
+                    className="bg-lichess-board border border-lichess-border text-white text-sm rounded px-2 py-1 shadow-sm cursor-pointer"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                  >
+                    <option value="All">Mixed (150)</option>
+                    <option value="SV">SV Pattern</option>
+                    <option value="SVO">SVO Pattern</option>
+                    <option value="SVC">SVC Pattern</option>
+                    <option value="SVOO">SVOO Pattern</option>
+                    <option value="SVOC">SVOC Pattern</option>
+                  </select>
+                </div>
+                <span className="text-xs font-mono bg-lichess-board px-2 py-1 rounded border border-lichess-border text-lichess-text">
+                  {currentSentence.type}
+                </span>
+              </div>
+
+              {/* Target Meaning (Japanese) */}
+              <div className="bg-lichess-header rounded p-8 shadow-sm flex items-center justify-center min-h-[120px] border-l-4 border-lichess-blue">
+                <h2 className="text-2xl font-bold text-white text-center">
+                  "{currentSentence.japanese}"
+                </h2>
+              </div>
+
+              {/* Build Area */}
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="text-lichess-textDim text-sm font-semibold uppercase tracking-wider pl-1">
+                  Your Sentence
+                </div>
+                <div className="bg-lichess-header rounded min-h-[100px] border border-lichess-border flex items-center justify-center p-6 text-center">
+                  <p className="text-2xl font-serif text-white tracking-wide">
+                    {displayText}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side: Controls & Word Bank */}
+            <div className="w-full md:w-1/3 flex flex-col gap-4">
+              
+              {/* Status Banner */}
+              {status !== 'playing' && (
+                <div className={`rounded p-4 shadow-sm flex flex-col items-center justify-center text-white ${status === 'correct' ? 'bg-lichess-green' : 'bg-lichess-red'}`}>
+                  <span className="text-xl font-bold mb-1 flex items-center gap-2">
+                    {status === 'correct' ? (
+                      <><span className="text-2xl">✓</span> Puzzle solved</>
+                    ) : (
+                      <><span className="text-2xl">✗</span> Puzzle failed</>
+                    )}
+                  </span>
+                  {status === 'incorrect' && (
+                    <span className="text-sm mt-2 opacity-90">
+                      Solution: <span className="font-bold">{currentSentence.english}.</span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons Container */}
+              <div className="bg-lichess-header rounded p-4 shadow-sm border border-lichess-border flex flex-col gap-4">
+                
+                {/* Word Bank */}
+                {status === 'playing' ? (
+                  <div className="flex flex-col gap-3 min-h-[160px]">
+                    <div className="text-lichess-textDim text-xs font-semibold uppercase tracking-wider mb-1">
+                      Available Words
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {availableWords.map(word => (
+                        <button
+                          key={word.id}
+                          onClick={() => handleSelectWord(word)}
+                          className="word-btn px-4 py-2 bg-lichess-board text-lichess-text hover:text-white hover:bg-lichess-border font-medium rounded border border-lichess-border shadow-sm text-sm"
+                        >
+                          {word.text}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {selectedWords.length > 0 && (
+                      <div className="mt-4 border-t border-lichess-border pt-4">
+                         <div className="text-lichess-textDim text-xs font-semibold uppercase tracking-wider mb-2">
+                          Click to remove
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedWords.map(word => (
+                            <button
+                              key={word.id}
+                              onClick={() => handleDeselectWord(word)}
+                              className="word-btn px-4 py-2 bg-lichess-blue text-white hover:bg-lichess-blueHover font-medium rounded shadow-sm text-sm"
+                            >
+                              {word.text}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                   <div className="flex flex-col items-center justify-center min-h-[160px] text-lichess-textDim text-sm">
+                      Ready for the next challenge.
+                   </div>
+                )}
+
+                {/* Primary Actions */}
+                <div className="border-t border-lichess-border pt-4 mt-auto flex flex-col gap-2">
+                  {status === 'playing' ? (
+                    <>
+                      <button
+                        onClick={checkAnswer}
+                        disabled={selectedWords.length === 0}
+                        className="w-full py-3 bg-lichess-board text-lichess-text hover:text-white font-bold rounded shadow-sm hover:bg-lichess-border border border-lichess-border disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm transition-colors"
+                      >
+                        Submit Move
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="w-full py-2 text-lichess-textDim hover:text-white text-xs uppercase tracking-wider transition-colors"
+                      >
+                        Reset Board
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleNext}
+                      className="w-full py-3 bg-lichess-blue text-white font-bold rounded shadow-sm hover:bg-lichess-blueHover uppercase tracking-wider text-sm transition-colors"
+                    >
+                      Next Puzzle
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+
+          </main>
+        </>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

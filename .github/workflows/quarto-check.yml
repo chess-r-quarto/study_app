@@ -1,15 +1,18 @@
-name: Quarto Render Check
+name: Deploy Quarto to GitHub Pages
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -27,7 +30,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install jupyter nbformat nbconvert
 
-      - name: Render Quarto
-        uses: quarto-dev/quarto-actions/render@v2
+      - name: Render Quarto to HTML
+        run: |
+          quarto render test.qmd --to html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          to: gfm
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

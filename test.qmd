@@ -1,12 +1,39 @@
+---
 title: "GitHub & Quarto Operation Check"
 format: gfm
-engine: jupyterMarkdown rendering checkThis section confirms that standard Markdown elements are rendered correctly on GitHub.[x] Task list itemBold text and italic textLink to GitHubMathematical equations (MathJax)GitHub's Markdown viewer supports LaTeX-style equations. We use this to verify the math rendering engine.$$\frac{d}{dx} \left( \int_{a}^{x} f(t) dt \right) = f(x)$$Python code executionThis chunk verifies that the Python environment is correctly set up during the GitHub Actions execution.import sys
+engine: jupyter
+---
+
+## 1. Markdown レンダリング確認
+GitHub上でMarkdownとして正しく表示されるかを確認します。
+
+- [x] チェックボックス
+- **太字** と *イタリック*
+- [GitHub へのリンク](https://github.com)
+
+## 2. 数式 (MathJax)
+GitHubのMarkdownビューアで数式がレンダリングされるか確認します。
+
+$$
+\frac{d}{dx} \left( \int_{a}^{x} f(t) dt \right) = f(x)
+$$
+
+## 3. Python コード実行
+GitHub Actions等で実行した際、出力が正しく埋め込まれるか確認します。
+
+```{python}
+import sys
 import platform
 
 print(f"Python Version: {sys.version}")
 print(f"Platform: {platform.platform()}")
-print("Status: Execution Successful")
-Diagrams (Mermaid)The following diagram checks the Mermaid integration within the Quarto document.graph LR
+print("Result: Success")
+```
+
+## 4. ダイアグラム (Mermaid)
+```{mermaid}
+graph LR
     A[Push to GitHub] --> B(GitHub Actions)
     B --> C{Render Quarto}
     C --> D[Success]
+```

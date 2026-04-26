@@ -1,0 +1,12 @@
+title: "GitHub & Quarto Operation Check"
+format: gfm
+engine: jupyterMarkdown rendering checkThis section confirms that standard Markdown elements are rendered correctly on GitHub.[x] Task list itemBold text and italic textLink to GitHubMathematical equations (MathJax)GitHub's Markdown viewer supports LaTeX-style equations. We use this to verify the math rendering engine.$$\frac{d}{dx} \left( \int_{a}^{x} f(t) dt \right) = f(x)$$Python code executionThis chunk verifies that the Python environment is correctly set up during the GitHub Actions execution.import sys
+import platform
+
+print(f"Python Version: {sys.version}")
+print(f"Platform: {platform.platform()}")
+print("Status: Execution Successful")
+Diagrams (Mermaid)The following diagram checks the Mermaid integration within the Quarto document.graph LR
+    A[Push to GitHub] --> B(GitHub Actions)
+    B --> C{Render Quarto}
+    C --> D[Success]

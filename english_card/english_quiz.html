@@ -32,7 +32,7 @@
       Clipboard, UploadCloud, FileJson, RotateCcw,
       Minimize, Maximize, Hash, Shuffle, ListOrdered,
       Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
-      PlayCircle
+      PlayCircle, Timer
     } from 'https://esm.sh/lucide-react@0.292.0';
 
     interface QuestionData {
@@ -165,6 +165,9 @@
       const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
       const [quizAudioEnabled, setQuizAudioEnabled] = useState<boolean>(false);
       const [globalVolume, setGlobalVolume] = useState<number>(1.0);
+      
+      // 自動遷移の時間設定（秒）
+      const [autoNextDelay, setAutoNextDelay] = useState<number>(1.0);
 
       const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
       const [jsonError, setJsonError] = useState<string | null>(null);
@@ -367,6 +370,25 @@
           setGameState('result');
         }
       };
+
+      // 自動遷移用のRefとuseEffect
+      const nextQuestionRef = useRef(nextQuestion);
+      useEffect(() => {
+        nextQuestionRef.current = nextQuestion;
+      });
+
+      useEffect(() => {
+        let timer: number;
+        // クイズモードで、フィードバック画面表示中、かつ正解の場合のみタイマー起動
+        if (gameState === 'playing' && sessionMode === 'quiz' && showFeedback && lastAnswerCorrect) {
+          timer = window.setTimeout(() => {
+            nextQuestionRef.current();
+          }, autoNextDelay * 1000);
+        }
+        return () => {
+          if (timer) window.clearTimeout(timer);
+        };
+      }, [gameState, sessionMode, showFeedback, lastAnswerCorrect, autoNextDelay]);
 
       const handleManualAudioPlay = () => {
         if (currentQuestion) {
@@ -618,6 +640,24 @@
                         />
                       </div>
                     </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#262421]">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
+                        <div className="flex items-center gap-2">
+                          <Timer size={14} /> Auto Next (Correct)
+                        </div>
+                        <span>{autoNextDelay.toFixed(1)}s</span>
+                      </div>
+                      <div className="pt-2">
+                        <input
+                          type="range"
+                          min="0.1" max="5.0" step="0.1"
+                          value={autoNextDelay}
+                          onChange={(e) => setAutoNextDelay(parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -653,7 +693,6 @@
                   className="hidden"
                 />
 
-                {/* --- 変更部分: Saveボタンを上部（Cancelボタンの横）に移動 --- */}
                 <div className="bg-[#1b1a19] border-b border-[#383634] p-2 flex justify-between items-center shrink-0">
                   <div className="flex gap-1 sm:gap-2">
                     <Button variant="ghost" onClick={triggerFileUpload} className="h-8 text-xs px-2 sm:px-4" icon={UploadCloud}>
@@ -681,7 +720,6 @@
                   />
                 </div>
 
-                {/* --- 変更部分: 下部はエラーなどのステータス表示のみ --- */}
                 <div className="bg-[#1b1a19] p-3 sm:p-4 border-t border-[#383634] flex justify-center items-center shrink-0">
                   <div className="flex-1">
                     {jsonError ? (

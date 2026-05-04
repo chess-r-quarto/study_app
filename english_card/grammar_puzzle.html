@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grammar Puzzles - Advanced Syntax Analysis</title>
+  <title>Grammar Puzzles - Syntax Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -26,16 +26,16 @@
               button: '#363431',
               buttonHover: '#4c4a47',
               inputBg: '#3e3c38',
-              // Syntax Role Colors
-              roleS: '#4b78a8', // Blue
-              roleV: '#cc3333', // Red
-              roleO: '#629924', // Green
-              roleC: '#d68f27', // Orange
-              roleM: '#8c8c8c', // Gray
+              roleS: '#4b78a8',
+              roleV: '#cc3333',
+              roleO: '#629924',
+              roleC: '#d68f27',
+              roleM: '#8c8c8c',
             }
           },
           fontFamily: {
             sans: ['"Noto Sans"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            serif: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
           }
         }
       }
@@ -66,7 +66,6 @@
       background: #403d39;
       border-radius: 4px;
     }
-    /* Pulse animation for inspector hint */
     @keyframes subtle-pulse {
       0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
       70% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
@@ -74,6 +73,9 @@
     }
     .inspector-hint {
       animation: subtle-pulse 2s infinite;
+    }
+    .modal-overlay {
+      backdrop-filter: blur(2px);
     }
   </style>
 </head>
@@ -94,12 +96,14 @@
 
     // --- Types ---
     type Role = 'S' | 'V' | 'O' | 'C' | 'M' | 'Real-S';
+    type PlayMode = 'random' | 'sequential';
+    type GameState = 'home' | 'playing' | 'finished';
 
     interface StructureItem {
       text: string;
       role: Role;
-      detail?: string;       // 例: "名詞節 (that節)", "過去分詞句"
-      explanation?: string;  // 詳細な文法解説
+      detail?: string;
+      explanation?: string;
     }
 
     interface Question {
@@ -108,7 +112,7 @@
       japanese: string;
       words: string[];
       structure: StructureItem[];
-      overallExplanation?: string; // 文全体のポイント
+      overallExplanation?: string;
     }
 
     interface WordItem {
@@ -116,71 +120,16 @@
       text: string;
     }
 
-    // --- Advanced Default Data (高校レベル) ---
+    // --- Minimal Default Data ---
     const DEFAULT_QUESTIONS: Question[] = [
       {
-        id: 1,
-        pattern: 'SVO (O=名詞節)',
-        japanese: '私は彼が正しいと思う。',
+        id: 1, pattern: 'SVO (O=名詞節)', japanese: '私は彼が正しいと思う。',
         words: ['I', 'think', 'that', 'he', 'is', 'right'],
-        overallExplanation: '接続詞thatが導く節（名詞節）全体が、動詞thinkの目的語（O）となる構造です。',
+        overallExplanation: '接続詞thatが導く節全体が、動詞thinkの目的語(O)となる構造です。',
         structure: [
-          { text: 'I', role: 'S', detail: '代名詞', explanation: '文の主語です。' },
-          { text: 'think', role: 'V', detail: '他動詞', explanation: '「〜と思う」という意味の他動詞で、後ろに目的語(O)を必要とします。' },
-          { text: 'that he is right', role: 'O', detail: '名詞節 (that節)', explanation: '接続詞thatが導くSV構造が、一つの名詞のカタマリ（名詞節）として働き、thinkの目的語になっています。' }
-        ]
-      },
-      {
-        id: 2,
-        pattern: 'SVMVC (後置修飾)',
-        japanese: 'ブラジルで話されている言語はポルトガル語です。',
-        words: ['The', 'language', 'spoken', 'in', 'Brazil', 'is', 'Portuguese'],
-        overallExplanation: '過去分詞句が名詞を後ろから修飾する（後置修飾）重要なパターンです。文全体のVを見失わないようにしましょう。',
-        structure: [
-          { text: 'The language', role: 'S', detail: '名詞', explanation: '文全体の主語(S)です。' },
-          { text: 'spoken in Brazil', role: 'M', detail: '過去分詞句 (形容詞的用法)', explanation: 'spokenはspeakの過去分詞。「ブラジルで話されている」という意味のカタマリとなり、直前の名詞(The language)を後ろから修飾しています。' },
-          { text: 'is', role: 'V', detail: 'be動詞', explanation: '文全体の述語動詞(V)です。主語のThe languageに対応しています。' },
-          { text: 'Portuguese', role: 'C', detail: '名詞', explanation: '主語の状態を説明する補語(C)です。(S = C)' }
-        ]
-      },
-      {
-        id: 3,
-        pattern: 'SVOC (C=現在分詞)',
-        japanese: '私たちはその試合がとてもエキサイティングだと分かった。',
-        words: ['We', 'found', 'the', 'game', 'very', 'exciting'],
-        overallExplanation: '第5文型(SVOC)で、OとCの間に「OがCである」という主語・述語の関係が成り立ちます。',
-        structure: [
-          { text: 'We', role: 'S', detail: '代名詞', explanation: '主語です。' },
-          { text: 'found', role: 'V', detail: '他動詞 (第5文型)', explanation: 'find O C で「OがCだと分かる/思う」という意味を作ります。' },
-          { text: 'the game', role: 'O', detail: '名詞', explanation: '目的語です。' },
-          { text: 'very exciting', role: 'C', detail: '現在分詞 (形容詞的働き)', explanation: 'excitingは「（人を）興奮させる」という意味の現在分詞で、目的語のthe gameの状態を説明する補語(C)になっています。(the game is excitingの関係)' }
-        ]
-      },
-      {
-        id: 4,
-        pattern: 'S(関係詞節)VOC',
-        japanese: '彼の言ったことが彼女を怒らせた。',
-        words: ['What', 'he', 'said', 'made', 'her', 'angry'],
-        overallExplanation: '関係代名詞whatが作る名詞節が主語(S)になり、さらにSVOCの第5文型（使役的意味）を形成する複合的な構造です。',
-        structure: [
-          { text: 'What he said', role: 'S', detail: '名詞節 (関係代名詞what)', explanation: '関係代名詞whatは先行詞を含み「〜すること/もの」という意味を持ちます。節全体で名詞の働きをし、文の主語になっています。' },
-          { text: 'made', role: 'V', detail: '他動詞 (使役)', explanation: 'make O C で「OをC（の状態）にする」という意味を作ります。' },
-          { text: 'her', role: 'O', detail: '代名詞', explanation: '目的語です。' },
-          { text: 'angry', role: 'C', detail: '形容詞', explanation: '目的語herの状態を説明する補語(C)です。(her = angry)' }
-        ]
-      },
-      {
-        id: 5,
-        pattern: 'SVCM S(真主語)',
-        japanese: '私がこの問題を解くのは不可能です。',
-        words: ['It', 'is', 'impossible', 'for', 'me', 'to', 'solve', 'this', 'problem'],
-        overallExplanation: '形式主語Itを用いた構文です。真の主語はto不定詞以下であり、その動作主を「for + 人」で表します。',
-        structure: [
-          { text: 'It', role: 'S', detail: '形式主語 (It)', explanation: '長くなる真の主語（to不定詞句）の代わりに、文の先頭に置かれた形式的な主語です。それ自体に意味はありません。' },
-          { text: 'is', role: 'V', detail: 'be動詞', explanation: '述語動詞です。' },
-          { text: 'impossible', role: 'C', detail: '形容詞', explanation: '補語です。' },
-          { text: 'for me', role: 'M', detail: '不定詞の意味上の主語', explanation: '後ろのto不定詞の動作(solve)を行う主体を「for + 名詞/代名詞」で表しています。' },
-          { text: 'to solve this problem', role: 'Real-S', detail: '真主語 (to不定詞 名詞的用法)', explanation: '文の本当の主語(Real Subject)です。to不定詞が名詞的用法として働き「この問題を解くこと」という意味のカタマリを作っています。' }
+          { text: 'I', role: 'S', detail: '代名詞 (Pronoun)', explanation: '主語です。' },
+          { text: 'think', role: 'V', detail: '他動詞 (Transitive Verb)', explanation: '述語動詞です。' },
+          { text: 'that he is right', role: 'O', detail: '名詞節 (Noun Clause)', explanation: '名詞節として目的語になっています。' }
         ]
       }
     ];
@@ -231,29 +180,69 @@
 
     // --- Main Component ---
     function App() {
+      // Global States
       const [questionsData, setQuestionsData] = useState<Question[]>(DEFAULT_QUESTIONS);
-      const [questions, setQuestions] = useState<Question[]>([]);
+      const [gameState, setGameState] = useState<GameState>('home');
+      const [playMode, setPlayMode] = useState<PlayMode>('random');
+      const [showSettings, setShowSettings] = useState(false);
+      
+      // Playing States
+      const [questionsQueue, setQuestionsQueue] = useState<Question[]>([]);
       const [currentIndex, setCurrentIndex] = useState<number>(0);
       const [availableWords, setAvailableWords] = useState<WordItem[]>([]);
       const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
-      const [status, setStatus] = useState<'playing' | 'correct' | 'incorrect'>('playing');
-      const [showSettings, setShowSettings] = useState(false);
-      
-      // Inspector state
+      const [status, setStatus] = useState<'playing' | 'correct' | 'incorrect' | 'resigned'>('playing');
       const [inspectedIndex, setInspectedIndex] = useState<number | null>(null);
+
+      // Custom Modal State (replaces alert/confirm)
+      const [modal, setModal] = useState<{isOpen: boolean, type: 'alert' | 'confirm', message: string, onConfirm: () => void}>({
+        isOpen: false, type: 'alert', message: '', onConfirm: () => {}
+      });
 
       const fileInputRef = useRef<HTMLInputElement>(null);
 
-      useEffect(() => {
-        setQuestions(shuffleArray(questionsData));
-        setCurrentIndex(0);
-      }, [questionsData]);
+      // Modal Triggers
+      const showAlert = (message: string) => {
+        setModal({ isOpen: true, type: 'alert', message, onConfirm: () => setModal(m => ({...m, isOpen: false})) });
+      };
+      
+      const showConfirm = (message: string, onConfirmCallback: () => void) => {
+        setModal({
+          isOpen: true, 
+          type: 'confirm', 
+          message, 
+          onConfirm: () => {
+            onConfirmCallback();
+            setModal(m => ({...m, isOpen: false}));
+          }
+        });
+      };
 
-      useEffect(() => {
-        if (questions.length > 0 && currentIndex < questions.length) {
-          setupQuestion(questions[currentIndex]);
+      // System logic
+      const startPuzzles = () => {
+        if (questionsData.length === 0) {
+          showAlert('No puzzles loaded!');
+          return;
         }
-      }, [currentIndex, questions]);
+        let queue = [...questionsData];
+        if (playMode === 'random') {
+          queue = shuffleArray(queue);
+        }
+        
+        setQuestionsQueue(queue);
+        setCurrentIndex(0);
+        setGameState('playing');
+        setShowSettings(false);
+      };
+
+      // Load specific question
+      useEffect(() => {
+        if (gameState === 'playing' && questionsQueue.length > 0 && currentIndex < questionsQueue.length) {
+          setupQuestion(questionsQueue[currentIndex]);
+        } else if (gameState === 'playing' && currentIndex >= questionsQueue.length && questionsQueue.length > 0) {
+          setGameState('finished');
+        }
+      }, [currentIndex, questionsQueue, gameState]);
 
       const setupQuestion = (question: Question) => {
         const wordsObjects = question.words.map((word, index) => ({
@@ -263,9 +252,10 @@
         setAvailableWords(shuffleArray(wordsObjects));
         setSelectedWords([]);
         setStatus('playing');
-        setInspectedIndex(null); // Reset inspector
+        setInspectedIndex(null);
       };
 
+      // Game Actions
       const handleSelectWord = (wordItem: WordItem) => {
         if (status !== 'playing') return;
         setAvailableWords((prev) => prev.filter((w) => w.id !== wordItem.id));
@@ -279,33 +269,58 @@
       };
 
       const handleCheckAnswer = () => {
-        const currentQuestion = questions[currentIndex];
+        const currentQuestion = questionsQueue[currentIndex];
         const isMatch =
           selectedWords.length === currentQuestion.words.length &&
           selectedWords.every((w, i) => w.text === currentQuestion.words[i]);
 
         if (isMatch) {
           setStatus('correct');
-          // Automatically inspect the first interesting element if any, or just 0
           setInspectedIndex(0);
         } else {
           setStatus('incorrect');
         }
       };
 
+      const handleResign = () => {
+        showConfirm('Are you sure you want to resign this puzzle?', () => {
+          // Auto-solve the puzzle visually for the user
+          const currentQuestion = questionsQueue[currentIndex];
+          const correctWords = currentQuestion.words.map((word, index) => ({
+            id: `w-auto-${index}`,
+            text: word,
+          }));
+          
+          setSelectedWords(correctWords);
+          setAvailableWords([]);
+          setStatus('resigned');
+          setInspectedIndex(0);
+        });
+      };
+
       const handleResetSelection = () => {
-        setupQuestion(questions[currentIndex]);
+        setupQuestion(questionsQueue[currentIndex]);
       };
 
       const handleNextQuestion = () => {
         setCurrentIndex((prev) => prev + 1);
       };
 
-      const handleRestart = () => {
-        setQuestions(shuffleArray(questionsData));
-        setCurrentIndex(0);
+      // Speech Synthesis
+      const handleSpeak = (text: string) => {
+        if ('speechSynthesis' in window) {
+          const cleanText = text.replace(/\s+([.,!?])/g, '$1');
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.lang = 'en-US';
+          utterance.rate = 0.9;
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        } else {
+          showAlert('Sorry, your browser does not support text-to-speech.');
+        }
       };
 
+      // File I/O
       const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -316,111 +331,221 @@
             const json = JSON.parse(e.target?.result as string);
             if (Array.isArray(json) && json.length > 0 && json[0].words && json[0].structure) {
               setQuestionsData(json);
+              showAlert(`Successfully imported ${json.length} puzzles.`);
               setShowSettings(false);
-              alert('Successfully imported custom puzzles.');
             } else {
-              alert('Invalid JSON format. Please check the required structure.');
+              showAlert('Invalid JSON format. Please check the required structure.');
             }
           } catch (error) {
-            alert('Failed to parse JSON file.');
+            showAlert('Failed to parse JSON file.');
           }
           if (fileInputRef.current) fileInputRef.current.value = '';
         };
         reader.readAsText(file);
       };
 
-      const downloadSampleJson = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DEFAULT_QUESTIONS, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "advanced_grammar_puzzles.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+      const goHome = () => {
+        if (gameState === 'playing') {
+          showConfirm('Return to home? Current progress will be lost.', () => {
+            setGameState('home');
+            setShowSettings(false);
+          });
+        } else {
+          setGameState('home');
+          setShowSettings(false);
+        }
       };
 
-      const isGameFinished = questions.length > 0 && currentIndex >= questions.length;
-      const currentQuestion = questions[currentIndex];
-      const isAllSelected = currentQuestion && selectedWords.length === currentQuestion.words.length;
+      // --- Components ---
+      
+      const CustomModal = () => {
+        if (!modal.isOpen) return null;
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-80 modal-overlay z-[100] flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-lichess-panel border border-lichess-border p-8 rounded-sm shadow-2xl max-w-sm w-full text-center">
+              <div className="text-4xl mb-4 text-lichess-text opacity-70">
+                {modal.type === 'confirm' ? '⚑' : 'ℹ️'}
+              </div>
+              <p className="text-white mb-8 text-lg">{modal.message}</p>
+              <div className="flex justify-center gap-4">
+                {modal.type === 'confirm' && (
+                  <button 
+                    onClick={() => setModal(m => ({...m, isOpen: false}))} 
+                    className="flex-1 py-3 bg-transparent border border-lichess-border text-lichess-text hover:text-white rounded-sm font-bold uppercase tracking-wider transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button 
+                  onClick={modal.onConfirm} 
+                  className={`flex-1 py-3 text-white rounded-sm font-bold uppercase tracking-wider transition-colors shadow ${modal.type === 'confirm' ? 'bg-lichess-red hover:bg-red-700' : 'bg-lichess-green hover:bg-lichess-greenHover'}`}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
 
       const Header = () => (
         <header className="bg-lichess-bg border-b border-lichess-border p-3 flex justify-between items-center shadow-md relative z-10">
-          <div className="flex items-center text-lichess-text hover:text-lichess-textHover cursor-pointer transition-colors" onClick={() => setShowSettings(false)}>
+          <div className="flex items-center text-lichess-text hover:text-lichess-textHover cursor-pointer transition-colors" onClick={goHome}>
             <span className="lichess-icon">♘</span>
             <span className="text-xl font-bold uppercase tracking-wide">GRAMMAR<span className="font-light">PUZZLES</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs border border-lichess-green text-lichess-green px-2 py-0.5 rounded-sm hidden md:inline uppercase tracking-widest font-bold">Advanced Engine</span>
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className="text-lichess-text hover:text-white transition-colors p-2"
-              title="Settings & Import"
-            >
-              ⚙️
-            </button>
+            {gameState === 'home' ? (
+              <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={`text-lichess-text hover:text-white transition-colors p-2 text-lg flex items-center gap-2 rounded-sm px-3 ${showSettings ? 'bg-[#363431]' : ''}`}
+                title="Settings & Import"
+              >
+                <span className="text-sm uppercase font-bold tracking-widest hidden sm:inline">Data</span> ⚙️
+              </button>
+            ) : (
+              <button 
+                onClick={goHome}
+                className="text-lichess-text hover:text-white transition-colors p-2 text-lg flex items-center gap-2 bg-lichess-button hover:bg-[#4c4a47] rounded-sm px-3 shadow"
+                title="Return to Home"
+              >
+                <span className="text-xs uppercase font-bold tracking-widest">Home</span> 🏠
+              </button>
+            )}
           </div>
         </header>
       );
 
+      const SettingsOverlay = () => {
+        if (!showSettings || gameState !== 'home') return null;
+        return (
+          <div className="absolute top-14 right-4 bg-lichess-panel border border-lichess-border shadow-2xl rounded-sm p-5 z-50 w-80 animate-fade-in">
+            <div className="flex justify-between items-center mb-4 border-b border-lichess-border pb-2">
+              <h3 className="text-white font-bold uppercase tracking-wide text-sm">Data Settings</h3>
+              <button onClick={() => setShowSettings(false)} className="text-lichess-text hover:text-white text-xl">✕</button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-xs text-lichess-text mb-2">Import your JSON puzzle collection.</p>
+              <input type="file" accept=".json" onChange={handleFileUpload} ref={fileInputRef} className="hidden" id="json-upload" />
+              <label htmlFor="json-upload" className="block w-full text-center py-3 bg-[#3e3c38] hover:bg-[#4c4a47] border border-lichess-border text-white text-sm font-bold uppercase tracking-wider rounded-sm cursor-pointer transition-colors shadow">
+                Upload JSON File
+              </label>
+            </div>
+            
+            <div className="text-xs text-lichess-text pt-2 border-t border-lichess-border text-center flex justify-between items-center mt-4">
+              <span>Loaded Puzzles:</span>
+              <span className="text-lichess-green font-bold text-sm bg-[#161512] px-2 py-0.5 rounded-sm border border-lichess-border">{questionsData.length}</span>
+            </div>
+          </div>
+        );
+      };
+
+      // === HOME VIEW ===
+      if (gameState === 'home') {
+        return (
+          <>
+            <CustomModal />
+            <Header />
+            <SettingsOverlay />
+            <div className="flex-grow flex items-center justify-center p-4 relative z-0">
+              <div className="bg-lichess-panel border border-lichess-border rounded-sm p-8 text-center max-w-md w-full shadow-2xl animate-fade-in">
+                <div className="text-5xl mb-4 text-lichess-green opacity-90 drop-shadow-md">♘</div>
+                <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-widest">Syntax</h2>
+                <h3 className="text-xl font-light text-lichess-text mb-8 uppercase tracking-widest border-b border-lichess-border pb-6">Training Engine</h3>
+                
+                <div className="mb-8 text-left bg-[#1b1a18] p-5 rounded-sm border border-[#3e3c38] shadow-inner">
+                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4">Play Mode Configuration</div>
+                  <div className="flex flex-col gap-3">
+                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
+                      <input type="radio" checked={playMode === 'random'} onChange={() => setPlayMode('random')} className="w-4 h-4 accent-lichess-green" />
+                      <span className="font-medium tracking-wide">Random (Shuffle)</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
+                      <input type="radio" checked={playMode === 'sequential'} onChange={() => setPlayMode('sequential')} className="w-4 h-4 accent-lichess-green" />
+                      <span className="font-medium tracking-wide">In Order (Sequential)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button onClick={startPuzzles} className="w-full py-4 bg-lichess-green hover:bg-lichess-greenHover text-white font-bold rounded-sm uppercase tracking-widest transition-colors shadow-lg text-lg flex items-center justify-center gap-2">
+                  <span>▶</span> Play Puzzles
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      }
+
+      // === FINISHED VIEW ===
+      if (gameState === 'finished') {
+        return (
+          <>
+            <CustomModal />
+            <Header />
+            <div className="flex-grow flex items-center justify-center p-4">
+              <div className="bg-lichess-panel border border-lichess-border rounded-sm p-8 text-center max-w-md w-full shadow-lg animate-fade-in">
+                <div className="text-5xl mb-4 text-lichess-green">🏆</div>
+                <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-wide">Course Completed</h2>
+                <p className="text-lichess-text mb-8">お疲れ様でした！すべての構文解析を完了しました。</p>
+                <button onClick={goHome} className="w-full py-3 bg-lichess-button hover:bg-lichess-buttonHover border border-lichess-border text-white font-bold rounded-sm uppercase tracking-wider transition-colors shadow">
+                  Return to Main Menu
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      }
+
+      // === PLAYING VIEW ===
+      const currentQuestion = questionsQueue[currentIndex];
+      if (!currentQuestion) return null; // Safe guard
+      
+      const isAllSelected = selectedWords.length === currentQuestion.words.length;
+      const isShowingInspector = status === 'correct' || status === 'resigned';
+      
+      const completeSentence = currentQuestion.structure.map(s => s.text).join(' ');
+
       return (
         <>
+          <CustomModal />
           <Header />
-          
-          {showSettings && (
-            <div className="absolute top-14 right-4 bg-lichess-panel border border-lichess-border shadow-2xl rounded-sm p-4 z-20 w-80">
-              <h3 className="text-white font-bold uppercase tracking-wide mb-4 border-b border-lichess-border pb-2 text-sm">Data Settings</h3>
-              <div className="mb-4">
-                <input 
-                  type="file" accept=".json" onChange={handleFileUpload} ref={fileInputRef} className="hidden" id="json-upload"
-                />
-                <label htmlFor="json-upload" className="block w-full text-center py-2 bg-lichess-button hover:bg-lichess-buttonHover text-white text-sm font-bold rounded-sm cursor-pointer transition-colors">
-                  Upload Custom JSON
-                </label>
+          <div className="max-w-6xl mx-auto w-full p-4 md:p-6 no-select flex-grow flex flex-col relative z-0">
+            
+            <div className="flex justify-between items-center mb-4 text-sm text-lichess-text">
+              <div className="uppercase font-bold tracking-wider text-xs opacity-70">
+                Problem {currentIndex + 1} / {questionsQueue.length}
               </div>
-              <div>
-                <button onClick={downloadSampleJson} className="w-full py-2 border border-lichess-border hover:bg-lichess-button text-lichess-textHover text-sm font-bold rounded-sm transition-colors">
-                  Download JSON Template
-                </button>
+              <div className="uppercase font-bold tracking-wider text-xs opacity-50">
+                Mode: {playMode}
               </div>
             </div>
-          )}
 
-          {isGameFinished ? (
-            <div className="flex-grow flex items-center justify-center p-4">
-              <div className="bg-lichess-panel border border-lichess-border rounded-sm p-8 text-center max-w-md w-full shadow-lg">
-                <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-wide">Course Completed</h2>
-                <p className="text-lichess-text mb-8">すべての解析を完了しました。</p>
-                <button onClick={handleRestart} className="w-full py-3 bg-lichess-green hover:bg-lichess-greenHover text-white font-bold rounded-sm uppercase tracking-wider transition-colors">
-                  Analyze Again
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-6xl mx-auto w-full p-4 md:p-6 no-select flex-grow flex flex-col relative z-0">
-              
-              <div className="flex justify-between items-center mb-4 text-sm text-lichess-text">
-                <div className="uppercase font-bold tracking-wider text-xs opacity-70">
-                  Problem {currentIndex + 1} / {questions.length}
-                </div>
-              </div>
-
-              {currentQuestion && (
-                <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* --- Left Side: Main Board --- */}
+              <div className="flex-grow flex flex-col gap-6 lg:w-2/3">
+                <div className="bg-lichess-panel border border-lichess-border rounded-sm p-6 shadow-lg relative min-h-[400px]">
                   
-                  {/* Left Side: Main Board */}
-                  <div className="flex-grow flex flex-col gap-6 lg:w-2/3">
-                    <div className="bg-lichess-panel border border-lichess-border rounded-sm p-6 shadow-lg">
-                      <div className="mb-6 border-b border-lichess-border pb-4">
-                        <p className="text-xl md:text-2xl text-white font-medium mb-1">
-                          {currentQuestion.japanese}
-                        </p>
-                      </div>
+                  {/* Surrender Overlay */}
+                  {status === 'resigned' && (
+                    <div className="absolute top-4 right-4 border-2 border-lichess-red text-lichess-red px-3 py-1 text-sm font-bold uppercase tracking-widest rounded-sm opacity-80 rotate-12 pointer-events-none z-10">
+                      Resigned
+                    </div>
+                  )}
 
-                      {/* Drop Zone */}
+                  <div className="mb-6 border-b border-lichess-border pb-4">
+                    <p className="text-xl md:text-2xl text-white font-medium mb-1 tracking-wide leading-relaxed">
+                      {currentQuestion.japanese}
+                    </p>
+                  </div>
+
+                  {/* Playing Area (Hidden if Correct or Resigned) */}
+                  {!isShowingInspector && (
+                    <div className="animate-fade-in">
                       <div className="mb-6">
                         <div className="min-h-[80px] bg-lichess-bg border border-lichess-border rounded-sm p-3 flex flex-wrap gap-2 items-center">
                           {selectedWords.length === 0 ? (
-                            <span className="text-lichess-text opacity-50 text-sm w-full text-center py-2 uppercase tracking-widest">
+                            <span className="text-lichess-text opacity-40 text-sm w-full text-center py-2 uppercase tracking-widest">
                               Construct the sentence
                             </span>
                           ) : (
@@ -428,12 +553,7 @@
                               <button
                                 key={word.id}
                                 onClick={() => handleDeselectWord(word)}
-                                className={`px-4 py-2 rounded-sm font-medium shadow text-lg transition-colors ${
-                                  status === 'correct' 
-                                    ? 'bg-lichess-bg text-lichess-text opacity-50 cursor-default' 
-                                    : 'bg-lichess-button hover:bg-lichess-buttonHover text-white'
-                                }`}
-                                disabled={status !== 'playing'}
+                                className="px-4 py-2 bg-lichess-button hover:bg-lichess-buttonHover text-white rounded-sm font-medium shadow text-lg transition-colors"
                               >
                                 {word.text}
                               </button>
@@ -442,174 +562,213 @@
                         </div>
                       </div>
 
-                      {/* Word Pool */}
-                      {status === 'playing' && (
-                        <div>
-                          <div className="flex flex-wrap gap-2 min-h-[60px]">
-                            {availableWords.map((word) => (
-                              <button
-                                key={word.id}
-                                onClick={() => handleSelectWord(word)}
-                                className="px-4 py-2 bg-lichess-inputBg hover:bg-[#52504c] text-white rounded-sm font-medium shadow-sm text-lg transition-colors active:translate-y-[1px]"
-                              >
-                                {word.text}
-                              </button>
-                            ))}
-                          </div>
+                      <div>
+                        <div className="flex flex-wrap gap-2 min-h-[60px]">
+                          {availableWords.map((word) => (
+                            <button
+                              key={word.id}
+                              onClick={() => handleSelectWord(word)}
+                              className="px-4 py-2 bg-[#3e3c38] hover:bg-[#52504c] text-white rounded-sm font-medium shadow-sm text-lg transition-colors active:translate-y-[1px]"
+                            >
+                              {word.text}
+                            </button>
+                          ))}
                         </div>
-                      )}
-
-                      {/* SYNTAX ANALYSIS & INSPECTOR */}
-                      {status === 'correct' && (
-                        <div className="mt-2 animate-fade-in">
-                          {/* Board */}
-                          <div className="bg-[#1b1a18] p-4 border border-[#3e3c38] rounded-sm shadow-inner mb-4">
-                            <div className="text-xs uppercase font-bold tracking-widest text-lichess-green mb-4 flex justify-between items-center">
-                              <span>Syntax Analysis</span>
-                              <span className="text-lichess-text opacity-50 font-normal normal-case">Click elements to inspect</span>
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-3">
-                              {currentQuestion.structure.map((item, idx) => {
-                                const isSelected = inspectedIndex === idx;
-                                return (
-                                  <div 
-                                    key={idx} 
-                                    onClick={() => setInspectedIndex(idx)}
-                                    className={`
-                                      flex flex-col items-center p-2 rounded-sm cursor-pointer transition-all border-2
-                                      ${isSelected ? `bg-[#2a2825] ${getRoleBorderClass(item.role)} shadow-lg scale-105` : 'border-transparent hover:bg-[#262421]'}
-                                      ${!isSelected && idx === 0 && inspectedIndex === null ? 'inspector-hint' : ''}
-                                    `}
-                                  >
-                                    <div className={`text-lg mb-2 font-medium ${isSelected ? 'text-white' : 'text-lichess-text'}`}>
-                                      {item.text}
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                      <span className={`px-2 py-0.5 text-xs font-bold rounded-sm tracking-wider ${getRoleColorClass(item.role)}`}>
-                                        {item.role}
-                                      </span>
-                                      {/* Detail Badge (if exists) */}
-                                      {item.detail && (
-                                        <span className="text-[10px] text-lichess-text opacity-80 whitespace-nowrap">
-                                          {item.detail.split(' ')[0]} {/* 略称表示 */}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Inspector Panel (Details) */}
-                          <div className="bg-lichess-bg border-l-4 border-lichess-green p-4 rounded-r-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-                              <span className="text-9xl font-bold">⚙</span>
-                            </div>
-                            
-                            <h4 className="text-sm uppercase font-bold text-lichess-text tracking-widest mb-3">Grammar Inspector</h4>
-                            
-                            {inspectedIndex !== null && currentQuestion.structure[inspectedIndex] ? (
-                              <div className="relative z-10 animate-fade-in">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className={`px-3 py-1 text-sm font-bold rounded-sm ${getRoleColorClass(currentQuestion.structure[inspectedIndex].role)}`}>
-                                    {getRoleFullName(currentQuestion.structure[inspectedIndex].role)}
-                                  </span>
-                                  {currentQuestion.structure[inspectedIndex].detail && (
-                                    <span className="text-white font-medium border-b border-gray-600 pb-0.5">
-                                      {currentQuestion.structure[inspectedIndex].detail}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-lg text-white mb-2 mt-3 font-serif italic">"{currentQuestion.structure[inspectedIndex].text}"</p>
-                                <p className="text-lichess-text leading-relaxed">
-                                  {currentQuestion.structure[inspectedIndex].explanation || '詳しい解説はありません。'}
-                                </p>
-                              </div>
-                            ) : (
-                              <p className="text-lichess-text opacity-50 text-sm">Select an element above to view detailed grammar analysis.</p>
-                            )}
-
-                            {/* Overall Pattern Note */}
-                            {currentQuestion.overallExplanation && (
-                              <div className="mt-6 pt-4 border-t border-lichess-border">
-                                <span className="text-xs uppercase font-bold text-lichess-text tracking-wider mr-2">Pattern {currentQuestion.pattern}:</span>
-                                <span className="text-sm text-lichess-textHover">{currentQuestion.overallExplanation}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Right Side: Control Panel */}
-                  <div className="lg:w-1/3 flex flex-col gap-4">
-                    <div className="bg-lichess-panel border border-lichess-border rounded-sm p-4 shadow-lg flex flex-col justify-center min-h-[140px]">
+                  {/* SYNTAX ANALYSIS & INSPECTOR */}
+                  {isShowingInspector && (
+                    <div className="animate-fade-in flex flex-col h-full">
                       
-                      {status === 'playing' && (
-                        <button
-                          onClick={handleCheckAnswer}
-                          disabled={!isAllSelected}
-                          className={`w-full py-4 rounded-sm font-bold uppercase tracking-wide transition-colors ${
-                            isAllSelected
-                              ? 'bg-lichess-green hover:bg-lichess-greenHover text-white shadow'
-                              : 'bg-lichess-button text-lichess-text cursor-not-allowed opacity-50'
-                          }`}
+                      {/* English Sentence Readout */}
+                      <div className="mb-5 p-4 bg-[#1b1a18] border border-[#3e3c38] rounded-sm flex flex-col md:flex-row items-start md:items-center justify-between shadow-inner gap-4">
+                        <div className="text-xl text-white font-serif italic tracking-wide leading-relaxed">
+                          {completeSentence}
+                        </div>
+                        <button 
+                          onClick={() => handleSpeak(completeSentence)}
+                          className="flex-shrink-0 bg-lichess-button hover:bg-[#4c4a47] text-white px-4 py-2 rounded-sm border border-[#4c4a47] transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
                         >
-                          Evaluate
+                          <span className="text-lg">🔊</span> 
+                          <span className="text-xs uppercase font-bold tracking-widest">Listen</span>
                         </button>
-                      )}
-
-                      {status === 'correct' && (
-                        <div className="text-center animate-fade-in">
-                          <div className="text-lg font-bold text-lichess-green mb-4 uppercase tracking-wide">
-                            Correct Syntax
-                          </div>
-                          <button
-                            onClick={handleNextQuestion}
-                            className="w-full py-4 bg-lichess-button hover:bg-lichess-buttonHover border border-lichess-border text-white rounded-sm font-bold uppercase tracking-widest transition-colors shadow"
-                          >
-                            Next Problem ❯
-                          </button>
-                        </div>
-                      )}
-
-                      {status === 'incorrect' && (
-                        <div className="text-center animate-fade-in">
-                          <div className="text-lg font-bold text-lichess-red mb-4 uppercase tracking-wide">
-                            Blunder
-                          </div>
-                          <button
-                            onClick={handleResetSelection}
-                            className="w-full py-3 bg-lichess-button hover:bg-lichess-buttonHover border border-lichess-border text-white rounded-sm font-bold uppercase transition-colors"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Legend Panel */}
-                    <div className="hidden lg:block bg-lichess-panel border border-lichess-border rounded-sm p-4">
-                      <div className="text-xs uppercase font-bold text-center tracking-widest text-lichess-text border-b border-lichess-border pb-2 mb-3">
-                        Role Legend
                       </div>
-                      <div className="flex flex-col gap-2 text-sm text-lichess-text">
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-lichess-roleS"></span> <span className="w-10">S</span> Subject (主語)</div>
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-lichess-roleV"></span> <span className="w-10">V</span> Verb (動詞)</div>
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-lichess-roleO"></span> <span className="w-10">O</span> Object (目的語)</div>
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-lichess-roleC"></span> <span className="w-10">C</span> Complement (補語)</div>
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-lichess-roleM"></span> <span className="w-10">M</span> Modifier (修飾語)</div>
+
+                      <div className="bg-[#1b1a18] p-4 border border-[#3e3c38] rounded-sm shadow-inner mb-4">
+                        <div className="text-xs uppercase font-bold tracking-widest text-lichess-green mb-4 flex justify-between items-center">
+                          <span>Syntax Analysis</span>
+                          <span className="text-lichess-text opacity-50 font-normal normal-case">Click to inspect</span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-3">
+                          {currentQuestion.structure.map((item, idx) => {
+                            const isSelected = inspectedIndex === idx;
+                            return (
+                              <div 
+                                key={idx} 
+                                onClick={() => setInspectedIndex(idx)}
+                                className={`
+                                  flex flex-col items-center p-2 rounded-sm cursor-pointer transition-all border-2
+                                  ${isSelected ? `bg-[#2a2825] ${getRoleBorderClass(item.role)} shadow-lg scale-105` : 'border-transparent hover:bg-[#262421]'}
+                                  ${!isSelected && idx === 0 && inspectedIndex === null ? 'inspector-hint' : ''}
+                                `}
+                              >
+                                <div className={`text-lg mb-2 font-medium ${isSelected ? 'text-white' : 'text-lichess-text'}`}>
+                                  {item.text}
+                                </div>
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className={`px-2 py-0.5 text-[11px] font-bold rounded-sm tracking-widest ${getRoleColorClass(item.role)}`}>
+                                    {item.role}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Inspector Panel */}
+                      <div className="bg-lichess-bg border-l-4 border-lichess-green p-5 rounded-r-sm relative overflow-hidden flex-grow">
+                        <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                          <span className="text-9xl font-bold">⚙</span>
+                        </div>
+                        
+                        <h4 className="text-sm uppercase font-bold text-lichess-text tracking-widest mb-3">Inspector</h4>
+                        
+                        {inspectedIndex !== null && currentQuestion.structure[inspectedIndex] ? (
+                          <div className="relative z-10 animate-fade-in">
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
+                              <span className={`px-3 py-1 text-sm font-bold rounded-sm ${getRoleColorClass(currentQuestion.structure[inspectedIndex].role)}`}>
+                                {getRoleFullName(currentQuestion.structure[inspectedIndex].role)}
+                              </span>
+                              {currentQuestion.structure[inspectedIndex].detail && (
+                                <span className="text-white text-sm font-medium border-b border-gray-600 pb-0.5">
+                                  {currentQuestion.structure[inspectedIndex].detail}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-lg text-white mb-3 mt-4 font-serif italic border-l-2 border-lichess-border pl-3">
+                              "{currentQuestion.structure[inspectedIndex].text}"
+                            </p>
+                            <p className="text-lichess-text leading-relaxed text-sm md:text-base">
+                              {currentQuestion.structure[inspectedIndex].explanation || '詳しい解説はありません。'}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-lichess-text opacity-50 text-sm">Select an element above to view detailed grammar analysis.</p>
+                        )}
+
+                        {/* Overall Pattern Note */}
+                        {currentQuestion.overallExplanation && (
+                          <div className="mt-6 pt-4 border-t border-lichess-border">
+                            <span className="text-xs uppercase font-bold text-lichess-text tracking-wider mr-2">Pattern {currentQuestion.pattern}:</span>
+                            <span className="text-sm text-lichess-textHover leading-relaxed block mt-1">{currentQuestion.overallExplanation}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* --- Right Side: Control Panel --- */}
+              <div className="lg:w-1/3 flex flex-col gap-4">
+                <div className="bg-lichess-panel border border-lichess-border rounded-sm p-4 shadow-lg flex flex-col justify-center min-h-[160px]">
+                  
+                  {status === 'playing' && (
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={handleCheckAnswer}
+                        disabled={!isAllSelected}
+                        className={`w-full py-4 rounded-sm font-bold uppercase tracking-widest transition-colors ${
+                          isAllSelected
+                            ? 'bg-lichess-green hover:bg-lichess-greenHover text-white shadow'
+                            : 'bg-lichess-button text-lichess-text cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        Evaluate
+                      </button>
+                      <button
+                        onClick={handleResign}
+                        className="w-full py-3 bg-transparent border border-lichess-border hover:bg-[#363431] text-lichess-text hover:text-white rounded-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                        title="Give up and show solution"
+                      >
+                        <span className="text-lg leading-none">⚑</span> Resign
+                      </button>
+                    </div>
+                  )}
+
+                  {status === 'correct' && (
+                    <div className="text-center animate-fade-in">
+                      <div className="text-lg font-bold text-lichess-green mb-4 uppercase tracking-widest flex items-center justify-center gap-2">
+                        <span>✓</span> Correct Syntax
+                      </div>
+                      <button
+                        onClick={handleNextQuestion}
+                        className="w-full py-4 bg-[#3e3c38] hover:bg-[#52504c] border border-[#52504c] text-white rounded-sm font-bold uppercase tracking-widest transition-colors shadow"
+                      >
+                        Next Problem ❯
+                      </button>
+                    </div>
+                  )}
+
+                  {status === 'resigned' && (
+                    <div className="text-center animate-fade-in">
+                      <div className="text-sm font-bold text-lichess-text mb-4 uppercase tracking-widest flex items-center justify-center gap-2 opacity-80">
+                        <span>⚑</span> You Resigned
+                      </div>
+                      <button
+                        onClick={handleNextQuestion}
+                        className="w-full py-4 bg-lichess-button hover:bg-[#4c4a47] border border-lichess-border text-white rounded-sm font-bold uppercase tracking-widest transition-colors shadow"
+                      >
+                        Next Problem ❯
+                      </button>
+                    </div>
+                  )}
+
+                  {status === 'incorrect' && (
+                    <div className="text-center animate-fade-in">
+                      <div className="text-lg font-bold text-lichess-red mb-4 uppercase tracking-widest">
+                        Blunder
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleResetSelection}
+                          className="flex-1 py-3 bg-lichess-button hover:bg-[#4c4a47] border border-lichess-border text-white rounded-sm font-bold uppercase tracking-wider transition-colors"
+                        >
+                          Retry
+                        </button>
+                        <button
+                          onClick={handleResign}
+                          className="px-4 py-3 bg-transparent border border-lichess-border hover:bg-[#363431] text-lichess-red hover:text-white hover:bg-lichess-red rounded-sm font-bold transition-colors"
+                          title="Resign"
+                        >
+                          ⚑
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Legend Panel */}
+                <div className="hidden lg:block bg-lichess-panel border border-lichess-border rounded-sm p-4">
+                  <div className="text-[10px] uppercase font-bold text-center tracking-widest text-lichess-text border-b border-lichess-border pb-2 mb-3">
+                    Syntax Legend
+                  </div>
+                  <div className="flex flex-col gap-2 text-xs text-lichess-text">
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-lichess-roleS"></span> <span className="w-6 font-bold">S</span> Subject</div>
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-lichess-roleV"></span> <span className="w-6 font-bold">V</span> Verb</div>
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-lichess-roleO"></span> <span className="w-6 font-bold">O</span> Object</div>
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-lichess-roleC"></span> <span className="w-6 font-bold">C</span> Complement</div>
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-lichess-roleM"></span> <span className="w-6 font-bold">M</span> Modifier</div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-          )}
+          </div>
         </>
       );
     }

@@ -19,7 +19,7 @@ Analytical tools, parsers, and data extraction utilities.
 * JSON Downloader (`tools/json_downloader.html`)
 * JSON Merger (`tools/json_marger.html`)
 * PDF to MD (`tools/pdf_to_md.html`)
-* Thread Scraper (`tools/thread_scraper.html`)
+* Wiki to MD (`tools/wiki_to_md.html`)
 * Legal Compiler (`tools/legal_compiler.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
 
@@ -38,6 +38,7 @@ Specialized financial planning calculators and tax matrices.
 * FP1 Asset Value (`fp1/fp1_asset_value.html`)
 * FP1 Sell Buy (`fp1/fp1_sell_buy.html`)
 * FP1 Inheritance (`fp1/fp1_souzoku.html`)
+* FP1 Small Scale Land Tax Relief (`fp1/fp1_small-scale-land-tax-relief.html`)
 * FP1 Analysis (`fp1/analysis.html`)
 * FP1 Static (`fp1/static.html`)
 

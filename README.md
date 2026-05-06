@@ -52,7 +52,12 @@ Vocabulary drills, grammar rules, and syntax parsing.
 * Grammar Structure (`english_card/grammar_structure.html`)
 * Syntax as Code (`english_card/syntax_as_code.html`)
 * Syntax Parser (`english_card/syntax_parser.html`)
+* Grammar Verb (`english_card/grammar_verb.html`)
+* Grammar Term (`english_card/grammar_term.html`)
+* Grammar Puzzle (`english_card/grammar_puzzle.html`)
+* Modifiers (`english_card/modifiers.html`)
 * No M Sentence (`english_card/no_m_sentence.html`)
+* No M Puzzle (`english_card/no_m_puzzle.html`)
 
 ## Deployment
 

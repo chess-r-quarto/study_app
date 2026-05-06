@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英語動詞 文法定義・完全分類マスターテーブル</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; background-color: white; }
+    th, td { border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; vertical-align: top; }
+    th { color: #1e293b; font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    /* Section Headers */
+    .sec-syntactic th { background-color: #f1f5f9; }
+    .sec-semantic th { background-color: #f0fdfa; }
+    .sec-morphological th { background-color: #fdf4ff; }
+    .sec-functional th { background-color: #fffbeb; }
+    .sec-special th { background-color: #f8fafc; }
+
+    /* Category Cells */
+    .cat-syntactic { background-color: #e2e8f0; color: #334155; font-weight: bold; width: 15%; }
+    .cat-semantic { background-color: #ccfbf1; color: #0f766e; font-weight: bold; width: 15%; }
+    .cat-morphological { background-color: #fae8ff; color: #86198f; font-weight: bold; width: 15%; }
+    .cat-functional { background-color: #fef3c7; color: #b45309; font-weight: bold; width: 15%; }
+    .cat-special { background-color: #e2e8f0; color: #475569; font-weight: bold; width: 15%; }
+
+    .term-en { display: block; font-size: 0.75rem; color: #64748b; font-weight: normal; margin-top: 2px; }
+    .both { font-weight: 800; font-style: italic; color: #4f46e5; }
+    .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #f1f5f9; font-size: 0.75rem; border: 1px solid #cbd5e1; margin-right: 4px; margin-bottom: 4px;}
+  </style>
+</head>
+<body class="bg-slate-50 p-4 md:p-8 text-slate-800">
+  <div class="max-w-7xl mx-auto rounded-xl shadow-lg overflow-hidden border border-slate-200">
+    <div class="bg-slate-800 p-6 text-white">
+      <h1 class="text-2xl font-bold tracking-wide">英語動詞 (Verbs) 文法定義・完全網羅テーブル</h1>
+      <p class="text-slate-300 mt-2 text-sm leading-relaxed">
+        英語の動詞が持つすべての文法属性（構文、意味、形態、機能）を定義づけたマスター表です。<br>
+        例文アプリのDB設計において、これらの属性をフラグやタグとして管理することで、精度の高い出題が可能になります。
+      </p>
+    </div>
+
+    <!-- 1. 構文的分類 (Syntactic Classification) -->
+    <div class="overflow-x-auto">
+      <table class="sec-syntactic">
+        <thead>
+          <tr>
+            <th colspan="4" class="text-lg bg-slate-200 text-slate-800 py-3">1. 構文的分類 <span class="text-sm font-normal text-slate-600 ml-2">Syntactic Classification (文の骨組みを決める)</span></th>
+          </tr>
+          <tr>
+            <th>大分類 <span class="term-en">Main Category</span></th>
+            <th class="w-1/4">文型・用法 <span class="term-en">Pattern / Usage</span></th>
+            <th class="w-1/3">文法的定義・ルール <span class="term-en">Grammar Definition & Rules</span></th>
+            <th>代表例 <span class="term-en">Examples</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2" class="cat-syntactic">自動詞<span class="term-en">Intransitive Verb</span></td>
+            <td class="bg-white">完全自動詞 <span class="term-en">Complete Intransitive [SV]</span></td>
+            <td class="bg-white">
+              目的語(Object)も補語(Complement)もとらない。<br>
+              <span class="text-xs text-rose-600 font-semibold mt-1 block">【DBフラグ】受動態(Passive Voice)に変換不可。</span>
+            </td>
+            <td class="bg-white">exist, sleep, happen, <span class="both">run</span></td>
+          </tr>
+          <tr>
+            <td class="bg-white">不完全自動詞 <span class="term-en">Incomplete Intransitive [SVC]</span></td>
+            <td class="bg-white">主語(Subject)を説明する補語(C)を必要とする。<br>動詞はSとCを結ぶ「連結詞(Copula)」として機能。</td>
+            <td class="bg-white">be, become, look, <span class="both">feel</span></td>
+          </tr>
+          <tr>
+            <td rowspan="3" class="cat-syntactic">他動詞<span class="term-en">Transitive Verb</span></td>
+            <td class="bg-white">完全他動詞 <span class="term-en">Complete Transitive [SVO]</span></td>
+            <td class="bg-white">
+              直接目的語(Direct Object)を1つとる。<br>
+              <span class="text-xs text-emerald-600 font-semibold mt-1 block">【DBフラグ】受動態(Passive Voice)に変換可能。</span>
+            </td>
+            <td class="bg-white">eat, make, discuss, <span class="both">open</span></td>
+          </tr>
+          <tr>
+            <td class="bg-white">授与動詞 <span class="term-en">Ditransitive / Dative [SVOO]</span></td>
+            <td class="bg-white">間接目的語(Indirect Object: 誰に)と直接目的語(Direct Object: 何を)の2つをとる。</td>
+            <td class="bg-white">give, send, buy, teach</td>
+          </tr>
+          <tr>
+            <td class="bg-white">不完全他動詞 <span class="term-en">Incomplete Transitive [SVOC]</span></td>
+            <td class="bg-white">目的語(O)と、Oの状態を説明する補語(C)を必要とする。(O = C)</td>
+            <td class="bg-white">call, name, find, <span class="both">keep</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. 意味的分類 (Semantic Classification) -->
+    <div class="overflow-x-auto">
+      <table class="sec-semantic">
+        <thead>
+          <tr>
+            <th colspan="4" class="text-lg bg-teal-100 text-teal-900 py-3">2. 意味・相による分類 <span class="text-sm font-normal text-teal-700 ml-2">Semantic & Aspectual Classification (進行形にできるか)</span></th>
+          </tr>
+          <tr>
+            <th>大分類 <span class="term-en">Main Category</span></th>
+            <th class="w-1/4">サブカテゴリ <span class="term-en">Subcategory</span></th>
+            <th class="w-1/3">文法的定義・ルール <span class="term-en">Grammar Definition & Rules</span></th>
+            <th>代表例 <span class="term-en">Examples</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2" class="cat-semantic">状態動詞<span class="term-en">Stative Verb</span></td>
+            <td class="bg-white">所有・存在・関係<br><span class="term-en">Possession / Existence</span></td>
+            <td class="bg-white">
+              ある状態が「継続している」ことを表す。<br>
+              <span class="text-xs text-rose-600 font-semibold mt-1 block">【重要ルール】原則として進行形(Progressive Aspect)にしない。</span>
+            </td>
+            <td class="bg-white">have(持つ), belong, exist, resemble</td>
+          </tr>
+          <tr>
+            <td class="bg-white">心理・感情・認識<br><span class="term-en">Emotion / Cognition</span></td>
+            <td class="bg-white">心や頭の中の状態を表す。意思で即座に止められない。</td>
+            <td class="bg-white">know, believe, like, want</td>
+          </tr>
+          <tr>
+            <td rowspan="2" class="cat-semantic">動作動詞<span class="term-en">Dynamic / Action Verb</span></td>
+            <td class="bg-white">継続的動作<br><span class="term-en">Activity Verb</span></td>
+            <td class="bg-white">
+              始まりと終わりがあり、意思でコントロールできる動作。<br>
+              <span class="text-xs text-emerald-600 font-semibold mt-1 block">【重要ルール】進行形(Progressive Aspect)にできる。</span>
+            </td>
+            <td class="bg-white">run, play, study, eat</td>
+          </tr>
+          <tr>
+            <td class="bg-white">瞬間的動作<br><span class="term-en">Achievement Verb</span></td>
+            <td class="bg-white">一瞬で完了する動作。進行形にすると「〜しつつある(直前)」の意味になる。</td>
+            <td class="bg-white">arrive, stop, drop, die</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. 機能的分類 (Functional Classification) -->
+    <div class="overflow-x-auto">
+      <table class="sec-functional">
+        <thead>
+          <tr>
+            <th colspan="4" class="text-lg bg-amber-100 text-amber-900 py-3">3. 機能的分類 <span class="text-sm font-normal text-amber-700 ml-2">Functional Classification (文の要素としての役割)</span></th>
+          </tr>
+          <tr>
+            <th>大分類 <span class="term-en">Main Category</span></th>
+            <th class="w-1/4">サブカテゴリ <span class="term-en">Subcategory</span></th>
+            <th class="w-1/3">文法的定義・ルール <span class="term-en">Grammar Definition & Rules</span></th>
+            <th>代表例 <span class="term-en">Examples</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cat-functional">本動詞<span class="term-en">Principal / Main Verb</span></td>
+            <td class="bg-white">-</td>
+            <td class="bg-white">文の主要な意味を持つ核となる動詞。（1と2の分類はすべてこれに該当）</td>
+            <td class="bg-white">go, eat, make, think</td>
+          </tr>
+          <tr>
+            <td rowspan="2" class="cat-functional">助動詞<span class="term-en">Auxiliary Verb</span></td>
+            <td class="bg-white">基本助動詞<br><span class="term-en">Primary Auxiliary</span></td>
+            <td class="bg-white">
+              本動詞と結びついて、時制(Tense)、相(Aspect)、態(Voice)、疑問・否定を作る。
+            </td>
+            <td class="bg-white">
+              <span class="tag">be</span> (進行形/受動態)<br>
+              <span class="tag">have</span> (完了形)<br>
+              <span class="tag">do</span> (疑問/否定)
+            </td>
+          </tr>
+          <tr>
+            <td class="bg-white">法助動詞<span class="term-en">Modal Auxiliary / Modal Verb</span></td>
+            <td class="bg-white">
+              話し手の「法(Mood)＝心理的態度（可能性・義務・推量）」を付加する。<br>
+              <span class="text-xs text-rose-600 font-semibold mt-1 block">【ルール】後ろに動詞の原形(Base form)をとる。三単現のsはつかない。</span>
+            </td>
+            <td class="bg-white">will, can, must, may, should, ought to</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. 形態的分類 (Morphological Classification) -->
+    <div class="overflow-x-auto">
+      <table class="sec-morphological">
+        <thead>
+          <tr>
+            <th colspan="4" class="text-lg bg-fuchsia-100 text-fuchsia-900 py-3">4. 形態的分類 <span class="text-sm font-normal text-fuchsia-700 ml-2">Morphological Classification (活用変化)</span></th>
+          </tr>
+          <tr>
+            <th>大分類 <span class="term-en">Main Category</span></th>
+            <th class="w-1/4">活用パターン <span class="term-en">Conjugation Pattern</span></th>
+            <th class="w-1/3">文法的定義・ルール <span class="term-en">Grammar Definition & Rules</span></th>
+            <th>代表例 <span class="term-en">Examples (Base - Past - Past Participle)</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cat-morphological">規則動詞<span class="term-en">Regular Verb</span></td>
+            <td class="bg-white">-ed 型</td>
+            <td class="bg-white">過去形(Past)と過去分詞(Past Participle)が「-ed」をつける規則的な変化をする。</td>
+            <td class="bg-white">play - played - played<br>study - studied - studied</td>
+          </tr>
+          <tr>
+            <td rowspan="4" class="cat-morphological">不規則動詞<span class="term-en">Irregular Verb</span></td>
+            <td class="bg-white">A-A-A 型</td>
+            <td class="bg-white">原形、過去形、過去分詞がすべて同じ形。</td>
+            <td class="bg-white">cut - cut - cut<br>put - put - put</td>
+          </tr>
+          <tr>
+            <td class="bg-white">A-B-A 型</td>
+            <td class="bg-white">原形と過去分詞が同じ形。</td>
+            <td class="bg-white">come - came - come<br>run - ran - run</td>
+          </tr>
+          <tr>
+            <td class="bg-white">A-B-B 型</td>
+            <td class="bg-white">過去形と過去分詞が同じ形。</td>
+            <td class="bg-white">make - made - made<br>have - had - had</td>
+          </tr>
+          <tr>
+            <td class="bg-white">A-B-C 型</td>
+            <td class="bg-white">原形、過去形、過去分詞がすべて異なる形。</td>
+            <td class="bg-white">go - went - gone<br>write - wrote - written</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5. 特殊用法を持つ動詞群 (Special Verb Groups) -->
+    <div class="overflow-x-auto">
+      <table class="sec-special mb-0">
+        <thead>
+          <tr>
+            <th colspan="4" class="text-lg bg-slate-200 text-slate-800 py-3">5. 特殊な文法構造を持つ動詞群 <span class="text-sm font-normal text-slate-600 ml-2">Special Verb Groups</span></th>
+          </tr>
+          <tr>
+            <th>大分類 <span class="term-en">Main Category</span></th>
+            <th class="w-1/4">文法的特徴 <span class="term-en">Grammatical Features</span></th>
+            <th class="w-1/3">文法的定義・ルール <span class="term-en">Grammar Definition & Rules</span></th>
+            <th>代表例 <span class="term-en">Examples</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cat-special">使役動詞<span class="term-en">Causative Verb</span></td>
+            <td class="bg-white">SVOCの特殊形</td>
+            <td class="bg-white">
+              「OにCさせる/してもらう」という力関係を表す。<br>
+              <span class="text-xs text-rose-600 font-semibold mt-1 block">【ルール】補語(C)に「toのない動詞の原形 (Bare Infinitive)」をとる。（getを除く）</span>
+            </td>
+            <td class="bg-white">
+              <span class="tag">make</span> (強制)<br>
+              <span class="tag">have</span> (当然の依頼)<br>
+              <span class="tag">let</span> (許可)
+            </td>
+          </tr>
+          <tr>
+            <td class="cat-special">知覚動詞<span class="term-en">Perception Verb /<br>Verb of Senses</span></td>
+            <td class="bg-white">SVOCの特殊形</td>
+            <td class="bg-white">
+              見る・聞く・感じるなど五感を表す。<br>
+              <span class="text-xs text-rose-600 font-semibold mt-1 block">【ルール】補語(C)に「原形不定詞 (一部始終)」または「現在分詞 ~ing (進行中の動作)」をとる。</span>
+            </td>
+            <td class="bg-white">see, hear, feel, watch, observe</td>
+          </tr>
+          <tr>
+            <td class="cat-special">句動詞<span class="term-en">Phrasal Verb</span></td>
+            <td class="bg-white">動詞 ＋ 副詞/前置詞</td>
+            <td class="bg-white">
+              複数の単語が結合して、1つの自動詞または他動詞として機能する。<br>
+              <span class="text-xs text-emerald-600 font-semibold mt-1 block">【ルール】目的語が代名詞(it, them等)の場合、[動詞 + 代名詞 + 副詞]の語順になる。<br>(例: turn it on)</span>
+            </td>
+            <td class="bg-white">
+              give up (諦める)<br>
+              look after (世話をする)<br>
+              put off (延期する)
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -257,7 +257,30 @@
         }
       }, [currentIndex, questionsQueue, gameState]);
 
-      // Auto-advance logic
+      // --- NEW: Auto-Evaluation Logic ---
+      // すべての単語が選択されたら自動的に判定を行う
+      useEffect(() => {
+        const currentQuestion = questionsQueue[currentIndex];
+        if (
+          status === 'playing' && 
+          currentQuestion && 
+          selectedWords.length > 0 && 
+          selectedWords.length === currentQuestion.words.length
+        ) {
+          const isMatch = selectedWords.every((w, i) => w.text === currentQuestion.words[i]);
+
+          if (isMatch) {
+            setStatus('correct');
+            if (!autoAdvance) {
+              setInspectedIndex(0);
+            }
+          } else {
+            setStatus('incorrect');
+          }
+        }
+      }, [selectedWords, status, currentIndex, questionsQueue, autoAdvance]);
+
+      // Auto-advance logic after correct evaluation
       useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
         if (status === 'correct' && autoAdvance) {
@@ -291,22 +314,6 @@
         if (status !== 'playing') return;
         setSelectedWords((prev) => prev.filter((w) => w.id !== wordItem.id));
         setAvailableWords((prev) => [...prev, wordItem]);
-      };
-
-      const handleCheckAnswer = () => {
-        const currentQuestion = questionsQueue[currentIndex];
-        const isMatch =
-          selectedWords.length === currentQuestion.words.length &&
-          selectedWords.every((w, i) => w.text === currentQuestion.words[i]);
-
-        if (isMatch) {
-          setStatus('correct');
-          if (!autoAdvance) {
-            setInspectedIndex(0);
-          }
-        } else {
-          setStatus('incorrect');
-        }
       };
 
       const handleResign = () => {
@@ -574,12 +581,7 @@
       const currentQuestion = questionsQueue[currentIndex];
       if (!currentQuestion) return null; // Safe guard
       
-      const isAllSelected = selectedWords.length === currentQuestion.words.length;
-      
-      // If Auto-advance is ON and it's correct, we don't show the inspector (it transitions in 0.1s)
-      // Exception: If they resigned, we show the inspector regardless.
       const isShowingInspector = (status === 'correct' && !autoAdvance) || status === 'resigned';
-      
       const completeSentence = currentQuestion.structure.map(s => s.text).join(' ');
 
       return (
@@ -758,20 +760,14 @@
                   
                   {status === 'playing' && (
                     <div className="flex flex-col gap-3">
-                      <button
-                        onClick={handleCheckAnswer}
-                        disabled={!isAllSelected}
-                        className={`w-full py-4 rounded-sm font-bold uppercase tracking-widest transition-colors ${
-                          isAllSelected
-                            ? 'bg-lichess-green hover:bg-lichess-greenHover text-white shadow'
-                            : 'bg-lichess-button text-lichess-text cursor-not-allowed opacity-50'
-                        }`}
-                      >
-                        Evaluate
-                      </button>
+                      {/* Selection Progress Indicator */}
+                      <div className="text-center text-lichess-text opacity-70 text-sm mb-1 uppercase tracking-widest">
+                        {selectedWords.length} / {currentQuestion.words.length} Selected
+                      </div>
+                      
                       <button
                         onClick={handleResign}
-                        className="w-full py-3 bg-transparent border border-lichess-border hover:bg-[#363431] text-lichess-text hover:text-white rounded-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-transparent border border-lichess-border hover:bg-[#363431] text-lichess-text hover:text-white rounded-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                         title="Give up and show solution"
                       >
                         <span className="text-lg leading-none">⚑</span> Resign

@@ -32,7 +32,7 @@
       Clipboard, UploadCloud, FileJson, RotateCcw,
       Minimize, Maximize, Hash, Shuffle, ListOrdered,
       Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
-      PlayCircle, Timer
+      PlayCircle
     } from 'https://esm.sh/lucide-react@0.292.0';
 
     interface QuestionData {
@@ -43,6 +43,7 @@
       meaning: string;
       wrong: string;
       context: string;
+      context_translation?: string; // 例文の日本語訳を追加（オプショナル）
       source: string;
     }
 
@@ -54,12 +55,35 @@
     type QuestionCountOption = '50' | '100' | 'all';
     type SessionMode = 'quiz' | 'reading';
 
+    // ご提示いただいたデータを追加
     const DEFAULT_DATA: QuestionData[] = [
-      { id: 1, word: "prescriptive", pronunciation: "/prɪˈskrɪptɪv/", pos: "Adjective", meaning: "規範的な、指示する", wrong: "自由放任の", context: "The manual offers prescriptive rules for grammar and punctuation.", source: "Chicago Manual of Style" },
-      { id: 2, word: "authoritative", pronunciation: "/əˈθɔːrɪteɪtɪv/", pos: "Adjective", meaning: "権威ある、信頼できる", wrong: "疑わしい", context: "CMOS is considered an authoritative source for American English.", source: "Chicago Manual of Style" },
-      { id: 3, word: "plagiarism", pronunciation: "/ˈpleɪdʒərɪzəm/", pos: "Noun", meaning: "盗作、剽窃", wrong: "独創", context: "Strict citation guidelines help prevent plagiarism.", source: "Chicago Manual of Style" },
-      { id: 4, "word": "bibliography", pronunciation: "/ˌbɪbliˈɒɡrəfi/", pos: "Noun", meaning: "参考文献目録", wrong: "索引", context: "The bibliography lists all sources consulted by the author.", source: "Chicago Manual of Style" },
-      { id: 5, word: "manuscript", pronunciation: "/ˈmænjʊskrɪpt/", pos: "Noun", meaning: "原稿", wrong: "既刊本", context: "Authors submit their manuscripts to the publisher for review.", source: "Chicago Manual of Style" }
+      {
+        id: 1,
+        word: "hazardous material",
+        pronunciation: "/ˈhæzərdəs məˈtɪriəl/",
+        pos: "Noun",
+        meaning: "危険物",
+        wrong: "安全物質",
+        context: "A license is required to handle hazardous materials.",
+        context_translation: "危険物を取り扱うには免状が必要です。",
+        source: "法令"
+      },
+      {
+        id: 2,
+        word: "Fire Service Act",
+        pronunciation: "/faɪər ˈsɜːrvɪs ækt/",
+        pos: "Noun",
+        meaning: "消防法",
+        wrong: "建築基準法",
+        context: "The storage of hazardous materials is regulated by the Fire Service Act.",
+        context_translation: "危険物の貯蔵は消防法によって規制されています。",
+        source: "法令"
+      },
+      { id: 3, word: "prescriptive", pronunciation: "/prɪˈskrɪptɪv/", pos: "Adjective", meaning: "規範的な、指示する", wrong: "自由放任の", context: "The manual offers prescriptive rules for grammar and punctuation.", source: "Chicago Manual of Style" },
+      { id: 4, word: "authoritative", pronunciation: "/əˈθɔːrɪteɪtɪv/", pos: "Adjective", meaning: "権威ある、信頼できる", wrong: "疑わしい", context: "CMOS is considered an authoritative source for American English.", source: "Chicago Manual of Style" },
+      { id: 5, word: "plagiarism", pronunciation: "/ˈpleɪdʒərɪzəm/", pos: "Noun", meaning: "盗作、剽窃", wrong: "独創", context: "Strict citation guidelines help prevent plagiarism.", source: "Chicago Manual of Style" },
+      { id: 6, word: "bibliography", pronunciation: "/ˌbɪbliˈɒɡrəfi/", pos: "Noun", meaning: "参考文献目録", wrong: "索引", context: "The bibliography lists all sources consulted by the author.", source: "Chicago Manual of Style" },
+      { id: 7, word: "manuscript", pronunciation: "/ˈmænjʊskrɪpt/", pos: "Noun", meaning: "原稿", wrong: "既刊本", context: "Authors submit their manuscripts to the publisher for review.", source: "Chicago Manual of Style" }
     ];
 
     const WindowControls = ({ onReset, onExitFS, onEnterFS }: { onReset: () => void, onExitFS: () => void, onEnterFS: () => void }) => (
@@ -165,9 +189,6 @@
       const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
       const [quizAudioEnabled, setQuizAudioEnabled] = useState<boolean>(false);
       const [globalVolume, setGlobalVolume] = useState<number>(1.0);
-      
-      // 自動遷移の時間設定（秒）
-      const [autoNextDelay, setAutoNextDelay] = useState<number>(1.0);
 
       const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
       const [jsonError, setJsonError] = useState<string | null>(null);
@@ -370,25 +391,6 @@
           setGameState('result');
         }
       };
-
-      // 自動遷移用のRefとuseEffect
-      const nextQuestionRef = useRef(nextQuestion);
-      useEffect(() => {
-        nextQuestionRef.current = nextQuestion;
-      });
-
-      useEffect(() => {
-        let timer: number;
-        // クイズモードで、フィードバック画面表示中、かつ正解の場合のみタイマー起動
-        if (gameState === 'playing' && sessionMode === 'quiz' && showFeedback && lastAnswerCorrect) {
-          timer = window.setTimeout(() => {
-            nextQuestionRef.current();
-          }, autoNextDelay * 1000);
-        }
-        return () => {
-          if (timer) window.clearTimeout(timer);
-        };
-      }, [gameState, sessionMode, showFeedback, lastAnswerCorrect, autoNextDelay]);
 
       const handleManualAudioPlay = () => {
         if (currentQuestion) {
@@ -640,24 +642,6 @@
                         />
                       </div>
                     </div>
-
-                    <div className="space-y-2 pt-2 border-t border-[#262421]">
-                      <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
-                        <div className="flex items-center gap-2">
-                          <Timer size={14} /> Auto Next (Correct)
-                        </div>
-                        <span>{autoNextDelay.toFixed(1)}s</span>
-                      </div>
-                      <div className="pt-2">
-                        <input
-                          type="range"
-                          min="0.1" max="5.0" step="0.1"
-                          value={autoNextDelay}
-                          onChange={(e) => setAutoNextDelay(parseFloat(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -845,7 +829,13 @@
                       </div>
                       {currentQuestion.context && (
                         <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
-                          {currentQuestion.context}
+                          <div>{currentQuestion.context}</div>
+                          {/* 【追加】例文の日本語訳があれば表示 */}
+                          {currentQuestion.context_translation && (
+                            <div className="text-xs sm:text-sm text-[#8c8c8c] not-italic mt-1">
+                              {currentQuestion.context_translation}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -909,7 +899,13 @@
 
                           {currentQuestion.context && (
                             <div className="text-[#dbd9d6] italic text-sm sm:text-base max-w-lg mt-2 sm:mt-4 px-4 border-l-4 border-[#383634] text-left">
-                              {currentQuestion.context}
+                              <div>{currentQuestion.context}</div>
+                              {/* 【追加】例文の日本語訳があれば表示 */}
+                              {currentQuestion.context_translation && (
+                                <div className="text-xs sm:text-sm text-[#8c8c8c] not-italic mt-1">
+                                  {currentQuestion.context_translation}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Countable Nouns Quiz</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration for Lichess Theme -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lichess: {
+              base: '#161512',
+              surface: '#262421',
+              border: '#403d39',
+              hover: '#363431',
+              text: '#c3c3c3',
+              title: '#ffffff',
+              primary: '#629924',
+              primaryHover: '#73b32a',
+              good: '#629924',
+              bad: '#dc322f',
+              blue: '#3692e7'
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans"', '"Open Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for in-browser JSX/TSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Configure Babel to handle TSX -->
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+  
+  <style>
+    /* Custom Scrollbar for Lichess feel */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #161512; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #403d39; 
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #504d49; 
+    }
+    body {
+      background-color: #161512;
+      color: #c3c3c3;
+    }
+    /* iOS input number arrows hide */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState, useRef, useEffect } = React;
+
+    // --- Types ---
+    interface Question {
+      id: number;
+      sentenceStart: string;
+      sentenceEnd: string;
+      options: string[];
+      correctAnswer: string;
+      explanation: string;
+      translation: string;
+    }
+
+    type GameState = 'start' | 'playing' | 'result';
+    type PlayOrder = 'sequential' | 'random';
+
+    interface AppSettings {
+      order: PlayOrder;
+      startPosition: number;
+      autoNext: boolean;
+    }
+
+    // --- Default Quiz Data ---
+    const defaultQuizData: Question[] = [
+      {
+        id: 1,
+        sentenceStart: "This is",
+        sentenceEnd: ".",
+        options: ["an apple", "the apple", "apples"],
+        correctAnswer: "an apple",
+        explanation: "「これは（一つの）りんごです」と初めて紹介する場合は、単数形の前に a/an をつけます。",
+        translation: "これはりんごです。"
+      },
+      {
+        id: 2,
+        sentenceStart: "I like",
+        sentenceEnd: ".",
+        options: ["a cat", "the cat", "cats"],
+        correctAnswer: "cats",
+        explanation: "「猫が好きです」のように一般的な種類全体を指す場合は、無冠詞の複数形を使います。",
+        translation: "私は猫が好きです。"
+      },
+      {
+        id: 3,
+        sentenceStart: "Could you pass me",
+        sentenceEnd: "on the table?",
+        options: ["a cup", "the cup", "cups"],
+        correctAnswer: "the cup",
+        explanation: "「テーブルの上の」と特定されており、話し手も聞き手もどのコップか分かるため the を使います。",
+        translation: "テーブルの上のコップを取ってくれますか？"
+      },
+      {
+        id: 4,
+        sentenceStart: "My father bought",
+        sentenceEnd: "yesterday.",
+        options: ["a car", "the car", "cars"],
+        correctAnswer: "a car",
+        explanation: "特定の車ではなく「（ある1台の）車」を買ったので a を使います。",
+        translation: "私の父は昨日、車を買いました。"
+      },
+      {
+        id: 5,
+        sentenceStart: "Look at",
+        sentenceEnd: "in the sky!",
+        options: ["a bird", "the bird", "birds"],
+        correctAnswer: "the bird",
+        explanation: "「空にいるあの鳥を見て！」と特定の鳥を指差しているので the を使います。",
+        translation: "空にいるあの鳥を見て！"
+      }
+    ];
+
+    // --- Icons ---
+    const UploadIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+    );
+
+    const TargetIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+      </svg>
+    );
+
+    const RefreshIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    );
+
+    const CogIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    );
+
+    // --- Main Component ---
+    const App: React.FC = () => {
+      // Global State
+      const [gameState, setGameState] = useState<GameState>('start');
+      const [allQuestions, setAllQuestions] = useState<Question[]>(defaultQuizData);
+      const [playQueue, setPlayQueue] = useState<Question[]>([]);
+      
+      // Play State
+      const [currentIndex, setCurrentIndex] = useState<number>(0);
+      const [score, setScore] = useState<number>(0);
+      const [selectedOption, setSelectedOption] = useState<string | null>(null);
+      const [isAnswered, setIsAnswered] = useState<boolean>(false);
+      
+      // Settings State
+      const [settings, setSettings] = useState<AppSettings>({
+        order: 'sequential',
+        startPosition: 1,
+        autoNext: false,
+      });
+      const [importError, setImportError] = useState<string>('');
+      
+      // trigger for auto-next effect
+      const [triggerNextTime, setTriggerNextTime] = useState<number>(0);
+
+      const fileInputRef = useRef<HTMLInputElement>(null);
+
+      // Effect to handle auto-next safely with latest state
+      useEffect(() => {
+        if (triggerNextTime > 0) {
+          handleNext();
+        }
+      }, [triggerNextTime]);
+
+      const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const parsed = JSON.parse(event.target?.result as string);
+            if (Array.isArray(parsed) && parsed.length > 0 && 'sentenceStart' in parsed[0]) {
+              setAllQuestions(parsed);
+              setSettings(prev => ({ ...prev, startPosition: 1 }));
+              setImportError('');
+            } else {
+              setImportError('Invalid JSON format.');
+            }
+          } catch (err) {
+            setImportError('Failed to parse JSON file.');
+          }
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const startGame = () => {
+        let queue = [...allQuestions];
+        
+        if (settings.order === 'random') {
+          // Shuffle array
+          queue = queue.sort(() => Math.random() - 0.5);
+        } else {
+          // Sequential: Slice from startPosition (1-based index)
+          const startIndex = Math.max(0, Math.min(settings.startPosition - 1, allQuestions.length - 1));
+          queue = queue.slice(startIndex);
+        }
+
+        if (queue.length === 0) return;
+
+        setPlayQueue(queue);
+        setCurrentIndex(0);
+        setScore(0);
+        setSelectedOption(null);
+        setIsAnswered(false);
+        setGameState('playing');
+      };
+
+      const handleOptionClick = (option: string): void => {
+        if (isAnswered) return;
+
+        setSelectedOption(option);
+        setIsAnswered(true);
+
+        const currentQuestion = playQueue[currentIndex];
+        const isCorrect = option === currentQuestion.correctAnswer;
+
+        if (isCorrect) {
+          setScore((prev) => prev + 1);
+          
+          if (settings.autoNext) {
+            // Wait 0.1s (100ms) then trigger next
+            setTimeout(() => {
+              setTriggerNextTime(Date.now());
+            }, 100);
+          }
+        }
+      };
+
+      const handleNext = (): void => {
+        if (currentIndex < playQueue.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+          setSelectedOption(null);
+          setIsAnswered(false);
+        } else {
+          setGameState('result');
+        }
+      };
+
+      const returnToSetup = (): void => {
+        setGameState('start');
+      };
+
+      // --- Renders ---
+
+      const renderStartScreen = () => (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-lichess-surface rounded shadow-xl border border-lichess-border w-full max-w-md p-6">
+            <h2 className="text-2xl font-bold text-lichess-title mb-6 flex items-center justify-center gap-2 border-b border-lichess-border pb-4">
+              <CogIcon /> Quiz Setup
+            </h2>
+
+            <div className="space-y-6">
+              {/* Dataset Info */}
+              <div className="text-center p-3 bg-lichess-base rounded border border-lichess-border">
+                <div className="text-lichess-text text-sm uppercase tracking-wider mb-1">Loaded Questions</div>
+                <div className="text-xl font-bold text-lichess-title">{allQuestions.length}</div>
+              </div>
+
+              {/* Order Settings */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-lichess-text uppercase tracking-wider block">Mode</label>
+                <div className="flex rounded overflow-hidden border border-lichess-border bg-lichess-base">
+                  <button 
+                    className={`flex-1 py-2 text-sm font-bold transition-colors ${settings.order === 'sequential' ? 'bg-lichess-primary text-white' : 'text-lichess-text hover:bg-lichess-hover'}`}
+                    onClick={() => setSettings({...settings, order: 'sequential'})}
+                  >
+                    Sequential
+                  </button>
+                  <button 
+                    className={`flex-1 py-2 text-sm font-bold transition-colors ${settings.order === 'random' ? 'bg-lichess-primary text-white' : 'text-lichess-text hover:bg-lichess-hover'}`}
+                    onClick={() => setSettings({...settings, order: 'random'})}
+                  >
+                    Random
+                  </button>
+                </div>
+              </div>
+
+              {/* Start Position (iOS Number Input Optimized) */}
+              {settings.order === 'sequential' && (
+                <div className="space-y-2 animate-fade-in">
+                  <label className="text-sm font-bold text-lichess-text uppercase tracking-wider block">Start From Question #</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min="1"
+                    max={allQuestions.length}
+                    value={settings.startPosition || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) {
+                         setSettings({...settings, startPosition: Math.min(Math.max(1, val), allQuestions.length)});
+                      } else {
+                         setSettings({...settings, startPosition: 1}); // Fallback
+                      }
+                    }}
+                    className="w-full bg-lichess-base border border-lichess-border rounded p-3 text-lichess-title font-bold focus:outline-none focus:border-lichess-primary"
+                  />
+                </div>
+              )}
+
+              {/* Auto Next Settings */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-lichess-text uppercase tracking-wider block">Auto-Next on Correct</label>
+                <div className="flex rounded overflow-hidden border border-lichess-border bg-lichess-base">
+                   <button 
+                    className={`flex-1 py-2 text-sm font-bold transition-colors ${settings.autoNext === true ? 'bg-lichess-primary text-white' : 'text-lichess-text hover:bg-lichess-hover'}`}
+                    onClick={() => setSettings({...settings, autoNext: true})}
+                  >
+                    Fast (0.1s)
+                  </button>
+                  <button 
+                    className={`flex-1 py-2 text-sm font-bold transition-colors ${settings.autoNext === false ? 'bg-lichess-primary text-white' : 'text-lichess-text hover:bg-lichess-hover'}`}
+                    onClick={() => setSettings({...settings, autoNext: false})}
+                  >
+                    Manual
+                  </button>
+                </div>
+                <p className="text-xs text-lichess-text mt-1">Manual mode lets you read the explanation.</p>
+              </div>
+
+              <div className="pt-4 border-t border-lichess-border">
+                <button
+                  onClick={startGame}
+                  className="w-full bg-lichess-primary hover:bg-lichess-primaryHover text-white font-bold py-4 rounded uppercase tracking-widest text-lg shadow-lg transition-colors"
+                >
+                  START
+                </button>
+              </div>
+
+              {/* Import Section */}
+              <div className="pt-6 border-t border-lichess-border">
+                <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-lichess-border rounded hover:border-lichess-text hover:bg-lichess-hover cursor-pointer transition-colors text-lichess-title text-sm">
+                  <UploadIcon /> Import JSON Questions
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    ref={fileInputRef}
+                  />
+                </label>
+                {importError && <div className="mt-2 text-lichess-bad text-xs font-bold text-center">{importError}</div>}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+
+      const renderPlayingScreen = () => {
+        const currentQuestion = playQueue[currentIndex];
+
+        const getOptionStyle = (option: string) => {
+          const baseStyle = "w-full text-left p-3 md:p-4 rounded border-2 transition-colors flex items-center font-medium text-lg ";
+          if (!isAnswered) return baseStyle + "border-lichess-surface bg-lichess-surface hover:bg-lichess-hover text-lichess-text cursor-pointer";
+          if (option === currentQuestion.correctAnswer) return baseStyle + "border-lichess-good bg-[#2a4516] text-lichess-title";
+          if (option === selectedOption) return baseStyle + "border-lichess-bad bg-[#521211] text-lichess-title";
+          return baseStyle + "border-lichess-surface bg-lichess-surface text-lichess-text opacity-40 cursor-not-allowed";
+        };
+
+        return (
+          <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 lg:gap-8 items-start">
+            {/* Left Column: Board */}
+            <div className="flex flex-col gap-4">
+              <div className="bg-[#a3b190] rounded flex flex-col justify-center items-center p-6 md:p-10 min-h-[200px] md:min-h-[280px] shadow-sm">
+                <div className="z-10 text-center w-full max-w-3xl flex flex-col gap-4">
+                  <p className="text-xl md:text-3xl font-bold text-[#1f241a] leading-relaxed">
+                    {currentQuestion.sentenceStart}
+                    <span className="inline-block mx-2 px-3 py-1 border-b-2 border-[#1f241a] text-[#1a1f16] min-w-[100px] text-center bg-white/40 rounded-t">
+                      {isAnswered && selectedOption ? selectedOption : ""}
+                    </span>
+                    {currentQuestion.sentenceEnd}
+                  </p>
+                  {/* 日本語訳の表示 */}
+                  {currentQuestion.translation && (
+                    <p className="text-sm md:text-base text-[#1f241a] opacity-80 font-medium">
+                      {currentQuestion.translation}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Controls */}
+            <div className="flex flex-col gap-4 h-full">
+              {/* Top Info Bar */}
+              <div className="bg-lichess-surface p-4 rounded shadow flex justify-between items-center border border-lichess-border">
+                <div className="flex items-center gap-4">
+                  <div className="text-lichess-text font-medium">
+                    Question <span className="text-lichess-title font-bold">{currentIndex + 1}</span> / {playQueue.length}
+                  </div>
+                </div>
+                <div className="bg-lichess-base px-3 py-1 rounded text-sm font-bold text-lichess-title border border-lichess-border">
+                  Score: {score}
+                </div>
+              </div>
+
+              {/* Options */}
+              <div className="bg-lichess-surface rounded shadow flex flex-col p-4 border border-lichess-border gap-3">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm text-lichess-text font-medium uppercase tracking-wider">Find the best option</div>
+                  <button onClick={returnToSetup} className="text-xs text-lichess-border hover:text-lichess-text uppercase tracking-wider">Abort</button>
+                </div>
+                
+                {currentQuestion.options.map((option, index) => (
+                  <button key={index} onClick={() => handleOptionClick(option)} disabled={isAnswered} className={getOptionStyle(option)}>
+                    <span className="w-8 h-8 flex items-center justify-center bg-lichess-base border border-lichess-border rounded text-sm text-lichess-text mr-4 font-bold">
+                      {index + 1}
+                    </span>
+                    {option}
+                  </button>
+                ))}
+
+                {/* Explanation & Next Action */}
+                {isAnswered && (
+                  <div className="mt-4 flex flex-col gap-4 animate-fade-in">
+                    <div className={`p-4 rounded border-l-4 ${selectedOption === currentQuestion.correctAnswer ? 'bg-[#2a4516]/50 border-lichess-good' : 'bg-[#521211]/50 border-lichess-bad'}`}>
+                      <div className="font-bold text-lichess-title mb-1 flex items-center gap-2">
+                          {selectedOption === currentQuestion.correctAnswer ? '✓ Good move' : '✗ Inaccuracy'}
+                      </div>
+                      <p className="text-sm text-lichess-text leading-relaxed">
+                        {currentQuestion.explanation}
+                      </p>
+                    </div>
+
+                    {(!settings.autoNext || selectedOption !== currentQuestion.correctAnswer) && (
+                      <button
+                        onClick={handleNext}
+                        className="w-full bg-lichess-primary hover:bg-lichess-primaryHover text-white font-bold py-3 px-6 rounded uppercase tracking-wider transition-colors shadow flex justify-center items-center"
+                      >
+                        <TargetIcon /> {currentIndex < playQueue.length - 1 ? 'Next Question' : 'View Results'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+        );
+      };
+
+      const renderResultScreen = () => (
+        <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 lg:gap-8 items-start">
+          <div className="flex flex-col gap-4">
+            <div className="bg-[#a3b190] rounded flex flex-col justify-center items-center p-6 md:p-10 min-h-[200px] md:min-h-[280px] shadow-sm">
+              <div className="z-10 text-center text-[#1f241a]">
+                <h2 className="text-2xl font-bold mb-4">Quiz Complete</h2>
+                <div className="text-5xl font-black mb-2">
+                  {score} <span className="text-2xl text-[#363e2e]">/ {playQueue.length}</span>
+                </div>
+                <p className="text-base font-medium opacity-80">Accuracy: {Math.round((score / playQueue.length) * 100)}%</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4 h-full">
+             <div className="bg-lichess-surface p-4 rounded shadow flex justify-between items-center border border-lichess-border">
+                <div className="text-lichess-text font-medium">Session Summary</div>
+             </div>
+             <div className="bg-lichess-surface rounded shadow flex flex-col p-6 border border-lichess-border gap-4">
+                <button
+                  onClick={returnToSetup}
+                  className="w-full bg-lichess-primary hover:bg-lichess-primaryHover text-white font-bold py-4 px-6 rounded uppercase tracking-wider transition-colors flex justify-center items-center gap-2"
+                >
+                  <RefreshIcon /> Back to Setup
+                </button>
+             </div>
+          </div>
+        </main>
+      );
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Header */}
+          <header className="h-12 bg-lichess-surface border-b border-lichess-border flex items-center px-4 md:px-8 shadow-sm flex-shrink-0">
+            <div className="flex items-center gap-2 text-lichess-title font-bold text-lg tracking-wide cursor-pointer" onClick={returnToSetup}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-lichess-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              COUNTABLE NOUNS QUIZ
+            </div>
+          </header>
+
+          {/* Route views based on gameState */}
+          {gameState === 'start' && renderStartScreen()}
+          {gameState === 'playing' && renderPlayingScreen()}
+          {gameState === 'result' && renderResultScreen()}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>

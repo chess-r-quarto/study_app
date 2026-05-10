@@ -70,21 +70,47 @@
       transform: translateY(2px);
     }
 
+    /* === 数式のはみ出し対策とスクロールバーのカスタマイズ === */
     .katex {
       color: #e0e0e0 !important;
     }
     .katex-display {
       margin: 0 !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-width: 100%;
+      padding-bottom: 4px; /* スクロールバー用の余白 */
     }
     
-    /* 選択肢ボタン内のKaTeXの余白調整 */
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3e3e3e;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #5e5e5e;
+    }
+
+    /* 選択肢ボタン内のKaTeX余白・スクロール調整 */
     button .katex-display {
       margin: 0.5rem 0 !important;
+    }
+    /* スマホでボタン内のスクロールバーが邪魔にならないように細くする */
+    button .katex-display::-webkit-scrollbar {
+      height: 2px;
     }
   </style>
 </head>
 <body class="antialiased min-h-screen flex items-center justify-center p-4">
-  <div id="root" class="w-full max-w-lg"></div>
+  <!-- max-w-lg から max-w-3xl に変更し、大画面でも広がるように調整 -->
+  <div id="root" class="w-full max-w-3xl relative"></div>
 
   <script type="text/babel" data-presets="tsx">
     // === 型定義 ===
@@ -92,11 +118,18 @@
       id: number;
       symbol: string;
       correct: string;
+      correct_en?: string;
       incorrect: string;
+      incorrect_en?: string;
       incorrectSymbol?: string;
       level: string;
       description: string;
       usage: string;
+    }
+
+    interface OptionItem {
+      value: string;
+      subValue?: string;
     }
 
     type GameMode = 'symbolToText' | 'textToSymbol';
@@ -104,29 +137,47 @@
 
     // === デフォルト問題データ ===
     const DEFAULT_QUESTIONS: Question[] = [
-      { 
-        id: 1, symbol: '\\Sigma', correct: '総和（シグマ）', incorrect: '乗積（パイ）', incorrectSymbol: '\\Pi',
-        level: '高校', description: '数列などの複数の値の和を表す記号。', usage: '\\sum_{k=1}^{n} k = \\frac{1}{2}n(n+1)'
+      {
+        id: 1, symbol: "a+b=b+a", 
+        correct: "交換法則", correct_en: "Commutative property", 
+        incorrect: "結合法則", incorrect_en: "Associative property", 
+        level: "中学", description: "足し算や掛け算において、順序を入れ替えても結果が同じになる法則。", usage: "x+y = y+x"
       },
       { 
-        id: 2, symbol: '\\int', correct: '積分（インテグラル）', incorrect: '極限（リミット）', incorrectSymbol: '\\lim',
-        level: '高校', description: '関数の微小な変化を足し合わせる操作（積分）を表します。', usage: '\\int_{a}^{b} f(x) dx'
+        id: 2, symbol: '\\Sigma', 
+        correct: '総和（シグマ）', correct_en: 'Summation',
+        incorrect: '乗積（パイ）', incorrect_en: 'Product',
+        incorrectSymbol: '\\Pi', level: '高校', description: '数列などの複数の値の和を表す記号。', usage: '\\sum_{k=1}^{n} k = \\frac{1}{2}n(n+1)'
       },
       { 
-        id: 3, symbol: '\\partial', correct: '偏微分（ラウンド）', incorrect: '全微分（ディー）', incorrectSymbol: 'd',
-        level: '大学', description: '多変数関数において、一つの変数のみに注目して微分する操作。', usage: '\\frac{\\partial f}{\\partial x}'
+        id: 3, symbol: '\\int', 
+        correct: '積分（インテグラル）', correct_en: 'Integral',
+        incorrect: '極限（リミット）', incorrect_en: 'Limit',
+        incorrectSymbol: '\\lim', level: '高校', description: '関数の微小な変化を足し合わせる操作（積分）を表します。', usage: '\\int_{a}^{b} f(x) dx'
       },
       { 
-        id: 4, symbol: '\\nabla', correct: 'ナブラ（微分演算子）', incorrect: 'ラプラシアン', incorrectSymbol: '\\Delta',
-        level: '大学', description: '空間微分の演算を簡潔に記述するための演算子。', usage: '\\nabla f = \\left( \\frac{\\partial f}{\\partial x}, \\frac{\\partial f}{\\partial y}, \\frac{\\partial f}{\\partial z} \\right)'
+        id: 4, symbol: '\\partial', 
+        correct: '偏微分（ラウンド）', correct_en: 'Partial derivative',
+        incorrect: '全微分（ディー）', incorrect_en: 'Total derivative',
+        incorrectSymbol: 'd', level: '大学', description: '多変数関数において、一つの変数のみに注目して微分する操作。', usage: '\\frac{\\partial f}{\\partial x}'
       },
       { 
-        id: 5, symbol: '\\forall', correct: 'すべての（全称記号）', incorrect: '存在する（特称記号）', incorrectSymbol: '\\exists',
-        level: '大学', description: '論理学や数学において「任意の」「すべての」を意味する記号。', usage: '\\forall x \\in \\mathbb{R}, x^2 \\ge 0'
+        id: 5, symbol: '\\nabla', 
+        correct: 'ナブラ（微分演算子）', correct_en: 'Nabla / Del',
+        incorrect: 'ラプラシアン', incorrect_en: 'Laplacian',
+        incorrectSymbol: '\\Delta', level: '大学', description: '空間微分の演算を簡潔に記述するための演算子。', usage: '\\nabla f = \\left( \\frac{\\partial f}{\\partial x}, \\frac{\\partial f}{\\partial y}, \\frac{\\partial f}{\\partial z} \\right)'
       },
       { 
-        id: 6, symbol: '\\det(A)', correct: '行列式（デターミナント）', incorrect: '逆行列', incorrectSymbol: 'A^{-1}',
-        level: '大学', description: '正方行列に対して定義されるスカラー量。', usage: '\\det(A) \\neq 0'
+        id: 6, symbol: '\\forall', 
+        correct: 'すべての（全称記号）', correct_en: 'Universal quantifier',
+        incorrect: '存在する（特称記号）', incorrect_en: 'Existential quantifier',
+        incorrectSymbol: '\\exists', level: '大学', description: '論理学や数学において「任意の」「すべての」を意味する記号。', usage: '\\forall x \\in \\mathbb{R}, x^2 \\ge 0'
+      },
+      { 
+        id: 7, symbol: '\\det(A)', 
+        correct: '行列式（デターミナント）', correct_en: 'Determinant',
+        incorrect: '逆行列', incorrect_en: 'Inverse matrix',
+        incorrectSymbol: 'A^{-1}', level: '大学', description: '正方行列に対して定義されるスカラー量。', usage: '\\det(A) \\neq 0'
       }
     ];
 
@@ -158,7 +209,11 @@
         }
       }, [math]);
 
-      return <div ref={containerRef} className={sizeClass} />;
+      return (
+        <div className={`max-w-full flex justify-center items-center ${sizeClass}`}>
+          <div ref={containerRef} className="w-full" />
+        </div>
+      );
     };
 
     // メインアプリケーション
@@ -178,11 +233,20 @@
       const [playQueue, setPlayQueue] = React.useState<Question[]>([]);
       const [currentIndex, setCurrentIndex] = React.useState(0);
       const [score, setScore] = React.useState(0);
-      const [currentOptions, setCurrentOptions] = React.useState<string[]>([]);
+      const [currentOptions, setCurrentOptions] = React.useState<OptionItem[]>([]);
       const [lastResult, setLastResult] = React.useState<'correct' | 'incorrect' | null>(null);
       
       // 間違えた問題の記録
       const [incorrectQuestions, setIncorrectQuestions] = React.useState<Question[]>([]);
+
+      // UIステート
+      const [toastMsg, setToastMsg] = React.useState<string | null>(null);
+      const [confirmQuit, setConfirmQuit] = React.useState(false);
+
+      const showToast = (msg: string) => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(null), 3000);
+      };
 
       // JSONアップロード
       const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,12 +259,12 @@
             const parsedData = JSON.parse(e.target?.result as string) as Question[];
             if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0].symbol) {
               setActiveQuestions(parsedData);
-              alert(`Success: Loaded ${parsedData.length} questions.`);
+              showToast(`Loaded ${parsedData.length} questions successfully.`);
             } else {
-              alert("Error: Invalid JSON format.");
+              showToast("Error: Invalid JSON format.");
             }
           } catch (error) {
-            alert("Error: Failed to parse JSON.");
+            showToast("Error: Failed to parse JSON.");
           }
         };
         reader.readAsText(file);
@@ -212,27 +276,26 @@
         setScore(0);
         setCurrentIndex(0);
         setLastResult(null);
+        setConfirmQuit(false);
 
         let queue: Question[] = [];
 
         if (isRetry) {
-          // 間違えた問題をキューに設定し、記録をリセット（再度間違えたら追加される）
           queue = [...incorrectQuestions];
           setIncorrectQuestions([]);
         } else {
-          setIncorrectQuestions([]); // 新規プレイ時はリセット
+          setIncorrectQuestions([]); 
           if (orderMode === 'random') {
             const allShuffled = shuffleArray(activeQuestions);
             queue = allShuffled.slice(0, Math.min(questionCount, allShuffled.length));
           } else {
-            // 入力された開始番号（1始まり）を配列のインデックス（0始まり）に変換。範囲外はクリップ。
             const startIdx = Math.max(1, Math.min(activeQuestions.length, parseInt(startIndexStr, 10) || 1)) - 1;
             queue = activeQuestions.slice(startIdx);
           }
         }
 
         if (queue.length === 0) {
-          alert("No questions available.");
+          showToast("No questions available.");
           return;
         }
 
@@ -241,23 +304,36 @@
         setupOptions(queue[0], mode, queue);
       };
 
+      // Quitボタンのハンドラー
+      const handleQuitClick = () => {
+        if (confirmQuit) {
+          setGameState('start');
+          setConfirmQuit(false);
+        } else {
+          setConfirmQuit(true);
+          setTimeout(() => setConfirmQuit(false), 3000);
+        }
+      };
+
       // 選択肢のセットアップ
       const setupOptions = (question: Question, mode: GameMode, queue: Question[]) => {
-        let correctOpt = '';
-        let incorrectOpt = '';
+        let correctOpt: OptionItem;
+        let incorrectOpt: OptionItem;
 
         if (mode === 'symbolToText') {
-          correctOpt = question.correct;
-          incorrectOpt = question.incorrect;
+          correctOpt = { value: question.correct, subValue: question.correct_en };
+          incorrectOpt = { value: question.incorrect, subValue: question.incorrect_en };
         } else {
-          correctOpt = question.symbol;
+          correctOpt = { value: question.symbol };
           if (question.incorrectSymbol) {
-            incorrectOpt = question.incorrectSymbol;
+            incorrectOpt = { value: question.incorrectSymbol };
           } else {
             const others = activeQuestions.filter(q => q.id !== question.id);
-            incorrectOpt = others.length > 0 
-              ? others[Math.floor(Math.random() * others.length)].symbol 
-              : '???'; 
+            incorrectOpt = {
+              value: others.length > 0 
+                ? others[Math.floor(Math.random() * others.length)].symbol 
+                : '???'
+            };
           }
         }
 
@@ -266,17 +342,16 @@
       };
 
       // 回答処理
-      const handleAnswer = (selected: string) => {
+      const handleAnswer = (selected: OptionItem) => {
         const currentQuestion = playQueue[currentIndex];
         const correctTarget = gameMode === 'symbolToText' ? currentQuestion.correct : currentQuestion.symbol;
-        const isCorrect = selected === correctTarget;
+        const isCorrect = selected.value === correctTarget;
         
         setLastResult(isCorrect ? 'correct' : 'incorrect');
         
         if (isCorrect) {
           setScore(prev => prev + 1);
         } else {
-          // 間違えた問題を記録（重複しないように）
           setIncorrectQuestions(prev => {
             if (!prev.some(q => q.id === currentQuestion.id)) {
               return [...prev, currentQuestion];
@@ -299,233 +374,270 @@
         }
       };
 
+      // 共通ヘッダーコンポーネント
+      const GameHeader = () => {
+        const currentQuestion = playQueue[currentIndex];
+        return (
+          <div className="flex justify-between items-center mb-3 px-1">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleQuitClick}
+                className={`text-xs font-bold uppercase tracking-wider transition-colors flex items-center px-2 py-1.5 rounded-sm border ${
+                  confirmQuit 
+                    ? 'bg-[#a13426] text-white border-[#7d281e]' 
+                    : 'bg-[#262421] text-[#8c8c8c] border-[#3e3e3e] hover:text-white hover:bg-[#363431]'
+                }`}
+              >
+                {confirmQuit ? 'Sure?' : '← Quit'}
+              </button>
+              <div className="text-sm font-bold uppercase tracking-wider text-[#8c8c8c]">
+                <span className="hidden sm:inline">Problem</span> {currentIndex + 1} / {playQueue.length}
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-[#8c8c8c] bg-[#262421] px-2 py-1.5 rounded-sm border border-[#3e3e3e]">
+              {currentQuestion.level}
+            </div>
+          </div>
+        );
+      };
+
       // === 画面レンダリング ===
 
-      if (gameState === 'start') {
-        return (
-          <div className="w-full">
-            <h1 className="text-3xl font-bold text-white mb-8 flex items-center justify-center tracking-tight">
-              <span className="mr-3 text-4xl mb-1">♞</span> Mathchess
-            </h1>
-            
-            <div className="lichess-panel rounded-sm p-8 text-center mb-4">
-              <p className="text-[#bababa] mb-6 leading-relaxed">
-                Train your mathematical intuition.<br/>
-                Pool: {activeQuestions.length} symbols.
-              </p>
+      return (
+        <div className="w-full">
+          {/* トースト通知 */}
+          {toastMsg && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-[#629924] text-white px-4 py-2 rounded-sm shadow-lg z-50 text-sm font-bold transition-opacity">
+              {toastMsg}
+            </div>
+          )}
 
-              {/* 設定エリア */}
-              <div className="bg-[#1b1a18] p-4 rounded-sm border border-[#3e3e3e] mb-6 text-left shadow-inner">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Order</span>
-                  <div className="flex bg-[#262421] rounded-sm overflow-hidden border border-[#3e3e3e]">
-                    <button 
-                      onClick={() => setOrderMode('ordered')} 
-                      className={`px-3 py-1.5 text-xs font-bold uppercase transition-colors ${orderMode === 'ordered' ? 'bg-[#3f6184] text-white' : 'text-[#8c8c8c] hover:bg-[#363431]'}`}
-                    >
-                      Ordered
-                    </button>
-                    <button 
-                      onClick={() => setOrderMode('random')} 
-                      className={`px-3 py-1.5 text-xs font-bold uppercase transition-colors ${orderMode === 'random' ? 'bg-[#3f6184] text-white' : 'text-[#8c8c8c] hover:bg-[#363431]'}`}
-                    >
-                      Random
-                    </button>
-                  </div>
-                </div>
-
-                {orderMode === 'ordered' ? (
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Start From #</span>
-                    {/* iOSのテンキーが開きやすいように inputMode と pattern を指定 */}
-                    <input 
-                      type="number" 
-                      inputMode="numeric" 
-                      pattern="[0-9]*"
-                      min="1" 
-                      max={activeQuestions.length}
-                      value={startIndexStr}
-                      onChange={(e) => setStartIndexStr(e.target.value)}
-                      className="bg-[#262421] border border-[#3e3e3e] text-white px-3 py-2 rounded-sm w-20 text-right text-sm font-bold focus:outline-none focus:border-[#629924] transition-colors"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Questions</span>
-                    <select
-                      value={questionCount}
-                      onChange={(e) => setQuestionCount(Number(e.target.value))}
-                      className="bg-[#262421] border border-[#3e3e3e] text-white px-3 py-2 rounded-sm text-sm font-bold focus:outline-none focus:border-[#629924] transition-colors"
-                    >
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                      <option value={9999}>All</option>
-                    </select>
-                  </div>
-                )}
-              </div>
+          {gameState === 'start' && (
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-8 flex items-center justify-center tracking-tight">
+                <span className="mr-3 text-4xl mb-1">♞</span> Mathchess
+              </h1>
               
-              {/* モード選択ボタン */}
-              <div className="flex flex-col gap-3 mb-6">
-                <button 
-                  onClick={() => startGame('symbolToText')}
-                  className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm"
-                >
-                  Play: Guess Name <br/><span className="text-xs font-normal opacity-80">(数式を見て名前を当てる)</span>
-                </button>
-                <button 
-                  onClick={() => startGame('textToSymbol')}
-                  className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm bg-[#3f6184] hover:bg-[#4d739c] border-[#2c4763]"
-                >
-                  Play: Guess Symbol <br/><span className="text-xs font-normal opacity-80">(名前を見て数式を選ぶ)</span>
-                </button>
-              </div>
+              <div className="lichess-panel rounded-sm p-8 text-center mb-4">
+                <p className="text-[#bababa] mb-6 leading-relaxed">
+                  Train your mathematical intuition.<br/>
+                  Pool: {activeQuestions.length} symbols.
+                </p>
 
-              <div className="mt-8 pt-4 border-t border-[#3e3e3e]">
-                <label className="lichess-btn block w-full py-3 rounded-sm cursor-pointer uppercase tracking-wider font-semibold text-xs flex items-center justify-center">
-                  Import Custom JSON
-                  <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
-                </label>
-              </div>
-            </div>
-          </div>
-        );
-      }
+                {/* 設定エリア */}
+                <div className="bg-[#1b1a18] p-4 rounded-sm border border-[#3e3e3e] mb-6 text-left shadow-inner">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Order</span>
+                    <div className="flex bg-[#262421] rounded-sm overflow-hidden border border-[#3e3e3e]">
+                      <button 
+                        onClick={() => setOrderMode('ordered')} 
+                        className={`px-3 py-1.5 text-xs font-bold uppercase transition-colors ${orderMode === 'ordered' ? 'bg-[#3f6184] text-white' : 'text-[#8c8c8c] hover:bg-[#363431]'}`}
+                      >
+                        Ordered
+                      </button>
+                      <button 
+                        onClick={() => setOrderMode('random')} 
+                        className={`px-3 py-1.5 text-xs font-bold uppercase transition-colors ${orderMode === 'random' ? 'bg-[#3f6184] text-white' : 'text-[#8c8c8c] hover:bg-[#363431]'}`}
+                      >
+                        Random
+                      </button>
+                    </div>
+                  </div>
 
-      if (gameState === 'playing') {
-        const currentQuestion = playQueue[currentIndex];
-        const isSymbolToText = gameMode === 'symbolToText';
-
-        return (
-          <div className="w-full">
-            <div className="flex justify-between items-end mb-2 px-1">
-              <div className="text-sm font-bold uppercase tracking-wider text-[#8c8c8c]">
-                Problem {currentIndex + 1} / {playQueue.length}
-              </div>
-              <div className="text-xs font-semibold text-[#8c8c8c] bg-[#262421] px-2 py-1 rounded-sm">
-                {currentQuestion.level}
-              </div>
-            </div>
-
-            <div className="lichess-panel rounded-sm p-6 mb-4">
-              {/* 問題表示エリア */}
-              <div className="bg-[#161512] rounded-sm py-12 mb-6 flex justify-center items-center border border-[#3e3e3e] shadow-inner min-h-[200px] px-4 text-center">
-                {isSymbolToText ? (
-                  <MathSymbol math={currentQuestion.symbol} sizeClass="text-7xl md:text-8xl" />
-                ) : (
-                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-relaxed">
-                    {currentQuestion.correct}
-                  </h2>
-                )}
-              </div>
-
-              {/* 選択肢ボタン */}
-              <div className="grid grid-cols-1 gap-3">
-                {currentOptions.map((option, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleAnswer(option)}
-                    className="lichess-btn w-full text-left p-4 rounded-sm font-bold text-lg flex items-center min-h-[80px]"
+                  {orderMode === 'ordered' ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Start From #</span>
+                      <input 
+                        type="number" 
+                        inputMode="numeric" 
+                        pattern="[0-9]*"
+                        min="1" 
+                        max={activeQuestions.length}
+                        value={startIndexStr}
+                        onChange={(e) => setStartIndexStr(e.target.value)}
+                        className="bg-[#262421] border border-[#3e3e3e] text-white px-3 py-2 rounded-sm w-20 text-right text-sm font-bold focus:outline-none focus:border-[#629924] transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#bababa] text-sm font-semibold uppercase tracking-wider">Questions</span>
+                      <select
+                        value={questionCount}
+                        onChange={(e) => setQuestionCount(Number(e.target.value))}
+                        className="bg-[#262421] border border-[#3e3e3e] text-white px-3 py-2 rounded-sm text-sm font-bold focus:outline-none focus:border-[#629924] transition-colors"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={9999}>All</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                
+                {/* モード選択ボタン */}
+                <div className="flex flex-col gap-3 mb-6">
+                  <button 
+                    onClick={() => startGame('symbolToText')}
+                    className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm"
                   >
-                    <span className="inline-block w-8 text-center text-[#8c8c8c] text-sm mr-2 opacity-70 flex-shrink-0">
-                      {idx === 0 ? 'A' : 'B'}
-                    </span>
-                    <span className="text-[#e0e0e0] flex-1 flex justify-center md:justify-start items-center">
-                      {isSymbolToText ? option : <MathSymbol math={option} sizeClass="text-3xl" />}
-                    </span>
+                    Play: Guess Name <br/><span className="text-xs font-normal opacity-80">(数式を見て名前を当てる)</span>
                   </button>
-                ))}
+                  <button 
+                    onClick={() => startGame('textToSymbol')}
+                    className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm bg-[#3f6184] hover:bg-[#4d739c] border-[#2c4763]"
+                  >
+                    Play: Guess Symbol <br/><span className="text-xs font-normal opacity-80">(名前を見て数式を選ぶ)</span>
+                  </button>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-[#3e3e3e]">
+                  <label className="lichess-btn block w-full py-3 rounded-sm cursor-pointer uppercase tracking-wider font-semibold text-xs flex items-center justify-center">
+                    Import Custom JSON
+                    <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      }
+          )}
 
-      if (gameState === 'explanation') {
-        const q = playQueue[currentIndex];
-        const isCorrect = lastResult === 'correct';
-
-        return (
-          <div className="w-full">
-            <div className="lichess-panel rounded-sm p-6">
-              <div className={`text-center py-2 mb-6 border-b border-[#3e3e3e] ${isCorrect ? 'text-[#629924]' : 'text-[#dc322f]'}`}>
-                <h2 className="text-2xl font-bold uppercase tracking-widest">
-                  {isCorrect ? 'Correct' : 'Inaccuracy'}
-                </h2>
-              </div>
-
-              <div className="flex flex-col items-center mb-8">
-                <div className="mb-4">
-                  <MathSymbol math={q.symbol} sizeClass="text-6xl" />
+          {gameState === 'playing' && (
+            <div>
+              <GameHeader />
+              <div className="lichess-panel rounded-sm p-6 mb-4">
+                {/* 問題表示エリア： md:min-h-[300px] を追加し、大画面で枠の縦幅も広がるように調整 */}
+                <div className="bg-[#161512] rounded-sm py-12 mb-6 flex justify-center items-center border border-[#3e3e3e] shadow-inner min-h-[200px] md:min-h-[300px] lg:min-h-[350px] px-4 text-center max-w-full overflow-hidden transition-all">
+                  {gameMode === 'symbolToText' ? (
+                    <MathSymbol math={playQueue[currentIndex].symbol} sizeClass="text-5xl sm:text-7xl md:text-8xl" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <h2 className="text-2xl md:text-3xl font-bold text-white leading-relaxed">
+                        {playQueue[currentIndex].correct}
+                      </h2>
+                      {playQueue[currentIndex].correct_en && (
+                        <div className="text-sm md:text-base font-semibold text-[#8c8c8c] mt-2 tracking-wide uppercase">
+                          {playQueue[currentIndex].correct_en}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="text-2xl font-bold text-white">{q.correct}</div>
-              </div>
 
-              <div className="bg-[#161512] p-5 rounded-sm mb-6 border border-[#3e3e3e]">
-                <h3 className="text-[#8c8c8c] font-bold mb-2 uppercase tracking-wider text-xs flex items-center">
-                  <span className="w-2 h-2 bg-[#629924] rounded-full mr-2"></span> Explanation
-                </h3>
-                <p className="text-sm leading-relaxed mb-6 text-[#bababa]">{q.description}</p>
-
-                <h3 className="text-[#8c8c8c] font-bold mb-2 uppercase tracking-wider text-xs flex items-center">
-                  <span className="w-2 h-2 bg-[#3f6184] rounded-full mr-2"></span> Usage Example
-                </h3>
-                <div className="bg-[#262421] py-4 rounded-sm flex justify-center overflow-x-auto">
-                  <MathSymbol math={q.usage} sizeClass="text-2xl" />
+                {/* 選択肢ボタン */}
+                <div className="grid grid-cols-1 gap-3">
+                  {currentOptions.map((option, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleAnswer(option)}
+                      className="lichess-btn w-full text-left p-4 rounded-sm font-bold text-lg flex items-center min-h-[80px] overflow-hidden"
+                    >
+                      <span className="inline-block w-8 text-center text-[#8c8c8c] text-sm mr-2 opacity-70 flex-shrink-0">
+                        {idx === 0 ? 'A' : 'B'}
+                      </span>
+                      <span className="text-[#e0e0e0] flex-1 flex flex-col items-center md:items-start justify-center min-w-0 py-2">
+                        {gameMode === 'symbolToText' ? (
+                          <>
+                            <span className="text-lg font-bold">{option.value}</span>
+                            {option.subValue && (
+                              <span className="text-xs text-[#8c8c8c] mt-1 font-normal tracking-wide">
+                                {option.subValue}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <MathSymbol math={option.value} sizeClass="text-2xl sm:text-3xl w-full" />
+                        )}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              <button 
-                onClick={handleNext} 
-                className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-lg"
-              >
-                Next Problem
-              </button>
             </div>
-          </div>
-        );
-      }
+          )}
 
-      if (gameState === 'result') {
-        const accuracy = Math.round((score / playQueue.length) * 100);
-        return (
-          <div className="w-full text-center">
-             <div className="lichess-panel rounded-sm p-8">
-              <h2 className="text-xl font-bold text-[#bababa] mb-2 uppercase tracking-wider">Game Over</h2>
-              
-              <div className="my-10">
-                <div className="text-6xl font-black text-white mb-2">
-                  {score} <span className="text-3xl text-[#8c8c8c]">/ {playQueue.length}</span>
+          {gameState === 'explanation' && (
+            <div>
+              <GameHeader />
+              <div className="lichess-panel rounded-sm p-6">
+                <div className={`text-center py-2 mb-6 border-b border-[#3e3e3e] ${lastResult === 'correct' ? 'text-[#629924]' : 'text-[#dc322f]'}`}>
+                  <h2 className="text-2xl font-bold uppercase tracking-widest">
+                    {lastResult === 'correct' ? 'Correct' : 'Inaccuracy'}
+                  </h2>
                 </div>
-                <div className="text-sm font-bold text-[#629924] uppercase tracking-widest">
-                  Accuracy: {accuracy}%
-                </div>
-              </div>
 
-              {/* 間違えた問題がある場合のみリトライボタンを表示 */}
-              {incorrectQuestions.length > 0 && (
+                <div className="flex flex-col items-center mb-8 max-w-full">
+                  <div className="mb-4 w-full">
+                    <MathSymbol math={playQueue[currentIndex].symbol} sizeClass="text-4xl sm:text-6xl" />
+                  </div>
+                  <div className="text-2xl font-bold text-white text-center break-words w-full">
+                    {playQueue[currentIndex].correct}
+                  </div>
+                  {playQueue[currentIndex].correct_en && (
+                    <div className="text-sm font-semibold text-[#8c8c8c] text-center mt-2 tracking-wide uppercase">
+                      {playQueue[currentIndex].correct_en}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-[#161512] p-5 rounded-sm mb-6 border border-[#3e3e3e]">
+                  <h3 className="text-[#8c8c8c] font-bold mb-2 uppercase tracking-wider text-xs flex items-center">
+                    <span className="w-2 h-2 bg-[#629924] rounded-full mr-2"></span> Explanation
+                  </h3>
+                  <p className="text-sm leading-relaxed mb-6 text-[#bababa]">{playQueue[currentIndex].description}</p>
+
+                  <h3 className="text-[#8c8c8c] font-bold mb-2 uppercase tracking-wider text-xs flex items-center">
+                    <span className="w-2 h-2 bg-[#3f6184] rounded-full mr-2"></span> Usage Example
+                  </h3>
+                  <div className="bg-[#262421] py-4 px-2 rounded-sm flex justify-center w-full">
+                    <MathSymbol math={playQueue[currentIndex].usage} sizeClass="text-xl sm:text-2xl" />
+                  </div>
+                </div>
+
                 <button 
-                  onClick={() => startGame(gameMode, true)}
-                  className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm mb-4"
-                  style={{ backgroundColor: '#a13426', borderColor: '#7d281e' }}
+                  onClick={handleNext} 
+                  className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-lg"
                 >
-                  Retry Incorrect ({incorrectQuestions.length})
+                  Next Problem
                 </button>
-              )}
-
-              <button 
-                onClick={() => setGameState('start')}
-                className="lichess-btn block w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm"
-              >
-                Return to Menu
-              </button>
+              </div>
             </div>
-          </div>
-        );
-      }
+          )}
 
-      return null;
+          {gameState === 'result' && (
+            <div className="text-center">
+               <div className="lichess-panel rounded-sm p-8">
+                <h2 className="text-xl font-bold text-[#bababa] mb-2 uppercase tracking-wider">Game Over</h2>
+                
+                <div className="my-10">
+                  <div className="text-6xl font-black text-white mb-2">
+                    {score} <span className="text-3xl text-[#8c8c8c]">/ {playQueue.length}</span>
+                  </div>
+                  <div className="text-sm font-bold text-[#629924] uppercase tracking-widest">
+                    Accuracy: {Math.round((score / playQueue.length) * 100)}%
+                  </div>
+                </div>
+
+                {incorrectQuestions.length > 0 && (
+                  <button 
+                    onClick={() => startGame(gameMode, true)}
+                    className="lichess-btn-primary w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm mb-4"
+                    style={{ backgroundColor: '#a13426', borderColor: '#7d281e' }}
+                  >
+                    Retry Incorrect ({incorrectQuestions.length})
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => setGameState('start')}
+                  className="lichess-btn block w-full py-4 rounded-sm font-bold uppercase tracking-widest text-sm"
+                >
+                  Return to Menu
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
     };
 
     const root = ReactDOM.createRoot(document.getElementById('root')!);

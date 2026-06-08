@@ -270,8 +270,11 @@
           const isMatch = selectedWords.every((w, i) => w.text === currentQuestion.words[i]);
 
           if (isMatch) {
-            setStatus('correct');
-            if (!autoAdvance) {
+            if (autoAdvance) {
+              // Speedrunモード：即座に次の問題へ遷移（アニメーションや遅延なし）
+              handleNextQuestion();
+            } else {
+              setStatus('correct');
               setInspectedIndex(0);
             }
           } else {
@@ -279,18 +282,6 @@
           }
         }
       }, [selectedWords, status, currentIndex, questionsQueue, autoAdvance]);
-
-      // Auto-advance logic after correct evaluation
-      useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (status === 'correct' && autoAdvance) {
-          // Progress automatically after a brief 100ms flash
-          timer = setTimeout(() => {
-            handleNextQuestion();
-          }, 100);
-        }
-        return () => clearTimeout(timer);
-      }, [status, autoAdvance]);
 
       const setupQuestion = (question: Question) => {
         const wordsObjects = question.words.map((word, index) => ({
@@ -772,18 +763,6 @@
                       >
                         <span className="text-lg leading-none">⚑</span> Resign
                       </button>
-                    </div>
-                  )}
-
-                  {/* Auto mode specific correct state (flash then advance) */}
-                  {status === 'correct' && autoAdvance && (
-                    <div className="text-center animate-fade-in flex flex-col items-center justify-center h-full">
-                      <div className="text-2xl font-bold text-lichess-green mb-2 uppercase tracking-widest animate-pulse">
-                        ✓ Correct
-                      </div>
-                      <div className="text-xs text-lichess-text uppercase tracking-widest">
-                        Advancing...
-                      </div>
                     </div>
                   )}
 

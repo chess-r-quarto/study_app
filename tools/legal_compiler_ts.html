@@ -188,12 +188,10 @@
                     mdBody += `- **第${num}号** ${clean(sentence)}\n`;
                     stats.items++;
                 } else if (name === 'Subitem1') {
-                    // 【修正点】 Titleは数字変換せずそのまま（「イ」「ロ」等を維持）
                     const title = normalizeText(node.querySelector('Subitem1Title')?.textContent);
                     const sentence = node.querySelector('Subitem1Sentence')?.textContent || '';
                     mdBody += `  - **${title}** ${clean(sentence)}\n`; 
                 } else if (name === 'Subitem2') {
-                    // 【修正点】 「（１）」などを維持
                     const title = normalizeText(node.querySelector('Subitem2Title')?.textContent);
                     const sentence = node.querySelector('Subitem2Sentence')?.textContent || '';
                     mdBody += `    - **${title}** ${clean(sentence)}\n`;
@@ -212,10 +210,64 @@
                 } else if (name === 'SupplProvision') {
                     const label = normalizeText(node.querySelector('SupplProvisionLabel')?.textContent);
                     mdBody += `\n## ${label || '附則'}\n\n`;
+                } else if (name === 'AppdxTableTitle') {
+                    mdBody += `\n## ${clean(node.textContent)}\n\n`;
+                    return; // 子要素のトラバースをスキップ
+                } else if (name === 'RelatedArticleNum') {
+                    mdBody += `${clean(node.textContent)}\n\n`;
+                    return; // 子要素のトラバースをスキップ
+                } else if (name === 'TableStruct') {
+                    const tableNode = node.querySelector('Table');
+                    if (tableNode) {
+                        let tableMd = '\n';
+                        const rows = tableNode.querySelectorAll('TableRow');
+                        if (rows.length > 0) {
+                            rows.forEach((row, rowIndex) => {
+                                const cols = Array.from(row.querySelectorAll('TableColumn'));
+                                
+                                // 各列のSentenceの配列を取得
+                                const colSentencesList = cols.map(col => {
+                                    const sentences = Array.from(col.querySelectorAll('Sentence, ColumnSentence > Sentence'));
+                                    if (sentences.length > 0) {
+                                        return sentences.map(s => normalizeText(s.textContent).replace(/\|/g, '｜'));
+                                    } else {
+                                        return [normalizeText(col.textContent).replace(/\|/g, '｜')];
+                                    }
+                                });
+
+                                // この行で最大のセル内行数を求める
+                                const maxLines = Math.max(...colSentencesList.map(list => list.length));
+                                
+                                // 各列で直前に使った値を保持する配列（空欄を埋めるため）
+                                const lastValues = new Array(cols.length).fill('');
+
+                                // 最大行数分、マークダウンのテーブル行として出力
+                                for (let i = 0; i < maxLines; i++) {
+                                    let rowMd = '|';
+                                    colSentencesList.forEach((list, colIndex) => {
+                                        // 値が存在する場合は更新、存在しない場合は直前の値をそのまま使用
+                                        if (list[i] !== undefined) {
+                                            lastValues[colIndex] = list[i];
+                                        }
+                                        rowMd += ` ${lastValues[colIndex]} |`;
+                                    });
+                                    tableMd += rowMd + '\n';
+                                    
+                                    // 最初のRowの最初の行出力直後に区切り線を入れる
+                                    if (rowIndex === 0 && i === 0) {
+                                        let sep = '|';
+                                        cols.forEach(() => { sep += ' --- |'; });
+                                        tableMd += sep + '\n';
+                                    }
+                                }
+                            });
+                            mdBody += tableMd + '\n';
+                        }
+                    }
+                    return; // テーブル配下のタグは独自に処理したためトラバースをスキップ
                 }
 
                 Array.from(node.children).forEach((child: Element) => {
-                    // 【追加】 Subitem3〜5のタグもトラバーススキップリストに追加
                     const ignoreTags = [
                         'PartTitle', 'ChapterTitle', 'SectionTitle', 'ArticleTitle', 
                         'ArticleCaption', 'ParagraphNum', 'ParagraphSentence', 
@@ -238,6 +290,10 @@
 
             const supplProvisions = xmlDoc.querySelectorAll('SupplProvision');
             supplProvisions.forEach(sp => traverse(sp));
+            
+            // 別表（AppdxTable等）のパース処理を追加
+            const appdxTables = xmlDoc.querySelectorAll('AppdxTable');
+            appdxTables.forEach(at => traverse(at));
 
             const header = `---
 title: "${lawTitle}"
@@ -663,6 +719,7 @@ structure_summary:
 
                         <div className="mt-4 lichess-card p-3 font-mono text-[11px] text-[#606060] terminal-font h-32 overflow-hidden border border-[#303030]">
                             <div className="flex items-center space-x-2 mb-2 border-b border-[#303030] pb-1">
+                                <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
                                 <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
                                 <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
                                 <span className="opacity-50">System Log</span>

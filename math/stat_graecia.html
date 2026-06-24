@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>統計学ギリシャ文字クイズ - Lichess Theme</title>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone for in-browser transpilation -->
+  <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration for Lichess Dark Theme -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lichess: {
+              bg: '#161512',
+              panel: '#262421',
+              panelHover: '#302e2b',
+              text: '#bababa',
+              textLight: '#ffffff',
+              btnBg: '#383531',
+              btnHover: '#45413c',
+              green: '#629924',
+              greenHover: '#73a832',
+              red: '#b33430',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            serif: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(5px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.3s ease-out forwards',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Babel Configuration -->
+  <script>
+    Babel.registerPreset('tsx', {
+      presets: [
+        [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+        Babel.availablePresets['react']
+      ]
+    });
+  </script>
+</head>
+<body class="bg-lichess-bg text-lichess-text font-sans antialiased min-h-screen flex items-center justify-center p-4">
+  
+  <div id="root" class="w-full max-w-2xl"></div>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState, useEffect } = React;
+
+    // --- 型定義 ---
+    interface GreekLetter {
+      symbol: string;
+      name: string;
+      origin: string;
+      statsUsage: string;
+      statsUsageDetail: string;
+      mathUsage: string;
+      options: string[];
+    }
+
+    interface Question extends GreekLetter {
+      shuffledOptions: string[];
+    }
+
+    // --- データセット ---
+    const GREEK_DATA: GreekLetter[] = [
+      {
+        symbol: "α",
+        name: "アルファ (Alpha)",
+        origin: "フェニキア文字のAleph（雄牛の頭）",
+        statsUsage: "有意水準、クロンバックのアルファ",
+        statsUsageDetail: "【有意水準 (Significance level) / 第1種過誤 (Type I error)】\nSignificanceはラテン語のsignificare (意味する、示す)に由来します。帰無仮説が正しいのに誤って棄却してしまう確率（False positive）を表します。\n\n【クロンバックのα係数 (Cronbach's alpha)】\n心理測定などにおいて尺度の内的整合性（信頼性）を示す指標としても用いられます。",
+        mathUsage: "角度",
+        options: ["有意水準、クロンバックのアルファ", "第2種過誤の確率、回帰係数"]
+      },
+      {
+        symbol: "β",
+        name: "ベータ (Beta)",
+        origin: "フェニキア文字のBeth（家）",
+        statsUsage: "第2種過誤の確率、回帰係数",
+        statsUsageDetail: "【第2種過誤 (Type II error)】\n対立仮説が正しいのに帰無仮説を誤って採択してしまう確率（False negative）を表します。\n\n【回帰係数 (Regression coefficient)】\nRegressionはラテン語のregredi (後ろへ歩く、戻る)に由来し、F.ゴルトンの「平均への回帰 (regression toward the mean)」という概念から生まれました。回帰分析における傾き（特に標準化偏回帰係数）を表すのに頻繁に使用されます。",
+        mathUsage: "ベータ関数",
+        options: ["第2種過誤の確率、回帰係数", "有意水準、クロンバックのアルファ"]
+      },
+      {
+        symbol: "γ",
+        name: "ガンマ (Gamma)",
+        origin: "フェニキア文字のGimel（ラクダ）",
+        statsUsage: "ガンマ分布のパラメータ",
+        statsUsageDetail: "【ガンマ分布のパラメータ】\n連続確率分布であるガンマ分布 (Gamma distribution) の形状パラメータとして使われます。Distributionはラテン語のdistribuere (割り当てる)から来ています。\n\n【グッドマン・クラスカルのガンマ】\nカテゴリデータ分析において、順序変数間の相関 (Correlation) を示す係数としても使用されます。Correlationはラテン語のcom- (共に)とrelatio (関係)から成る言葉です。",
+        mathUsage: "ガンマ関数",
+        options: ["ガンマ分布のパラメータ", "ポアソン分布の平均"]
+      },
+      {
+        symbol: "ε",
+        name: "イプシロン (Epsilon)",
+        origin: "フェニキア文字のHe（窓）",
+        statsUsage: "誤差項",
+        statsUsageDetail: "【誤差項 (Error term) / 残差 (Residual)】\nErrorはラテン語のerrare (さまよう、間違える)に由来し、Epsilonの「E」はErrorの頭文字に対応して使われます。Residualはラテン語のresidere (後に残る)に由来します。回帰分析などの統計モデルにおいて、観測値とモデルによる予測値のズレである誤差や残差を表す標準的な記号です。",
+        mathUsage: "極めて小さな正の数 (ε-δ論法)",
+        options: ["誤差項", "未知の母数（パラメータ）"]
+      },
+      {
+        symbol: "θ",
+        name: "シータ (Theta)",
+        origin: "フェニキア文字のTeth（車輪）",
+        statsUsage: "未知の母数（パラメータ）",
+        statsUsageDetail: "【未知の母数 (Parameter)】\nParameterはギリシャ語のpara (横、補助)とmetron (測るもの)の合成語に由来します。確率分布における未知のパラメータ全般を抽象的に表す記号として頻繁に用いられ、点推定（θ̂）や区間推定の対象となる変数を指します。",
+        mathUsage: "角度（極座標など）",
+        options: ["未知の母数（パラメータ）", "誤差項"]
+      },
+      {
+        symbol: "λ",
+        name: "ラムダ (Lambda)",
+        origin: "フェニキア文字のLamedh（杖）",
+        statsUsage: "ポアソン分布の平均",
+        statsUsageDetail: "【ポアソン分布の平均発生率 (Mean occurrence rate)】\n稀な事象の発生回数を表すポアソン分布 (Poisson distribution) や、指数分布のパラメータ（単位時間あたりの平均発生率）として使われます。Rateはラテン語のrata (計算された)に由来します。\n\nまた、多変量解析におけるウィルクスのラムダ（群の分離度）などでも使われます。",
+        mathUsage: "波長、線形代数の固有値",
+        options: ["ポアソン分布の平均", "ガンマ分布のパラメータ"]
+      },
+      {
+        symbol: "μ",
+        name: "ミュー (Mu)",
+        origin: "フェニキア文字のMem（水）",
+        statsUsage: "母平均",
+        statsUsageDetail: "【母平均 (Population mean)】\nMeanはラテン語のmedianus (真ん中の)に、Populationはラテン語のpopulus (人々)に由来します。Muの「M」はMeanの頭文字に対応して使われます。標本平均（x̄やm）と区別して、推測統計において対象とする母集団の真の平均を表す最も基本的かつ重要なパラメータです。",
+        mathUsage: "マイクロ (10^-6)、メビウス関数",
+        options: ["母平均", "母標準偏差"]
+      },
+      {
+        symbol: "ν",
+        name: "ニュー (Nu)",
+        origin: "フェニキア文字のNun（魚）",
+        statsUsage: "自由度",
+        statsUsageDetail: "【自由度 (Degrees of freedom, df)】\nFreedomは古英語のfreodomに由来します。統計量が自由に取れる値の数を意味し、分散などの計算でパラメータを推定するなどの制約を受けるたびに減少します。カイ二乗分布、t分布、F分布などで、分布の形状を決定する重要なパラメータとしてよく用いられます。",
+        mathUsage: "動粘度、周波数",
+        options: ["自由度", "母比率"]
+      },
+      {
+        symbol: "π",
+        name: "パイ (Pi)",
+        origin: "フェニキア文字のPe（口）",
+        statsUsage: "母比率",
+        statsUsageDetail: "【母比率 (Population proportion)】\nProportionはラテン語のproportio (釣り合い、比率)に由来します。Piの「P」はProportionの頭文字に対応して使われます。母集団における特定の事象の発生割合を表し、標本比率（pやp̂）と区別されます。二項分布 (Binomial distribution) のパラメータにもなります（円周率としてのπとは意味が異なります）。",
+        mathUsage: "円周率、総乗 (Π)",
+        options: ["母比率", "母相関係数"]
+      },
+      {
+        symbol: "ρ",
+        name: "ロー (Rho)",
+        origin: "フェニキア文字のResh（頭）",
+        statsUsage: "母相関係数",
+        statsUsageDetail: "【母相関係数 (Population correlation coefficient)】\nCorrelationはラテン語のcom- (共に)とrelatio (関係)から成る言葉です。Rhoの「r」は相関係数の「r」(標本ピアソン相関係数) に対応して使われます。母集団における2変数間の相関係数を表します。\n\nまた、スピアマンの順位相関係数 (Spearman's rank correlation coefficient) としてρが使われることでも有名です。Rankは古フランス語のrenc (列、並び)に由来します。",
+        mathUsage: "密度、極座標の動径",
+        options: ["母相関係数", "母比率"]
+      },
+      {
+        symbol: "σ",
+        name: "シグマ (Sigma)",
+        origin: "フェニキア文字のShin（歯）",
+        statsUsage: "母標準偏差",
+        statsUsageDetail: "【母標準偏差 (Population standard deviation)】\nStandard (標準)は古フランス語のestendartに、Deviation (偏差)はラテン語のdeviare (道をそれる)に由来します。Sigmaの「S」はStandard deviationの「S」(標本標準偏差) に対応して使われます。母集団のデータが平均の周りにどれくらい散らばっているかを表し、二乗した σ² は母分散 (Population variance) となります。",
+        mathUsage: "総和 (Σ)",
+        options: ["母標準偏差", "母平均"]
+      },
+      {
+        symbol: "τ",
+        name: "タウ (Tau)",
+        origin: "フェニキア文字のTaw（印）",
+        statsUsage: "ケンドールの順位相関係数",
+        statsUsageDetail: "【ケンドールの順位相関係数 (Kendall rank correlation coefficient)】\nRankは古フランス語のrenc (列、並び)に由来します。データに同順位（タイ）がある場合や外れ値が含まれる場合などに、スピアマンのρよりも適しているとされるノンパラメトリック (Non-parametric) な相関の指標です。Non-parametricは「母数（パラメータ）に依存しない」という意味です。",
+        mathUsage: "時定数、トルク",
+        options: ["ケンドールの順位相関係数", "スピアマンの順位相関係数"]
+      },
+      {
+        symbol: "φ / Φ",
+        name: "ファイ (Phi)",
+        origin: "ギリシャ文字での独自追加",
+        statsUsage: "ファイ係数、標準正規分布の関数",
+        statsUsageDetail: "【ファイ係数 (Phi coefficient)】\n2×2分割表における名義尺度の連関の強さを示す指標です。\n\n【標準正規分布の関数 (Standard normal distribution)】\n大文字のΦは、平均0、分散1の標準正規分布の累積分布関数 (Cumulative distribution function) を表す記号として広く普及しています。Cumulativeはラテン語のcumulare (積み上げる)に由来します。",
+        mathUsage: "黄金比、角度",
+        options: ["ファイ係数、標準正規分布の関数", "カイ二乗検定"]
+      },
+      {
+        symbol: "χ",
+        name: "カイ (Chi)",
+        origin: "ギリシャ文字での独自追加",
+        statsUsage: "カイ二乗検定",
+        statsUsageDetail: "【カイ二乗検定 (Chi-square test)】\nSquareはラテン語のexquadrare (四角くする)に由来します。カール・ピアソンが考案した適合度検定 (Goodness-of-fit test) や独立性検定 (Test of independence) などのカイ二乗検定、およびその検定統計量が従うカイ二乗分布で使用されます。母分散の区間推定にも用いられます。",
+        mathUsage: "オイラー標数",
+        options: ["カイ二乗検定", "ファイ係数"]
+      },
+      {
+        symbol: "ω / Ω",
+        name: "オメガ (Omega)",
+        origin: "大きなO（ギリシャ文字の最後）",
+        statsUsage: "標本空間、オメガ二乗（効果量）",
+        statsUsageDetail: "【オメガ二乗 (Omega squared)】\n小文字のωはオメガ二乗（ω²）として、分散分析 (ANOVA: Analysis of Variance) における効果量 (Effect size: 母集団における説明変数の寄与率) の推定値に用いられます。\n\n【標本空間 (Sample space)】\n大文字のΩは確率論において標本空間（起こりうるすべての結果の集合）を表します。Sampleはラテン語のexemplum (例)に、Spaceはラテン語のspatiumに由来します。",
+        mathUsage: "角速度、オーム (抵抗)",
+        options: ["標本空間、オメガ二乗（効果量）", "自由度"]
+      }
+    ];
+
+    // --- ユーティリティ関数 ---
+    function shuffleArray<T>(array: T[]): T[] {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // --- メインコンポーネント ---
+    const App = () => {
+      const [questions, setQuestions] = useState<Question[]>([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [isAnswered, setIsAnswered] = useState(false);
+      const [selectedOption, setSelectedOption] = useState<string | null>(null);
+      const [score, setScore] = useState(0);
+
+      useEffect(() => {
+        startNewGame();
+      }, []);
+
+      const startNewGame = () => {
+        // 問題順序と選択肢の順序をランダム化
+        const shuffledData = shuffleArray(GREEK_DATA).map(item => ({
+          ...item,
+          shuffledOptions: shuffleArray([...item.options])
+        }));
+        setQuestions(shuffledData);
+        setCurrentIndex(0);
+        setIsAnswered(false);
+        setSelectedOption(null);
+        setScore(0);
+      };
+
+      const handleAnswer = (option: string) => {
+        if (isAnswered) return;
+        setSelectedOption(option);
+        setIsAnswered(true);
+        if (option === questions[currentIndex].statsUsage) {
+          setScore(prev => prev + 1);
+        }
+      };
+
+      const handleNext = () => {
+        setIsAnswered(false);
+        setSelectedOption(null);
+        setCurrentIndex(prev => prev + 1);
+      };
+
+      if (questions.length === 0) {
+        return <div className="text-lichess-textLight">Loading...</div>;
+      }
+
+      const isGameOver = currentIndex >= questions.length;
+
+      if (isGameOver) {
+        return (
+          <div className="bg-lichess-panel rounded-lg shadow-2xl p-8 text-center border border-lichess-panelHover animate-fadeIn">
+            <h2 className="text-3xl font-bold text-lichess-textLight mb-2">Quiz Complete!</h2>
+            <p className="text-xl mb-6 text-lichess-text">
+              あなたのスコア: <span className="text-lichess-textLight font-bold">{score}</span> / {questions.length}
+            </p>
+            <div className="text-6xl mb-8">
+              {score === questions.length ? '🏆' : '👏'}
+            </div>
+            <button 
+              onClick={startNewGame}
+              className="px-8 py-3 bg-lichess-green hover:bg-lichess-greenHover text-white font-bold rounded-md transition-colors text-lg"
+            >
+              もう一度プレイする
+            </button>
+          </div>
+        );
+      }
+
+      const currentQ = questions[currentIndex];
+
+      return (
+        <div className="bg-lichess-panel rounded-lg shadow-2xl p-6 md:p-8 border border-lichess-panelHover">
+          
+          {/* ヘッダー情報 */}
+          <div className="flex justify-between items-center mb-6 text-sm text-lichess-text font-medium border-b border-lichess-panelHover pb-4">
+            <div>
+              問題: <span className="text-lichess-textLight">{currentIndex + 1}</span> / {questions.length}
+            </div>
+            <div>
+              スコア: <span className="text-lichess-textLight">{score}</span>
+            </div>
+          </div>
+
+          {/* 問題エリア */}
+          <div className="text-center mb-8">
+            <h2 className="text-lg text-lichess-text mb-4">このギリシャ文字の<span className="text-lichess-textLight font-bold border-b border-lichess-green">統計学での用途</span>は？</h2>
+            <div className="text-8xl md:text-9xl font-serif text-lichess-textLight my-6 drop-shadow-md">
+              {currentQ.symbol}
+            </div>
+          </div>
+
+          {/* 選択肢エリア */}
+          <div className="flex flex-col gap-3">
+            {currentQ.shuffledOptions.map((option, idx) => {
+              // Lichess風のボタンスタイリング制御
+              let btnClass = "w-full py-4 px-6 text-left rounded-md text-base md:text-lg transition-all duration-200 border border-transparent shadow-sm ";
+              
+              if (!isAnswered) {
+                btnClass += "bg-lichess-btnBg hover:bg-lichess-btnHover text-lichess-textLight cursor-pointer";
+              } else {
+                btnClass += "cursor-default ";
+                if (option === currentQ.statsUsage) {
+                  // 正解の選択肢は常に緑色
+                  btnClass += "bg-lichess-green text-white";
+                } else if (option === selectedOption) {
+                  // 間違って選んだ選択肢は赤色
+                  btnClass += "bg-lichess-red text-white";
+                } else {
+                  // 選ばれなかった不正解は暗くする
+                  btnClass += "bg-lichess-btnBg text-lichess-text opacity-40";
+                }
+              }
+
+              return (
+                <button 
+                  key={idx} 
+                  onClick={() => handleAnswer(option)}
+                  disabled={isAnswered}
+                  className={btnClass}
+                >
+                  <div className="flex items-center">
+                    <span className="w-6 h-6 inline-flex items-center justify-center border border-current rounded-sm mr-4 text-xs opacity-70">
+                      {idx === 0 ? 'A' : 'B'}
+                    </span>
+                    {option}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 解説エリア */}
+          {isAnswered && (
+            <div className="mt-8 animate-fadeIn">
+              <div className="bg-lichess-bg rounded-md p-5 border border-lichess-panelHover shadow-inner">
+                <h3 className="text-lg text-lichess-textLight font-semibold mb-4 border-b border-lichess-panelHover pb-2 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-lichess-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  詳細データ
+                </h3>
+                <dl className="space-y-3 text-sm md:text-base">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-1 md:gap-4">
+                    <dt className="text-lichess-text font-medium text-right md:text-left">読み方</dt>
+                    <dd className="md:col-span-3 text-lichess-textLight font-semibold">{currentQ.name}</dd>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-1 md:gap-4">
+                    <dt className="text-lichess-text font-medium text-right md:text-left">語源</dt>
+                    <dd className="md:col-span-3 text-lichess-textLight">{currentQ.origin}</dd>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-1 md:gap-4">
+                    <dt className="text-lichess-text font-medium text-right md:text-left text-lichess-green">統計の用途</dt>
+                    <dd className="md:col-span-3 text-lichess-textLight leading-relaxed whitespace-pre-wrap">{currentQ.statsUsageDetail}</dd>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-1 md:gap-4">
+                    <dt className="text-lichess-text font-medium text-right md:text-left opacity-70">数学の用途</dt>
+                    <dd className="md:col-span-3 text-lichess-textLight opacity-90">{currentQ.mathUsage}</dd>
+                  </div>
+                </dl>
+              </div>
+              
+              <button 
+                onClick={handleNext}
+                className="mt-6 w-full py-4 bg-lichess-green hover:bg-lichess-greenHover text-white font-bold text-lg rounded-md transition-colors shadow-md flex justify-center items-center"
+              >
+                次の問題へ
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

@@ -20,7 +20,6 @@ Analytical tools, parsers, and data extraction utilities.
 * JSON Merger (`tools/json_marger.html`)
 * PDF to MD (`tools/pdf_to_md.html`)
 * Wiki to MD (`tools/wiki_to_md.html`)
-* Legal Compiler (`tools/legal_compiler.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
 
 ### 📊 Data Science & Management
@@ -58,6 +57,11 @@ Vocabulary drills, grammar rules, and syntax parsing.
 * Modifiers (`english_card/modifiers.html`)
 * No M Sentence (`english_card/no_m_sentence.html`)
 * No M Puzzle (`english_card/no_m_puzzle.html`)
+* Countable Nouns (`english_card/countable_nouns.html`)
+
+### 🧮 Mathematics
+Mathematical symbol quizzes and tools.
+* Mathchess (`math/math_quiz.html`)
 
 ## Deployment
 

@@ -2,50 +2,37 @@
 
 **[Public Access](https://chess-r-quarto.github.io/study_app/)**
 
-A minimalist, lichess like dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
+A minimalist, Lichess-inspired dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
 
-## Visual Identity
+## 🚀 Recent Updates
+- **Mobile-Optimized UI**: The launcher layout has been upgraded from a sidebar to a responsive Top Navigation Tab Bar, providing a seamless experience on smartphones and tablets.
+- **Product-Level Manuals**: Every single application (39+ apps) now includes a comprehensive, high-quality Markdown manual detailing its core mechanics, educational logic, and UI instructions.
 
-* **Theme:** macOS Dark Mode aesthetic (`#1C1C1E` background, `#F3F4F6` text).
+## 🎨 Visual Identity
+
+* **Theme:** macOS Dark Mode aesthetic (`#1e1e1e` background, `#e0e0e0` text).
 * **Typography:** System UI stack (`-apple-system`, `SF Pro Display`, `Noto Sans JP`) for maximum legibility.
-* **Layout:** Responsive grid system featuring rounded windows, traffic light controls, and Lucide icons.
-* **Interaction:** Tactile hover states (`transform: translateY`) with distinct accent colors for module categorization.
+* **Layout:** Responsive grid system with mobile-friendly scrollable tabs and Lucide icons.
+* **Interaction:** Tactile hover states (`transform: scale`) with distinct accent colors for module categorization.
 
-## Module Categories
+## 📁 Module Categories
 
 ### 🛠️ Development & Utilities
 Analytical tools, parsers, and data extraction utilities.
 * HTML to MD (`tools/html_to_md.html`)
-* JSON Downloader (`tools/json_downloader.html`)
-* JSON Merger (`tools/json_marger.html`)
 * PDF to MD (`tools/pdf_to_md.html`)
 * Wiki to MD (`tools/wiki_to_md.html`)
+* JSON Downloader (`tools/json_downloader.html`)
+* JSON Merger (`tools/json_marger.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
 * JSON Downloader (Vite) (`json_download/index.html`)
 
-### 📊 Data Science & Management
-Core data structuring and management principles.
+### 📊 Data Science & Language
+Core data structuring, news readers, and vocabulary platforms.
 * Data Management (`data_management/data_management.html`)
 * News Feed (`news_feed/news_feed.html`)
-
-### 🏛️ Financial Planning (FP1)
-Specialized financial planning calculators and tax matrices.
-* FP1 Dividend Calc (`fp1/fp1_dividend_calc.html`)
-* FP1 Corporate Tax (`fp1/fp1_cor_tax_matrix.html`)
-* FP1 FAR (`fp1/fp1_far.html`)
-* FP1 Pension (`fp1/fp1_pension.html`)
-* FP1 Portfolio (`fp1/fp1_portfolio.html`)
-* FP1 Asset Value (`fp1/fp1_asset_value.html`)
-* FP1 Sell Buy (`fp1/fp1_sell_buy.html`)
-* FP1 Inheritance (`fp1/fp1_souzoku.html`)
-* FP1 Small Scale Land Tax Relief (`fp1/fp1_small-scale-land-tax-relief.html`)
-* FP1 Analysis (`fp1/analysis.html`)
-* FP1 Static (`fp1/static.html`)
-
-### 🔤 Language
-Vocabulary drills, grammar rules, and syntax parsing.
-* English Word (`english_word/dist/index.html`)
-* English Flashcard (`english_card/english_card.html`)
+* English Word DB (`english_word/dist/index.html`)
+* English Card (`english_card/english_card.html`)
 * English Quiz (`english_card/english_quiz.html`)
 * Grammar Basic (`english_card/grammar.html`)
 * Grammar (High School) (`english_card/grammar_high_school.html`)
@@ -63,11 +50,25 @@ Vocabulary drills, grammar rules, and syntax parsing.
 * Grammar Train (`english_card/grammar_train.html`)
 
 ### 🧮 Mathematics
-Mathematical symbol quizzes and tools.
+Mathematical symbol quizzes and statistical tools.
 * Mathchess (`math/math_quiz.html`)
 * Stat Graecia (`math/stat_graecia.html`)
 
-## Deployment
+### 🏛️ Financial Planning (FP1)
+Specialized financial planning calculators and tax matrices for the FP1 exam.
+* Dividend Calc (`fp1/fp1_dividend_calc.html`)
+* Corporate Tax Matrix (`fp1/fp1_cor_tax_matrix.html`)
+* FP1 FAR (`fp1/fp1_far.html`)
+* FP1 Pension (`fp1/fp1_pension.html`)
+* FP1 Portfolio (`fp1/fp1_portfolio.html`)
+* Asset Value (`fp1/fp1_asset_value.html`)
+* Sell Buy Simulator (`fp1/fp1_sell_buy.html`)
+* Inheritance Tax (`fp1/fp1_souzoku.html`)
+* Small Scale Land Tax Relief (`fp1/fp1_small-scale-land-tax-relief.html`)
+* Analysis Tools (`fp1/analysis.html`)
+* Static Reference (`fp1/static.html`)
+
+## ⚙️ Deployment
 
 Mostly zero-dependency architecture.
 * The frontend can be served via any static file server (e.g., GitHub Pages, Vercel, or local `python -m http.server`). All TypeScript/React compilation is handled in-browser.

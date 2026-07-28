@@ -21,6 +21,7 @@ Analytical tools, parsers, and data extraction utilities.
 * PDF to MD (`tools/pdf_to_md.html`)
 * Wiki to MD (`tools/wiki_to_md.html`)
 * Legal Compiler TS (`tools/legal_compiler_ts.html`)
+* JSON Downloader (Vite) (`json_download/index.html`)
 
 ### 📊 Data Science & Management
 Core data structuring and management principles.
@@ -58,10 +59,13 @@ Vocabulary drills, grammar rules, and syntax parsing.
 * No M Sentence (`english_card/no_m_sentence.html`)
 * No M Puzzle (`english_card/no_m_puzzle.html`)
 * Countable Nouns (`english_card/countable_nouns.html`)
+* English Word App (`english_card/english_word_app.html`)
+* Grammar Train (`english_card/grammar_train.html`)
 
 ### 🧮 Mathematics
 Mathematical symbol quizzes and tools.
 * Mathchess (`math/math_quiz.html`)
+* Stat Graecia (`math/stat_graecia.html`)
 
 ## Deployment
 

@@ -81,8 +81,9 @@
             { id: "dev-2", category: "Dev & Utilities", name: "PDF to MD", description: "PDF to Markdown converter", icon: "FileDown", appUrl: "tools/pdf_to_md.html", manualUrl: "tools/pdf_to_md_manual.md", installed: true },
             { id: "dev-3", category: "Dev & Utilities", name: "Wiki to MD", description: "Wiki to Markdown tool", icon: "BookOpen", appUrl: "tools/wiki_to_md.html", manualUrl: "tools/wiki_to_md_manual.md", installed: true },
             { id: "dev-4", category: "Dev & Utilities", name: "JSON Downloader", description: "JSON Downloader application", icon: "Download", appUrl: "tools/json_downloader.html", manualUrl: "tools/json_downloader_manual.md", installed: true },
-            { id: "dev-8", category: "Dev & Utilities", name: "JSON Merger", description: "Browser-based JSON merging utility", icon: "Database", appUrl: "tools/json_marger.html", manualUrl: "", installed: true },
+            { id: "dev-8", category: "Dev & Utilities", name: "JSON Merger", description: "Browser-based JSON merging utility", icon: "Database", appUrl: "tools/json_marger.html", manualUrl: "tools/json_marger_manual.md", installed: true },
             { id: "dev-7", category: "Dev & Utilities", name: "Legal Compiler TS", description: "TypeScript version of legal compiler", icon: "Scale", appUrl: "tools/legal_compiler_ts.html", manualUrl: "tools/legal_compiler_ts_manual.md", installed: true },
+            { id: "dev-9", category: "Dev & Utilities", name: "JSON Downloader (Vite)", description: "React Vite JSON Downloader", icon: "Download", appUrl: "json_download/index.html", manualUrl: "json_download/manual.md", installed: true },
 
             // --- Data & Language ---
             { id: "data-1", category: "Data & Language", name: "Data Management", description: "Data management and cleansing operations", icon: "Database", appUrl: "data_management/data_management.html", manualUrl: "data_management/data_management_manual.md", installed: true },
@@ -90,23 +91,26 @@
             { id: "data-3", category: "Data & Language", name: "News Feed", description: "RSS reader application", icon: "Rss", appUrl: "news_feed/news_feed.html", manualUrl: "news_feed/news_feed_manual.md", installed: true },
 
             // --- English Learning ---
-            { id: "lang-4", category: "Data & Language", name: "English Card", description: "English flashcard application", icon: "Languages", appUrl: "english_card/english_card.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-5", category: "Data & Language", name: "English Quiz", description: "English word quizzes", icon: "HelpCircle", appUrl: "english_card/english_quiz.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-6", category: "Data & Language", name: "Grammar Basic", description: "Basic English grammar", icon: "Type", appUrl: "english_card/grammar.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-7", category: "Data & Language", name: "Grammar (High School)", description: "High-school level grammar", icon: "GraduationCap", appUrl: "english_card/grammar_high_school.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-8", category: "Data & Language", name: "Grammar Structure", description: "Sentence structure learning", icon: "Network", appUrl: "english_card/grammar_structure.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-9", category: "Data & Language", name: "Syntax as Code", description: "Learn syntax analytically", icon: "Code", appUrl: "english_card/syntax_as_code.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-10", category: "Data & Language", name: "Syntax Parser", description: "Syntactical sentence parser", icon: "SearchCode", appUrl: "english_card/syntax_parser.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-12", category: "Data & Language", name: "Grammar Verb", description: "English verb grammar", icon: "Type", appUrl: "english_card/grammar_verb.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-13", category: "Data & Language", name: "Grammar Term", description: "Grammar terminology", icon: "BookText", appUrl: "english_card/grammar_term.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-14", category: "Data & Language", name: "Grammar Puzzle", description: "Grammar learning puzzle", icon: "Puzzle", appUrl: "english_card/grammar_puzzle.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-15", category: "Data & Language", name: "Modifiers", description: "Learn English modifiers", icon: "TextSelect", appUrl: "english_card/modifiers.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-11", category: "Data & Language", name: "No M Sentence", description: "No Modifier sentence learning", icon: "BookOpen", appUrl: "english_card/no_m_sentence.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-16", category: "Data & Language", name: "No M Puzzle", description: "No Modifier puzzle", icon: "Puzzle", appUrl: "english_card/no_m_puzzle.html", manualUrl: "english_card/manual.md", installed: true },
-            { id: "lang-17", category: "Data & Language", name: "Countable Nouns", description: "Countable Nouns Quiz", icon: "BookOpen", appUrl: "english_card/countable_nouns.html", manualUrl: "english_card/manual.md", installed: true },
+            { id: "lang-4", category: "Data & Language", name: "English Card", description: "English flashcard application", icon: "Languages", appUrl: "english_card/english_card.html", manualUrl: "english_card/english_card_manual.md", installed: true },
+            { id: "lang-5", category: "Data & Language", name: "English Quiz", description: "English word quizzes", icon: "HelpCircle", appUrl: "english_card/english_quiz.html", manualUrl: "english_card/english_quiz_manual.md", installed: true },
+            { id: "lang-6", category: "Data & Language", name: "Grammar Basic", description: "Basic English grammar", icon: "Type", appUrl: "english_card/grammar.html", manualUrl: "english_card/grammar_manual.md", installed: true },
+            { id: "lang-7", category: "Data & Language", name: "Grammar (High School)", description: "High-school level grammar", icon: "GraduationCap", appUrl: "english_card/grammar_high_school.html", manualUrl: "english_card/grammar_high_school_manual.md", installed: true },
+            { id: "lang-8", category: "Data & Language", name: "Grammar Structure", description: "Sentence structure learning", icon: "Network", appUrl: "english_card/grammar_structure.html", manualUrl: "english_card/grammar_structure_manual.md", installed: true },
+            { id: "lang-9", category: "Data & Language", name: "Syntax as Code", description: "Learn syntax analytically", icon: "Code", appUrl: "english_card/syntax_as_code.html", manualUrl: "english_card/syntax_as_code_manual.md", installed: true },
+            { id: "lang-10", category: "Data & Language", name: "Syntax Parser", description: "Syntactical sentence parser", icon: "SearchCode", appUrl: "english_card/syntax_parser.html", manualUrl: "english_card/syntax_parser_manual.md", installed: true },
+            { id: "lang-12", category: "Data & Language", name: "Grammar Verb", description: "English verb grammar", icon: "Type", appUrl: "english_card/grammar_verb.html", manualUrl: "english_card/grammar_verb_manual.md", installed: true },
+            { id: "lang-13", category: "Data & Language", name: "Grammar Term", description: "Grammar terminology", icon: "BookText", appUrl: "english_card/grammar_term.html", manualUrl: "english_card/grammar_term_manual.md", installed: true },
+            { id: "lang-14", category: "Data & Language", name: "Grammar Puzzle", description: "Grammar learning puzzle", icon: "Puzzle", appUrl: "english_card/grammar_puzzle.html", manualUrl: "english_card/grammar_puzzle_manual.md", installed: true },
+            { id: "lang-15", category: "Data & Language", name: "Modifiers", description: "Learn English modifiers", icon: "TextSelect", appUrl: "english_card/modifiers.html", manualUrl: "english_card/modifiers_manual.md", installed: true },
+            { id: "lang-11", category: "Data & Language", name: "No M Sentence", description: "No Modifier sentence learning", icon: "BookOpen", appUrl: "english_card/no_m_sentence.html", manualUrl: "english_card/no_m_sentence_manual.md", installed: true },
+            { id: "lang-16", category: "Data & Language", name: "No M Puzzle", description: "No Modifier puzzle", icon: "Puzzle", appUrl: "english_card/no_m_puzzle.html", manualUrl: "english_card/no_m_puzzle_manual.md", installed: true },
+            { id: "lang-17", category: "Data & Language", name: "Countable Nouns", description: "Countable Nouns Quiz", icon: "BookOpen", appUrl: "english_card/countable_nouns.html", manualUrl: "english_card/countable_nouns_manual.md", installed: true },
+            { id: "lang-18", category: "Data & Language", name: "English Word App", description: "English Word App", icon: "Languages", appUrl: "english_card/english_word_app.html", manualUrl: "english_card/english_word_app_manual.md", installed: true },
+            { id: "lang-19", category: "Data & Language", name: "Grammar Train", description: "English Grammar Train Map", icon: "Map", appUrl: "english_card/grammar_train.html", manualUrl: "english_card/grammar_train_manual.md", installed: true },
 
             // --- Mathematics ---
-            { id: "math-1", category: "Mathematics", name: "Mathchess", description: "Mathematical Symbol Quiz", icon: "Calculator", appUrl: "math/math_quiz.html", manualUrl: "", installed: true },
+            { id: "math-1", category: "Mathematics", name: "Mathchess", description: "Mathematical Symbol Quiz", icon: "Calculator", appUrl: "math/math_quiz.html", manualUrl: "math/math_quiz_manual.md", installed: true },
+            { id: "math-2", category: "Mathematics", name: "Stat Graecia", description: "Statistics Greek Letters Quiz", icon: "Calculator", appUrl: "math/stat_graecia.html", manualUrl: "math/stat_graecia_manual.md", installed: true },
 
             // --- FP1 (Financial Planning) ---
             { id: "fp1-1", category: "FP1", name: "Dividend Calc", description: "Dividend calculation tool", icon: "Calculator", appUrl: "fp1/fp1_dividend_calc.html", manualUrl: "fp1/fp1_dividend_calc_manual.md", installed: true },
@@ -118,16 +122,16 @@
             { id: "fp1-7", category: "FP1", name: "Sell & Buy", description: "Trading sell/buy simulation", icon: "TrendingUp", appUrl: "fp1/fp1_sell_buy.html", manualUrl: "fp1/fp1_sell_buy_manual.md", installed: true },
             { id: "fp1-8", category: "FP1", name: "Inheritance", description: "Inheritance tax estimation", icon: "ScrollText", appUrl: "fp1/fp1_souzoku.html", manualUrl: "fp1/fp1_souzoku_manual.md", installed: true },
             { id: "fp1-9", category: "FP1", name: "Small Scale Land Tax Relief", description: "Small-scale land tax relief calculations", icon: "Map", appUrl: "fp1/fp1_small-scale-land-tax-relief.html", manualUrl: "fp1/fp1_small-scale-land-tax-relief_manual.md", installed: true },
-            { id: "fp1-10", category: "FP1", name: "Analysis", description: "FP1 Analysis tools", icon: "LineChart", appUrl: "fp1/analysis.html", manualUrl: "", installed: true },
-            { id: "fp1-11", category: "FP1", name: "Static", description: "FP1 Static tools", icon: "FileCode", appUrl: "fp1/static.html", manualUrl: "", installed: true }
+            { id: "fp1-10", category: "FP1", name: "Analysis", description: "FP1 Analysis tools", icon: "LineChart", appUrl: "fp1/analysis.html", manualUrl: "fp1/analysis_manual.md", installed: true },
+            { id: "fp1-11", category: "FP1", name: "Static", description: "FP1 Static tools", icon: "FileCode", appUrl: "fp1/static.html", manualUrl: "fp1/static_manual.md", installed: true }
         ];
 
-        const SidebarItem = ({ icon, label, active = false, onClick }: { icon: string, label: string, active?: boolean, onClick?: () => void }) => {
+        const TabItem = ({ icon, label, active = false, onClick }: { icon: string, label: string, active?: boolean, onClick?: () => void }) => {
             useEffect(() => { lucide.createIcons(); });
             return (
-                <div onClick={onClick} className={`flex items-center px-4 py-3 cursor-pointer transition-colors ${active ? 'bg-[#2a2a2b] border-l-4 border-green-500' : 'hover:bg-[#2a2a2b] border-l-4 border-transparent'}`}>
-                    <i data-lucide={icon} className={`w-5 h-5 mr-3 ${active ? 'text-green-500' : 'text-gray-400'}`}></i>
-                    <span className={`text-sm font-medium ${active ? 'text-white' : 'text-gray-300'}`}>{label}</span>
+                <div onClick={onClick} className={`flex items-center px-4 h-full cursor-pointer transition-colors whitespace-nowrap border-b-2 ${active ? 'border-green-500 text-white bg-[#2a2a2b]' : 'border-transparent text-gray-400 hover:bg-[#2a2a2b] hover:text-gray-200'}`}>
+                    <i data-lucide={icon} className={`w-4 h-4 mr-2 ${active ? 'text-green-500' : ''}`}></i>
+                    <span className="text-sm font-medium">{label}</span>
                 </div>
             );
         };
@@ -175,42 +179,42 @@
             const filteredApps = activeCategory === "All" ? APP_DATA : APP_DATA.filter(app => app.category === activeCategory);
 
             return (
-                <div className="flex w-full h-full bg-[#1e1e1e]">
+                <div className="flex flex-col w-full h-full bg-[#1e1e1e]">
 
-                    {/* Sidebar */}
-                    <div className="w-64 bg-[#181818] border-r border-[#333333] flex flex-col shrink-0">
-                        <div className="h-16 flex items-center px-6 border-b border-[#333333]">
-                            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-3 shadow-md">
+                    {/* Top Navigation Bar */}
+                    <div className="w-full bg-[#181818] border-b border-[#333333] flex flex-col shrink-0">
+                        <div className="h-16 flex items-center px-4 md:px-6">
+                            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-3 shadow-md shrink-0">
                                 <span className="text-white font-bold text-lg leading-none">N</span>
                             </div>
-                            <span className="text-lg font-bold tracking-wide text-gray-100">Study App</span>
-                        </div>
-
-                        <div className="flex-1 py-4 flex flex-col gap-1 overflow-y-auto">
-                            <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Environments</div>
-                            <SidebarItem icon="layers" label="All Applications" active={activeCategory === "All"} onClick={() => setActiveCategory("All")} />
-                            {categories.filter(c => c !== "All").map(cat => (
-                                <SidebarItem key={cat} icon="folder" label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />
-                            ))}
+                            <span className="text-lg font-bold tracking-wide text-gray-100 mr-6 shrink-0 hidden sm:block">Study App</span>
+                            
+                            {/* Scrollable Tabs */}
+                            <div className="flex-1 flex h-full overflow-x-auto items-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                <TabItem icon="layers" label="All" active={activeCategory === "All"} onClick={() => setActiveCategory("All")} />
+                                {categories.filter(c => c !== "All").map(cat => (
+                                    <TabItem key={cat} icon="folder" label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />
+                                ))}
+                            </div>
                         </div>
                     </div>
 
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col overflow-hidden">
 
-                        {/* Top Header */}
-                        <div className="h-16 bg-[#1e1e1e] flex items-center px-8 border-b border-[#333333] shrink-0">
-                            <span className="text-sm text-gray-400 mr-3">Applications on</span>
-                            <select className="bg-[#2d2d30] border border-[#3e3e42] text-sm text-white rounded px-3 py-1.5 focus:outline-none focus:border-green-500 cursor-pointer">
+                        {/* Sub Header */}
+                        <div className="h-12 bg-[#1e1e1e] flex items-center px-4 sm:px-8 border-b border-[#333333] shrink-0">
+                            <span className="text-xs sm:text-sm text-gray-400 mr-3 hidden sm:inline">Applications on</span>
+                            <select className="bg-[#2d2d30] border border-[#3e3e42] text-xs sm:text-sm text-white rounded px-2 py-1 focus:outline-none focus:border-green-500 cursor-pointer">
                                 <option>base (root)</option>
                             </select>
-                            <div className="ml-auto text-sm text-gray-500">
+                            <div className="ml-auto text-xs sm:text-sm text-gray-500">
                                 {filteredApps.length} apps found
                             </div>
                         </div>
 
                         {/* Grid Area */}
-                        <div className="p-8 overflow-y-auto h-full">
+                        <div className="p-4 sm:p-8 overflow-y-auto h-full">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                                 {filteredApps.map((app) => (
                                     <AppCard key={app.id} app={app} />

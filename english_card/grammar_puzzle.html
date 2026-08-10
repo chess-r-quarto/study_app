@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grammar Puzzles - Syntax Engine</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -76,6 +77,13 @@
     }
     .modal-overlay {
       backdrop-filter: blur(2px);
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out forwards;
     }
   </style>
 </head>
@@ -178,6 +186,25 @@
       }
     };
 
+    // --- Audio Helper ---
+    const speakText = (text: string, lang: string, rate: number): Promise<void> => {
+      return new Promise((resolve) => {
+        if (!('speechSynthesis' in window)) {
+          resolve();
+          return;
+        }
+        const cleanText = text.replace(/\s+([.,!?])/g, '$1');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = lang;
+        utterance.rate = rate;
+        
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        
+        window.speechSynthesis.speak(utterance);
+      });
+    };
+
     // --- Main Component ---
     function App() {
       // Global States
@@ -188,6 +215,14 @@
       const [autoAdvance, setAutoAdvance] = useState<boolean>(false);
       const [showSettings, setShowSettings] = useState(false);
       
+      // Read-Aloud Audio States
+      const [readAloudSettings, setReadAloudSettings] = useState({
+        enabled: false,
+        englishRepeat: 1,
+        listenOnly: false
+      });
+      const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
       // Playing States
       const [questionsQueue, setQuestionsQueue] = useState<Question[]>([]);
       const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -203,7 +238,6 @@
 
       const fileInputRef = useRef<HTMLInputElement>(null);
 
-      // Modal Triggers
       const showAlert = (message: string) => {
         setModal({ isOpen: true, type: 'alert', message, onConfirm: () => setModal(m => ({...m, isOpen: false})) });
       };
@@ -220,11 +254,17 @@
         });
       };
 
-      // System logic
       const startPuzzles = () => {
         if (questionsData.length === 0) {
           showAlert('No puzzles loaded!');
           return;
+        }
+
+        // iOS/Safari Workaround to initialize SpeechSynthesis
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance('');
+          utterance.volume = 0;
+          window.speechSynthesis.speak(utterance);
         }
         
         let queue = [...questionsData];
@@ -269,28 +309,86 @@
           const isMatch = selectedWords.every((w, i) => w.text === currentQuestion.words[i]);
 
           if (isMatch) {
-            // 安全のため一度正しく 'correct' 状態へ移行し、次の問題の判定が勝手に走るのを防ぐ
             setStatus('correct');
-            if (!autoAdvance) {
+            // Listen OnlyモードまたはAuto Advance中はインスペクターを開かない
+            if (!autoAdvance && !readAloudSettings.listenOnly) {
               setInspectedIndex(0);
             }
           } else {
             setStatus('incorrect');
           }
         }
-      }, [selectedWords, status, currentIndex, questionsQueue, autoAdvance]);
+      }, [selectedWords, status, currentIndex, questionsQueue, autoAdvance, readAloudSettings.listenOnly]);
 
-      // Auto-advance Logic (Speedrun)
+      // --- Listen Only (Auto-Solve) Logic ---
       useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (status === 'correct' && autoAdvance) {
-          // 画面のアニメーションや遅延を待たず、次のイベントループで即座に次の問題へ
-          timer = setTimeout(() => {
-            handleNextQuestion();
-          }, 0);
+        if (status === 'playing' && readAloudSettings.listenOnly) {
+          const currentQuestion = questionsQueue[currentIndex];
+          if (currentQuestion) {
+            const correctWords = currentQuestion.words.map((word, index) => ({
+              id: `w-auto-${index}`,
+              text: word,
+            }));
+            setSelectedWords(correctWords);
+            setAvailableWords([]);
+          }
         }
-        return () => clearTimeout(timer);
-      }, [status, autoAdvance]);
+      }, [status, currentIndex, readAloudSettings.listenOnly, questionsQueue]);
+
+      // --- Audio Sequence & Auto-advance Logic ---
+      useEffect(() => {
+        let isMounted = true;
+
+        const handleCompletion = async () => {
+          if (status === 'correct' || status === 'resigned') {
+            const currentQuestion = questionsQueue[currentIndex];
+            if (!currentQuestion) return;
+
+            const completeSentence = currentQuestion.structure.map(s => s.text).join(' ');
+
+            // 音声再生が有効な場合
+            if (readAloudSettings.enabled) {
+              setIsSpeaking(true);
+              
+              // 1. 日本語を1回読み上げる
+              await speakText(currentQuestion.japanese, 'ja-JP', 1.0);
+              if (!isMounted) return;
+              
+              await new Promise(r => setTimeout(r, 600)); // 少し間を空ける
+              if (!isMounted) return;
+
+              // 2. 英語を指定回数読み上げる
+              for (let i = 0; i < readAloudSettings.englishRepeat; i++) {
+                await speakText(completeSentence, 'en-US', 0.9);
+                if (!isMounted) return;
+                
+                if (i < readAloudSettings.englishRepeat - 1) {
+                  await new Promise(r => setTimeout(r, 600)); // 繰り返し間のポーズ
+                  if (!isMounted) return;
+                }
+              }
+              setIsSpeaking(false);
+            }
+
+            // オートプレイ（SpeedrunまたはListenOnly）が有効な場合、読み上げ完了後に次へ進む
+            if (autoAdvance || readAloudSettings.listenOnly) {
+              // 音声が無効だった場合は待たずに即時遷移、あった場合は余韻を残す
+              setTimeout(() => {
+                if (isMounted) handleNextQuestion();
+              }, readAloudSettings.enabled ? 800 : 0); 
+            }
+          }
+        };
+
+        handleCompletion();
+
+        // クリーンアップ処理：コンポーネントアンマウント時や問題切り替え時に音声を停止
+        return () => {
+          isMounted = false;
+          window.speechSynthesis.cancel();
+          setIsSpeaking(false);
+        };
+      }, [status, currentIndex, autoAdvance, readAloudSettings, questionsQueue]);
 
       const setupQuestion = (question: Question) => {
         const wordsObjects = question.words.map((word, index) => ({
@@ -303,7 +401,6 @@
         setInspectedIndex(null);
       };
 
-      // Game Actions
       const handleSelectWord = (wordItem: WordItem) => {
         if (status !== 'playing') return;
         setAvailableWords((prev) => prev.filter((w) => w.id !== wordItem.id));
@@ -327,7 +424,9 @@
           setSelectedWords(correctWords);
           setAvailableWords([]);
           setStatus('resigned');
-          setInspectedIndex(0);
+          if (!readAloudSettings.listenOnly) {
+            setInspectedIndex(0);
+          }
         });
       };
 
@@ -339,8 +438,8 @@
         setCurrentIndex((prev) => prev + 1);
       };
 
-      // Speech Synthesis
-      const handleSpeak = (text: string) => {
+      // 手動再生ボタン用の関数
+      const handleSpeakManual = (text: string) => {
         if ('speechSynthesis' in window) {
           const cleanText = text.replace(/\s+([.,!?])/g, '$1');
           const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -353,7 +452,7 @@
         }
       };
 
-      // File I/O
+      // --- File I/O ---
       const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -383,15 +482,16 @@
           showConfirm('Return to home? Current progress will be lost.', () => {
             setGameState('home');
             setShowSettings(false);
+            window.speechSynthesis.cancel();
           });
         } else {
           setGameState('home');
           setShowSettings(false);
+          window.speechSynthesis.cancel();
         }
       };
 
       // --- Components ---
-      
       const CustomModal = () => {
         if (!modal.isOpen) return null;
         return (
@@ -534,7 +634,7 @@
                   )}
 
                   {/* Evaluation Mode (Auto/Manual) */}
-                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4 mt-6">Evaluation Mode</div>
+                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4 mt-6 border-t border-[#3e3c38] pt-4">Evaluation Mode</div>
                   <div className="flex flex-col gap-3">
                     <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
                       <input type="radio" checked={!autoAdvance} onChange={() => setAutoAdvance(false)} className="w-4 h-4 accent-lichess-green" />
@@ -544,6 +644,48 @@
                       <input type="radio" checked={autoAdvance} onChange={() => setAutoAdvance(true)} className="w-4 h-4 accent-lichess-green" />
                       <span className="font-medium tracking-wide flex items-center gap-2">Auto-advance <span className="text-[10px] bg-lichess-button px-1.5 py-0.5 rounded text-lichess-text">Speed Run</span></span>
                     </label>
+                  </div>
+
+                  {/* Read-Aloud Mode */}
+                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4 mt-6 border-t border-[#3e3c38] pt-4">Read-Aloud Mode</div>
+                  <div className="flex flex-col gap-3">
+                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
+                      <input 
+                        type="checkbox" 
+                        checked={readAloudSettings.enabled} 
+                        onChange={(e) => setReadAloudSettings(prev => ({...prev, enabled: e.target.checked}))} 
+                        className="w-4 h-4 accent-lichess-green" 
+                      />
+                      <span className="font-medium tracking-wide">Enable Auto Speech <span className="text-[10px] text-lichess-text ml-1">(JP x1, EN xN)</span></span>
+                    </label>
+
+                    {readAloudSettings.enabled && (
+                      <div className="pl-9 flex flex-col gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lichess-text text-sm font-medium">English Repeats:</span>
+                          <select 
+                            value={readAloudSettings.englishRepeat}
+                            onChange={(e) => setReadAloudSettings(prev => ({...prev, englishRepeat: Number(e.target.value)}))}
+                            className="bg-lichess-inputBg border border-lichess-border text-white text-sm rounded-sm py-1 px-2 focus:outline-none focus:border-lichess-green transition-colors"
+                          >
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <option key={n} value={n}>{n} {n === 1 ? 'time' : 'times'}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors py-1 rounded">
+                          <input 
+                            type="checkbox" 
+                            checked={readAloudSettings.listenOnly} 
+                            onChange={(e) => setReadAloudSettings(prev => ({...prev, listenOnly: e.target.checked}))} 
+                            className="w-4 h-4 accent-lichess-green" 
+                          />
+                          <span className="font-medium tracking-wide text-sm flex items-center gap-2">
+                            Listen Only Mode <span className="text-[10px] bg-lichess-button px-1.5 py-0.5 rounded text-lichess-text">Auto-Solve</span>
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
 
                 </div>
@@ -581,7 +723,7 @@
       const currentQuestion = questionsQueue[currentIndex];
       if (!currentQuestion) return null;
       
-      const isShowingInspector = (status === 'correct' && !autoAdvance) || status === 'resigned';
+      const isShowingInspector = (status === 'correct' && !autoAdvance && !readAloudSettings.listenOnly) || status === 'resigned';
       const completeSentence = currentQuestion.structure.map(s => s.text).join(' ');
 
       return (
@@ -591,13 +733,16 @@
           <div className="max-w-6xl mx-auto w-full p-4 md:p-6 no-select flex-grow flex flex-col relative z-0">
             
             <div className="flex justify-between items-center mb-4 text-sm text-lichess-text">
-              <div className="uppercase font-bold tracking-wider text-xs opacity-70">
-                Problem {currentIndex + 1} / {questionsQueue.length}
+              <div className="uppercase font-bold tracking-wider text-xs opacity-70 flex items-center gap-3">
+                <span>Problem {currentIndex + 1} / {questionsQueue.length}</span>
+                {isSpeaking && <span className="text-lichess-green animate-pulse flex items-center gap-1">🔊 <span className="hidden sm:inline">Playing Audio</span></span>}
               </div>
               <div className="uppercase font-bold tracking-wider text-xs opacity-50 flex items-center gap-2">
                 <span>{playMode}</span>
                 <span className="opacity-50">|</span>
-                <span className={autoAdvance ? 'text-lichess-green' : ''}>{autoAdvance ? 'Auto' : 'Manual'}</span>
+                <span className={autoAdvance ? 'text-lichess-green' : ''}>
+                  {readAloudSettings.listenOnly ? 'Listen Only' : (autoAdvance ? 'Auto' : 'Manual')}
+                </span>
               </div>
             </div>
 
@@ -618,12 +763,13 @@
                     </p>
                   </div>
 
+                  {}
                   {/* Playing Area */}
                   {!isShowingInspector && (
                     <div className="animate-fade-in">
                       <div className="mb-6">
-                        {/* Speedrun時は枠を緑にしないための分岐 */}
-                        <div className={`min-h-[80px] border rounded-sm p-3 flex flex-wrap gap-2 items-center transition-colors duration-200 ${status === 'correct' && !autoAdvance ? 'bg-lichess-green border-lichess-green bg-opacity-20' : 'bg-lichess-bg border-lichess-border'}`}>
+                        {/* Speedrun/ListenOnly時は枠を緑にしないための分岐 */}
+                        <div className={`min-h-[80px] border rounded-sm p-3 flex flex-wrap gap-2 items-center transition-colors duration-200 ${(status === 'correct' || (status === 'resigned' && readAloudSettings.listenOnly)) && !autoAdvance && !readAloudSettings.listenOnly ? 'bg-lichess-green border-lichess-green bg-opacity-20' : 'bg-lichess-bg border-lichess-border'}`}>
                           {selectedWords.length === 0 ? (
                             <span className="text-lichess-text opacity-40 text-sm w-full text-center py-2 uppercase tracking-widest">
                               Construct the sentence
@@ -633,7 +779,7 @@
                               <button
                                 key={word.id}
                                 onClick={() => handleDeselectWord(word)}
-                                className={`px-4 py-2 rounded-sm font-medium shadow text-lg transition-colors ${status === 'correct' && !autoAdvance ? 'bg-lichess-green text-white cursor-default' : 'bg-lichess-button hover:bg-lichess-buttonHover text-white'}`}
+                                className={`px-4 py-2 rounded-sm font-medium shadow text-lg transition-colors ${status === 'correct' || (status === 'resigned' && readAloudSettings.listenOnly) ? 'bg-lichess-green text-white cursor-default' : 'bg-lichess-button hover:bg-lichess-buttonHover text-white'}`}
                                 disabled={status !== 'playing'}
                               >
                                 {word.text}
@@ -659,6 +805,7 @@
                     </div>
                   )}
 
+                  {}
                   {/* SYNTAX ANALYSIS & INSPECTOR */}
                   {isShowingInspector && (
                     <div className="animate-fade-in flex flex-col h-full">
@@ -668,8 +815,9 @@
                           {completeSentence}
                         </div>
                         <button 
-                          onClick={() => handleSpeak(completeSentence)}
-                          className="flex-shrink-0 bg-lichess-button hover:bg-[#4c4a47] text-white px-4 py-2 rounded-sm border border-[#4c4a47] transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
+                          onClick={() => handleSpeakManual(completeSentence)}
+                          className={`flex-shrink-0 bg-lichess-button hover:bg-[#4c4a47] text-white px-4 py-2 rounded-sm border border-[#4c4a47] transition-colors flex items-center gap-2 w-full md:w-auto justify-center ${isSpeaking ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={isSpeaking}
                         >
                           <span className="text-lg">🔊</span> 
                           <span className="text-xs uppercase font-bold tracking-widest">Listen</span>
@@ -751,28 +899,29 @@
                 </div>
               </div>
 
+              {}
               {/* --- Right Side: Control Panel --- */}
               <div className="lg:w-1/3 flex flex-col gap-4">
                 <div className="bg-lichess-panel border border-lichess-border rounded-sm p-4 shadow-lg flex flex-col justify-center min-h-[160px]">
                   
-                  {/* Speedrunで正解した瞬間のチラつきを防ぐため、playing時と同じパネルを維持 */}
-                  {(status === 'playing' || (status === 'correct' && autoAdvance)) && (
+                  {/* Speedrun/ListenOnly等で状態が変わった際もコントロールを維持 */}
+                  {(status === 'playing' || status === 'correct' || (status === 'resigned' && readAloudSettings.listenOnly)) && (autoAdvance || readAloudSettings.listenOnly || status === 'playing') && (
                     <div className="flex flex-col gap-3">
                       <div className="text-center text-lichess-text opacity-70 text-sm mb-1 uppercase tracking-widest">
                         {selectedWords.length} / {currentQuestion.words.length} Selected
                       </div>
                       
                       <button
-                        onClick={status === 'playing' ? handleResign : undefined}
-                        className={`w-full py-4 bg-transparent border border-lichess-border text-lichess-text rounded-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${status === 'playing' ? 'hover:bg-[#363431] hover:text-white cursor-pointer' : 'opacity-50 cursor-default'}`}
-                        title="Give up and show solution"
+                        onClick={status === 'playing' && !readAloudSettings.listenOnly ? handleResign : undefined}
+                        className={`w-full py-4 bg-transparent border border-lichess-border text-lichess-text rounded-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${status === 'playing' && !readAloudSettings.listenOnly ? 'hover:bg-[#363431] hover:text-white cursor-pointer' : 'opacity-50 cursor-default'}`}
+                        title={status === 'playing' ? "Give up and show solution" : ""}
                       >
                         <span className="text-lg leading-none">⚑</span> Resign
                       </button>
                     </div>
                   )}
 
-                  {status === 'correct' && !autoAdvance && (
+                  {status === 'correct' && !autoAdvance && !readAloudSettings.listenOnly && (
                     <div className="text-center animate-fade-in">
                       <div className="text-lg font-bold text-lichess-green mb-4 uppercase tracking-widest flex items-center justify-center gap-2">
                         <span>✓</span> Correct Syntax
@@ -786,7 +935,7 @@
                     </div>
                   )}
 
-                  {status === 'resigned' && (
+                  {status === 'resigned' && !readAloudSettings.listenOnly && (
                     <div className="text-center animate-fade-in">
                       <div className="text-sm font-bold text-lichess-text mb-4 uppercase tracking-widest flex items-center justify-center gap-2 opacity-80">
                         <span>⚑</span> You Resigned

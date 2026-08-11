@@ -6,7 +6,7 @@ A minimalist, Lichess-inspired dark-themed gateway for accessing specialized stu
 
 ## 🚀 Recent Updates
 - **Mobile-Optimized UI**: The launcher layout has been upgraded from a sidebar to a responsive Top Navigation Tab Bar, providing a seamless experience on smartphones and tablets.
-- **Product-Level Manuals**: Every single application (39+ apps) now includes a comprehensive, high-quality Markdown manual detailing its core mechanics, educational logic, and UI instructions.
+- **Product-Level Manuals**: Every single application (39+ apps) now includes a comprehensive, high-quality Quarto-rendered HTML manual detailing its core mechanics, educational logic, and UI instructions.
 
 ## 🎨 Visual Identity
 

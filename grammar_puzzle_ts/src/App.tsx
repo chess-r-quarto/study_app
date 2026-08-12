@@ -480,119 +480,168 @@ import React, { useState, useEffect, useRef } from 'react';
         return (
           <>
             <CustomModal />
-            <Header />
             <SettingsOverlay />
-            <div className="flex-grow flex items-center justify-center p-4 relative z-0">
-              <div className="bg-lichess-panel border border-lichess-border rounded-sm p-8 text-center max-w-md w-full shadow-2xl animate-fade-in">
-                <div className="text-5xl mb-4 text-lichess-green opacity-90 drop-shadow-md">♘</div>
-                <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-widest">Syntax</h2>
-                <h3 className="text-xl font-light text-lichess-text mb-8 uppercase tracking-widest border-b border-lichess-border pb-6">Training Engine</h3>
-                
-                <div className="mb-8 text-left bg-[#1b1a18] p-5 rounded-sm border border-[#3e3c38] shadow-inner">
-                  
-                  {/* Play Mode Selection */}
-                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4">Play Mode</div>
-                  <div className="flex flex-col gap-3">
-                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
-                      <input type="radio" checked={playMode === 'random'} onChange={() => setPlayMode('random')} className="w-4 h-4 accent-lichess-green" />
-                      <span className="font-medium tracking-wide">Random (Shuffle)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
-                      <input type="radio" checked={playMode === 'sequential'} onChange={() => setPlayMode('sequential')} className="w-4 h-4 accent-lichess-green" />
-                      <span className="font-medium tracking-wide">In Order (Sequential)</span>
-                    </label>
+            <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+              <div className="w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] border-none sm:border-solid">
+                {/* Title bar */}
+                <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
+                  <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
+                    <span className="text-[#8c8c8c]">♘</span>
+                    Grammar_Puzzle
                   </div>
-
-                  {/* Dynamic Start Position Input */}
-                  {playMode === 'sequential' && (
-                    <div className="mt-4 pt-3 border-t border-[#3e3c38] animate-fade-in flex items-center justify-between px-1">
-                      <label htmlFor="start-position" className="text-sm font-medium text-lichess-text tracking-wide">
-                        Start from Puzzle #:
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="start-position"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={startPosition}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, '');
-                            setStartPosition(val);
-                          }}
-                          onBlur={() => {
-                            let val = parseInt(startPosition, 10);
-                            if (isNaN(val) || val < 1) val = 1;
-                            if (val > questionsData.length) val = questionsData.length;
-                            setStartPosition(val.toString());
-                          }}
-                          className="bg-lichess-inputBg border border-lichess-border text-white text-[16px] rounded-sm py-1.5 px-2 w-16 text-center focus:outline-none focus:border-lichess-green transition-colors appearance-none"
-                        />
-                        <span className="text-lichess-text text-sm">/ {questionsData.length}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Evaluation Mode (Auto/Manual) */}
-                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4 mt-6 border-t border-[#3e3c38] pt-4">Evaluation Mode</div>
-                  <div className="flex flex-col gap-3">
-                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
-                      <input type="radio" checked={!autoAdvance} onChange={() => setAutoAdvance(false)} className="w-4 h-4 accent-lichess-green" />
-                      <span className="font-medium tracking-wide">Manual (Review Syntax)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
-                      <input type="radio" checked={autoAdvance} onChange={() => setAutoAdvance(true)} className="w-4 h-4 accent-lichess-green" />
-                      <span className="font-medium tracking-wide flex items-center gap-2">Auto-advance <span className="text-[10px] bg-lichess-button px-1.5 py-0.5 rounded text-lichess-text">Speed Run</span></span>
-                    </label>
+                  <div className="flex gap-3 text-[#8c8c8c]">
+                    <button
+                      onClick={() => setShowSettings(!showSettings)}
+                      className={`hover:text-white transition-colors ${showSettings ? 'text-white' : ''}`}
+                      title="Settings & Import"
+                    >
+                      ⚙️
+                    </button>
                   </div>
-
-                  {/* Read-Aloud Mode */}
-                  <div className="text-xs uppercase font-bold text-lichess-text tracking-widest mb-4 mt-6 border-t border-[#3e3c38] pt-4">Read-Aloud Mode</div>
-                  <div className="flex flex-col gap-3">
-                    <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors p-2 rounded hover:bg-[#262421]">
-                      <input 
-                        type="checkbox" 
-                        checked={readAloudSettings.enabled} 
-                        onChange={(e) => setReadAloudSettings(prev => ({...prev, enabled: e.target.checked}))} 
-                        className="w-4 h-4 accent-lichess-green" 
-                      />
-                      <span className="font-medium tracking-wide">Enable Auto Speech <span className="text-[10px] text-lichess-text ml-1">(JP x1, EN xN)</span></span>
-                    </label>
-
-                    {readAloudSettings.enabled && (
-                      <div className="pl-9 flex flex-col gap-3 animate-fade-in">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lichess-text text-sm font-medium">English Repeats:</span>
-                          <select 
-                            value={readAloudSettings.englishRepeat}
-                            onChange={(e) => setReadAloudSettings(prev => ({...prev, englishRepeat: Number(e.target.value)}))}
-                            className="bg-lichess-inputBg border border-lichess-border text-white text-sm rounded-sm py-1 px-2 focus:outline-none focus:border-lichess-green transition-colors"
-                          >
-                            {[1, 2, 3, 4, 5].map(n => (
-                              <option key={n} value={n}>{n} {n === 1 ? 'time' : 'times'}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <label className="flex items-center gap-3 cursor-pointer text-white hover:text-lichess-green transition-colors py-1 rounded">
-                          <input 
-                            type="checkbox" 
-                            checked={readAloudSettings.listenOnly} 
-                            onChange={(e) => setReadAloudSettings(prev => ({...prev, listenOnly: e.target.checked}))} 
-                            className="w-4 h-4 accent-lichess-green" 
-                          />
-                          <span className="font-medium tracking-wide text-sm flex items-center gap-2">
-                            Listen Only Mode <span className="text-[10px] bg-lichess-button px-1.5 py-0.5 rounded text-lichess-text">Auto-Solve</span>
-                          </span>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-
                 </div>
 
-                <button onClick={startPuzzles} className="w-full py-4 bg-lichess-green hover:bg-lichess-greenHover text-white font-bold rounded-sm uppercase tracking-widest transition-colors shadow-lg text-lg flex items-center justify-center gap-2">
-                  <span>▶</span> Play Puzzles
-                </button>
+                {/* Content */}
+                <div className="flex-1 flex flex-col items-center py-6 px-4 sm:justify-center sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto w-full">
+                  <div className="text-center space-y-2 shrink-0">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-wider text-[#dbd9d6]">GRAMMAR PUZZLE</h1>
+                    <p className="text-[#8c8c8c] text-sm">{questionsData.length} puzzles loaded in database</p>
+                  </div>
+
+                  <div className="w-full max-w-sm space-y-6 pt-2 pb-6 shrink-0">
+                    <div className="space-y-4 bg-[#1b1a19] p-4 rounded-sm border border-[#383634]">
+
+                      {/* Play Mode */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                          ▶ Play Mode
+                        </div>
+                        <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                          <button
+                            onClick={() => setPlayMode('random')}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${playMode === 'random' ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            Random
+                          </button>
+                          <button
+                            onClick={() => setPlayMode('sequential')}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${playMode === 'sequential' ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            Sequential
+                          </button>
+                        </div>
+
+                        {playMode === 'sequential' && (
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#262421]">
+                            <span className="text-xs font-bold text-[#8c8c8c] uppercase flex items-center gap-1">
+                              Start At:
+                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={startPosition}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                setStartPosition(val);
+                              }}
+                              onBlur={() => {
+                                let val = parseInt(startPosition, 10);
+                                if (isNaN(val) || val < 1) val = 1;
+                                if (val > questionsData.length) val = questionsData.length;
+                                setStartPosition(val.toString());
+                              }}
+                              placeholder="1"
+                              className="bg-[#262421] border border-[#383634] text-[#dbd9d6] text-xs px-2 py-1.5 rounded-sm w-20 text-center focus:outline-none focus:border-[#8c8c8c] placeholder:text-[#8c8c8c] placeholder:opacity-50 transition-colors"
+                            />
+                            <span className="text-[#8c8c8c] text-xs">/ {questionsData.length}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Evaluation Mode */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                          ⚡ Evaluation
+                        </div>
+                        <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                          <button
+                            onClick={() => setAutoAdvance(false)}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!autoAdvance ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            Manual
+                          </button>
+                          <button
+                            onClick={() => setAutoAdvance(true)}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${autoAdvance ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            Speed Run
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Read-Aloud Mode */}
+                      <div className="space-y-2 pt-2 border-t border-[#262421]">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                          🔊 Read-Aloud
+                        </div>
+                        <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                          <button
+                            onClick={() => setReadAloudSettings(prev => ({...prev, enabled: false}))}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!readAloudSettings.enabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            OFF
+                          </button>
+                          <button
+                            onClick={() => setReadAloudSettings(prev => ({...prev, enabled: true}))}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${readAloudSettings.enabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            ON
+                          </button>
+                        </div>
+
+                        {readAloudSettings.enabled && (
+                          <div className="space-y-2 mt-2 pt-2 border-t border-[#262421]">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-[#8c8c8c] uppercase">EN Repeats</span>
+                              <select
+                                value={readAloudSettings.englishRepeat}
+                                onChange={(e) => setReadAloudSettings(prev => ({...prev, englishRepeat: Number(e.target.value)}))}
+                                className="bg-[#262421] border border-[#383634] text-[#dbd9d6] text-xs rounded-sm py-1 px-2 focus:outline-none focus:border-[#8c8c8c] transition-colors"
+                              >
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <option key={n} value={n}>{n}x</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                              <button
+                                onClick={() => setReadAloudSettings(prev => ({...prev, listenOnly: false}))}
+                                className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!readAloudSettings.listenOnly ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                              >
+                                Normal
+                              </button>
+                              <button
+                                onClick={() => setReadAloudSettings(prev => ({...prev, listenOnly: true}))}
+                                className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${readAloudSettings.listenOnly ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                              >
+                                Listen Only
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+
+                    {/* Start Button */}
+                    <button
+                      onClick={startPuzzles}
+                      className="w-full py-4 text-sm sm:text-base bg-[#629924] text-white hover:bg-[#72a332] font-bold rounded-sm uppercase tracking-wide transition-colors shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none flex items-center justify-center gap-2"
+                    >
+                      ▶ Play Puzzles
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </>

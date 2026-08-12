@@ -4,6 +4,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
-  @apply bg-[#161512] text-[#dbd9d6] m-0 p-0 font-sans overscroll-none;
+  background: #161512;
+  color: #dbd9d6;
+  font-family: system-ui, -apple-system, sans-serif;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }

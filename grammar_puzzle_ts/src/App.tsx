@@ -481,8 +481,8 @@ import React, { useState, useEffect, useRef } from 'react';
           <>
             <CustomModal />
             <SettingsOverlay />
-            <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
-              <div className="w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] border-none sm:border-solid">
+            <div className="h-screen flex bg-[#161512]">
+              <div className="w-full mx-auto flex flex-col bg-[#262421] overflow-hidden h-screen">
                 {/* Title bar */}
                 <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
                   <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
@@ -679,7 +679,7 @@ import React, { useState, useEffect, useRef } from 'react';
         <>
           <CustomModal />
           <Header />
-          <div className="max-w-6xl mx-auto w-full p-4 md:p-6 no-select flex-grow flex flex-col relative z-0">
+          <div className="w-full p-4 md:p-6 no-select flex-grow flex flex-col relative z-0 overflow-y-auto">
             
             <div className="flex justify-between items-center mb-4 text-sm text-lichess-text">
               <div className="uppercase font-bold tracking-wider text-xs opacity-70 flex items-center gap-3">

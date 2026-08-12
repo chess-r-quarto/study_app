@@ -227,19 +227,31 @@
           const voice = getOptimalVoice(lang);
           if (voice) utterance.voice = voice;
 
-          const fallbackTimeout = setTimeout(() => {
-            resolve();
-          }, Math.max(4000, text.length * 200));
-
-          utterance.onend = () => {
-            clearTimeout(fallbackTimeout);
-            resolve();
+          let resolved = false;
+          const done = () => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(fallbackTimeout);
+              clearInterval(keepAlive);
+              resolve();
+            }
           };
+
+          const fallbackTimeout = setTimeout(done, Math.max(4000, text.length * 200));
+
+          // macOS Safari/Chrome workaround: speechSynthesis freezes after ~15s
+          const keepAlive = setInterval(() => {
+            if (window.speechSynthesis.speaking) {
+              window.speechSynthesis.pause();
+              window.speechSynthesis.resume();
+            }
+          }, 5000);
+
+          utterance.onend = done;
 
           utterance.onerror = (e) => {
             console.warn('SpeechSynthesis Error:', e);
-            clearTimeout(fallbackTimeout);
-            resolve();
+            done();
           };
 
           window.speechSynthesis.speak(utterance);

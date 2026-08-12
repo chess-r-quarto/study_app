@@ -97,10 +97,35 @@ import React, { useState, useEffect, useRef } from 'react';
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = lang;
         utterance.rate = rate;
-        
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
-        
+
+        let resolved = false;
+        const done = () => {
+          if (!resolved) {
+            resolved = true;
+            clearInterval(keepAlive);
+            clearTimeout(fallbackTimer);
+            resolve();
+          }
+        };
+
+        utterance.onend = done;
+        utterance.onerror = done;
+
+        // macOS Safari/Chrome workaround: speechSynthesis freezes after ~15s
+        // Periodically calling resume() prevents the engine from pausing silently.
+        const keepAlive = setInterval(() => {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        }, 5000);
+
+        // Fallback timeout: if onend never fires, resolve after estimated duration
+        // Average reading speed ~150 words/min, with generous padding
+        const wordCount = cleanText.split(/\s+/).length;
+        const estimatedMs = Math.max(3000, (wordCount / 2.5) * 1000 / rate + 2000);
+        const fallbackTimer = setTimeout(done, estimatedMs);
+
         window.speechSynthesis.speak(utterance);
       });
     };

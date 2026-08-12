@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lichess-bg: #161512;
+  --color-lichess-panel: #262421;
+  --color-lichess-text: #c4c4c4;
+  --color-lichess-textHover: #ffffff;
+  --color-lichess-border: #403d39;
+  --color-lichess-green: #629924;
+}

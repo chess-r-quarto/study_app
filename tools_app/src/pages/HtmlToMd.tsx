@@ -1,0 +1,301 @@
+import React, { useState, useEffect, useRef } from 'react';
+import TurndownService from 'turndown';
+import { jsPDF } from 'jspdf';
+import JSZip from 'jszip';
+import { UploadCloud, CheckCircle, FileText, Download } from 'lucide-react';
+
+const readFileAsText = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+};
+
+const readFileAsDataURL = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+const getImageDimensions = (dataURL: string): Promise<{width: number, height: number}> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.width, height: img.height });
+    img.onerror = reject;
+    img.src = dataURL;
+  });
+};
+
+const decodeQuotedPrintableUTF8 = (str: string): string => {
+  str = str.replace(/=\r?\n/g, '');
+  const bytes: number[] = [];
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === '=' && i + 2 < str.length) {
+      const hex = str.substring(i + 1, i + 3);
+      if (/^[0-9a-fA-F]{2}$/.test(hex)) {
+        bytes.push(parseInt(hex, 16));
+        i += 2;
+      } else {
+        bytes.push(str.charCodeAt(i));
+      }
+    } else {
+      bytes.push(str.charCodeAt(i));
+    }
+  }
+  return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+};
+
+const parseMHTML = (mhtmlText: string): { html: string, images: Record<string, string> } | null => {
+  const boundaryMatch = mhtmlText.match(/boundary="?([^"\s;]+)"?/i);
+  if (!boundaryMatch) return null;
+  const boundary = boundaryMatch[1];
+  const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedBoundary = escapeRegExp(boundary);
+  const parts = mhtmlText.split(new RegExp(`--${escapedBoundary}(?:--)?\r?\n?`));
+  
+  let html = '';
+  const images: Record<string, string> = {};
+  
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const splitIndex = part.indexOf('\r\n\r\n');
+    if (splitIndex === -1) continue;
+    
+    const headersRaw = part.substring(0, splitIndex);
+    const bodyRaw = part.substring(splitIndex + 4);
+    
+    const headers: Record<string, string> = {};
+    headersRaw.split('\r\n').forEach(line => {
+      const colIdx = line.indexOf(':');
+      if (colIdx !== -1) {
+        headers[line.substring(0, colIdx).trim().toLowerCase()] = line.substring(colIdx + 1).trim();
+      }
+    });
+    
+    const contentTypeInfo = headers['content-type'] || '';
+    const contentType = contentTypeInfo.split(';')[0].trim().toLowerCase();
+    const encoding = (headers['content-transfer-encoding'] || '').toLowerCase();
+    const location = headers['content-location'] || (headers['content-id'] || '').replace(/[<>]/g, '');
+    
+    if (contentType === 'text/html') {
+      let decodedHtml = bodyRaw;
+      if (encoding === 'quoted-printable') {
+        decodedHtml = decodeQuotedPrintableUTF8(bodyRaw);
+      } else if (encoding === 'base64') {
+        const binStr = atob(bodyRaw.replace(/\s/g, ''));
+        const bytes = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+        decodedHtml = new TextDecoder('utf-8').decode(bytes);
+      }
+      if (!html) html = decodedHtml; 
+    } else if (contentType.startsWith('image/')) {
+      if (encoding === 'base64' && location) {
+        images[location] = `data:${contentType};base64,${bodyRaw.replace(/\s/g, '')}`;
+      }
+    }
+  }
+  return { html, images };
+};
+
+export default function HtmlToMd() {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [downloadInfo, setDownloadInfo] = useState<{url: string, name: string} | null>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
+
+  const processFiles = async (files: File[]) => {
+    const targetFile = files.find(f => {
+      const n = f.name.toLowerCase();
+      return n.endsWith('.html') || n.endsWith('.htm') || n.endsWith('.mhtml') || n.endsWith('.mht');
+    });
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+    if (!targetFile) {
+      addLog("❌ Error: No valid HTML/MHTML file found.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setLogs([`ANALYSIS: Preparing file "${targetFile.name}"...`]);
+    setDownloadInfo(null);
+
+    try {
+      let htmlText = "";
+      let mhtmlImages: Record<string, string> = {};
+      const isMhtml = targetFile.name.toLowerCase().endsWith('.mhtml') || targetFile.name.toLowerCase().endsWith('.mht');
+
+      if (isMhtml) {
+        addLog("MHTML: Unpacking resources...");
+        const rawText = await readFileAsText(targetFile);
+        const parsed = parseMHTML(rawText);
+        if (!parsed || !parsed.html) throw new Error("Invalid MHTML structure.");
+        htmlText = parsed.html;
+        mhtmlImages = parsed.images;
+        addLog(`MHTML: ${Object.keys(mhtmlImages).length} internal images found.`);
+      } else {
+        addLog("HTML: Loading document content...");
+        htmlText = await readFileAsText(targetFile);
+      }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+
+      addLog("EXTRACTION: Parsing image nodes...");
+      const imgTags = Array.from(doc.querySelectorAll('img, image'));
+      const imageMapping: { id: number, data: string }[] = [];
+      
+      for (const img of imgTags) {
+        const src = img.getAttribute('src') || img.getAttribute('href') || img.getAttribute('xlink:href');
+        if (!src) continue;
+
+        let base64Data: string | null = null;
+        const fileName = src.split('/').pop()?.split('?')[0];
+
+        if (src.startsWith('data:image')) {
+          base64Data = src;
+        } else if (isMhtml) {
+          const cleanSrc = src.replace(/^cid:/i, '');
+          base64Data = mhtmlImages[cleanSrc] || Object.values(mhtmlImages).find((_, i) => Object.keys(mhtmlImages)[i].endsWith(cleanSrc)) || null;
+        } else if (fileName) {
+          const matchedLocal = imageFiles.find(f => f.name === fileName);
+          if (matchedLocal) base64Data = await readFileAsDataURL(matchedLocal);
+        }
+
+        if (base64Data) {
+          const id = imageMapping.length + 1;
+          imageMapping.push({ id, data: base64Data });
+          const placeholder = doc.createElement('span');
+          placeholder.style.cssText = "color: #3692e7; font-weight: bold;";
+          placeholder.textContent = `[* See Image ${id} *]`;
+          img.parentNode?.replaceChild(placeholder, img);
+        }
+      }
+      addLog(`EXTRACTION: ${imageMapping.length} image(s) processed.`);
+
+      addLog("CONVERSION: Generating Markdown...");
+      const turndown = new TurndownService({ headingStyle: 'atx' });
+      let markdown = turndown.turndown(doc.body).replace(/\n{3,}/g, '\n\n').trim();
+
+      let pdfBlob: Blob | null = null;
+      if (imageMapping.length > 0) {
+        addLog("PDF: Building image volume with bookmarks...");
+        const pdf = new jsPDF();
+        pdf.deletePage(1);
+
+        for (let i = 0; i < imageMapping.length; i++) {
+          const img = imageMapping[i];
+          try {
+            const dim = await getImageDimensions(img.data);
+            pdf.addPage([dim.width, dim.height], dim.width > dim.height ? 'l' : 'p');
+            pdf.addImage(img.data, 'JPEG', 0, 0, dim.width, dim.height);
+            // jsPDF Outline requires some custom plugin or method, skipping outline to avoid typing issues
+          } catch (e) {
+            addLog(`⚠️ PDF error on image ${img.id}`);
+          }
+        }
+        pdfBlob = pdf.output('blob');
+      }
+
+      addLog("ARCHIVE: Creating ZIP package...");
+      const zip = new JSZip();
+      const baseTitle = targetFile.name.replace(/\.[^/.]+$/, "");
+      zip.file(`${baseTitle}.md`, markdown);
+      if (pdfBlob) zip.file(`${baseTitle}_images.pdf`, pdfBlob);
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      setDownloadInfo({ url: URL.createObjectURL(zipBlob), name: `${baseTitle}_bundle.zip` });
+      addLog("COMPLETED: Assets ready for download.");
+
+    } catch (error) {
+      addLog(`❌ Error: ${(error as Error).message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-auto">
+      <header className="flex items-center mb-10 border-b border-[#403d39] pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#3692e7] rounded-md flex items-center justify-center text-white font-bold text-2xl">
+            C
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white leading-none">Converter</h1>
+            <span className="text-xs uppercase tracking-widest text-[#6b6b6b]">HTML / MHTML / MD / PDF</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className={`bg-[#262421] rounded-md overflow-hidden p-1 transition-all ${isDragging ? 'ring-2 ring-[#3692e7]' : ''}`}>
+            <div 
+              className={`border-2 border-dashed border-[#403d39] rounded p-16 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragging ? 'border-[#3692e7] bg-[#3692e7]/10' : 'bg-[#1c1b18]'} ${isProcessing ? 'opacity-40 pointer-events-none' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); processFiles(Array.from(e.dataTransfer.files)); }}
+              onClick={() => document.getElementById('htmlFileInput')?.click()}
+            >
+              <input 
+                type="file" id="htmlFileInput" multiple className="hidden" 
+                onChange={(e) => e.target.files && processFiles(Array.from(e.target.files))} 
+                accept=".html,.htm,.mhtml,.mht,image/*"
+              />
+              <UploadCloud size={64} className="text-[#6b6b6b] mb-6" />
+              <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Ready for Conversion</h2>
+              <p className="text-[#bababa] max-w-md mx-auto leading-relaxed">
+                Drop your <span className="text-white font-semibold">HTML</span> or <span className="text-white font-semibold">MHTML</span> files here. 
+                Include image folders if converting standard HTML.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="bg-[#262421] rounded-md flex flex-col h-[500px]">
+            <div className="bg-[#1c1b18] px-4 py-3 border-b border-[#36332e] flex justify-between items-center">
+              <span className="uppercase text-xs font-bold tracking-widest text-[#6b6b6b]">Analysis Console</span>
+              {isProcessing && <div className="w-2 h-2 rounded-full bg-[#3692e7] animate-pulse"></div>}
+            </div>
+            <div className="flex-grow p-4 font-mono text-xs overflow-y-auto space-y-2 bg-[#1c1b18] border-l-[3px] border-[#36332e]">
+              {logs.length === 0 && <div className="text-[#45423d] italic">Awaiting input...</div>}
+              {logs.map((log, idx) => (
+                <div key={idx} className={`${log.startsWith('❌') ? 'text-red-400' : log.startsWith('✅') || log.startsWith('COMPLETED') ? 'text-green-400' : 'text-[#bababa]'}`}>
+                  <span className="text-[#45423d] mr-2">[{idx + 1}]</span>
+                  {log}
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+
+            {downloadInfo && (
+              <div className="p-4 bg-[#1c1b18] border-t border-[#36332e]">
+                <a 
+                  href={downloadInfo.url} 
+                  download={downloadInfo.name}
+                  className="w-full bg-[#3692e7] hover:bg-[#4a9ff0] text-white font-bold py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download size={20} />
+                  DOWNLOAD BUNDLE
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

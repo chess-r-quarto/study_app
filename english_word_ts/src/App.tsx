@@ -5,7 +5,7 @@
       Clipboard, UploadCloud, FileJson, RotateCcw,
       Minimize, Maximize, Hash, Shuffle, ListOrdered,
       Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
-      PlayCircle
+      PlayCircle, Zap
     } from 'lucide-react';
 
     interface QuestionData {
@@ -161,6 +161,7 @@
       const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
       const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
       const [quizAudioEnabled, setQuizAudioEnabled] = useState<boolean>(false);
+      const [isSpeedrun, setIsSpeedrun] = useState<boolean>(false);
       const [globalVolume, setGlobalVolume] = useState<number>(1.0);
 
       const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
@@ -442,6 +443,10 @@
         
         if (isCorrect) {
           setScore(s => s + 1);
+          if (isSpeedrun) {
+            nextQuestion();
+            return;
+          }
         } else {
           setMistakes(prev => {
             if (!prev.find(q => q.id === currentQuestion.id)) {
@@ -604,6 +609,26 @@
                         <button
                           onClick={() => setQuizAudioEnabled(true)}
                           className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${quizAudioEnabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          ON
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                        <Zap size={14} /> Speedrun Mode
+                      </div>
+                      <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                        <button
+                          onClick={() => setIsSpeedrun(false)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!isSpeedrun ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          OFF
+                        </button>
+                        <button
+                          onClick={() => setIsSpeedrun(true)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${isSpeedrun ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
                         >
                           ON
                         </button>

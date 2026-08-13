@@ -5,8 +5,10 @@
 A minimalist, Lichess-inspired dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
 
 ## 🚀 Recent Updates
-- **Mobile-Optimized UI**: The launcher layout has been upgraded from a sidebar to a responsive Top Navigation Tab Bar, providing a seamless experience on smartphones and tablets.
-- **Product-Level Manuals**: Every single application (39+ apps) now includes a comprehensive, high-quality Quarto-rendered HTML manual detailing its core mechanics, educational logic, and UI instructions.
+- **Navigator Unification**: The root `index.html` has been renamed to `navigator.html` to better clarify its role as the central dashboard.
+- **Tools Hub Migration**: Standalone developer tools have been migrated into a unified Vite/React application (`tools_app`), significantly improving maintainability.
+- **Mobile-Optimized UI**: The launcher layout has been upgraded from a sidebar to a responsive Top Navigation Tab Bar.
+- **Product-Level Manuals**: Every single application (39+ apps) now includes a comprehensive, high-quality Quarto-rendered HTML manual.
 
 ## 🎨 Visual Identity
 
@@ -19,12 +21,7 @@ A minimalist, Lichess-inspired dark-themed gateway for accessing specialized stu
 
 ### 🛠️ Development & Utilities
 Analytical tools, parsers, and data extraction utilities.
-* HTML to MD (`tools/html_to_md.html`)
-* PDF to MD (`tools/pdf_to_md.html`)
-* Wiki to MD (`tools/wiki_to_md.html`)
-* JSON Downloader (`tools/json_downloader.html`)
-* JSON Merger (`tools/json_marger.html`)
-* Legal Compiler TS (`tools/legal_compiler_ts.html`)
+* Tools Hub (Vite) (`tools_app/dist/index.html`) - A unified Vite/React app consolidating HTML/PDF/Wiki to MD, JSON tools, and Legal Compiler.
 * JSON Downloader (Vite) (`json_download/index.html`)
 
 ### 📊 Data Science & Language

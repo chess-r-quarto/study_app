@@ -1,0 +1,27 @@
+---
+format:
+  html:
+    theme: darkly
+    toc: true
+    embed-resources: true
+---
+
+# 🌐 Wikipedia to Markdown
+
+## 🎯 アプリの目的と概要
+**Wikipedia to Markdown** は、指定したWikipediaの記事URLや検索キーワードから、記事の本文を抽出し、LLMプロンプトのコンテキストとして利用しやすいMarkdown形式に変換するツールです。
+
+## ✨ 主な機能と特徴
+| 機能 (Feature) | 説明 (Description) |
+| :--- | :--- |
+| **Wiki API連携** | Wikipediaの公式REST APIを叩き、最新の記事データを取得します。 |
+| **ノイズ除去** | 目次（TOC）、注釈（References）、サイドバーなどの学習に不要な要素を自動で除去します。 |
+| **見出し構造の維持** | 記事のセクション構造（`==` 等）をMarkdownの `#` 構造にマッピングし、階層を保ちます。 |
+
+> [!TIP]
+> **APIエンドポイント**: 内部では `https://ja.wikipedia.org/w/api.php?action=query&prop=extracts...` を利用し、HTML形式ではなくプレーンテキストベースの抽出(Extracts)を優先してパースしています。
+
+## 🚀 使い方 (Usage Guide)
+1. 検索バーに、取得したいWikipediaの「キーワード」または「URL」を入力します。
+2. **[Fetch]** ボタンを押してAPI通信を行います。
+3. 取得・変換されたMarkdownテキストが画面に表示されるので、コピーしてご活用ください。

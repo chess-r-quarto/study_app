@@ -142,7 +142,7 @@
       );
     };
 
-    function App() {
+    export default function EnglishWord() {
       const [gameState, setGameState] = useState<'start' | 'editor' | 'playing' | 'result'>('start');
       const [sessionMode, setSessionMode] = useState<SessionMode>('quiz');
       const [questions, setQuestions] = useState<QuestionData[]>(DEFAULT_DATA);
@@ -942,5 +942,5 @@
       );
     }
 
-    export default App;
+    
   

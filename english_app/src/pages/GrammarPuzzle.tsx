@@ -131,7 +131,7 @@ import React, { useState, useEffect, useRef } from 'react';
     };
 
     // --- Main Component ---
-    function App() {
+    export default function GrammarPuzzle() {
       // Global States
       const [questionsData, setQuestionsData] = useState<Question[]>(DEFAULT_QUESTIONS);
       const [gameState, setGameState] = useState<GameState>('home');
@@ -968,5 +968,5 @@ import React, { useState, useEffect, useRef } from 'react';
       );
     }
 
-    export default App;
+    
   

@@ -26,24 +26,7 @@ Analytical tools, parsers, and data extraction utilities.
 ### 📊 Data Science & Language
 Core data structuring, news readers, and vocabulary platforms.
 * Data Management (`data_management/data_management.html`)
-* English Card (`english_card/english_card.html`)
-* English Quiz (`english_card/english_quiz.html`)
-* Grammar Basic (`english_card/grammar.html`)
-* Grammar (High School) (`english_card/grammar_high_school.html`)
-* Grammar Structure (`english_card/grammar_structure.html`)
-* Syntax as Code (`english_card/syntax_as_code.html`)
-* Syntax Parser (`english_card/syntax_parser.html`)
-* Grammar Verb (`english_card/grammar_verb.html`)
-* Grammar Term (`english_card/grammar_term.html`)
-* Grammar Puzzle (`english_card/grammar_puzzle.html`)
-* Grammar Puzzle TS (`grammar_puzzle_ts/dist/index.html`)
-* Modifiers (`english_card/modifiers.html`)
-* No M Sentence (`english_card/no_m_sentence.html`)
-* No M Puzzle (`english_card/no_m_puzzle.html`)
-* Countable Nouns (`english_card/countable_nouns.html`)
-* English Word App (`english_card/english_word_app.html`)
-* English Word App TS (`english_word_ts/dist/index.html`)
-* Grammar Train (`english_card/grammar_train.html`)
+* English Hub (Vite) (`english_app/dist/index.html`) - A unified Vite/React app for English vocabulary, grammar, and syntax learning.
 
 ### 🧮 Mathematics
 Mathematical symbol quizzes and statistical tools.

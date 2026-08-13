@@ -20,7 +20,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
-        // Babel Configuration for TSX
         Babel.registerPreset('tsx', {
             presets: [
                 [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
@@ -35,31 +34,17 @@
             background-color: #1e1e1e;
             color: #e0e0e0;
             margin: 0;
-            overflow: hidden;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #4B5563;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #6B7280;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6B7280; }
     </style>
 </head>
 
-<body class="h-screen w-screen flex">
-    <div id="root" class="w-full h-full flex"></div>
+<body class="min-h-screen w-screen">
+    <div id="root" class="w-full min-h-screen"></div>
 
     <script type="text/babel" data-presets="tsx">
         const { useState, useEffect } = React;
@@ -68,119 +53,115 @@
             id: string;
             name: string;
             category: string;
-            description: string;
             icon: string;
             appUrl: string;
-            manualUrl: string;
-            installed: boolean;
         }
 
         const APP_DATA: AppItem[] = [
-            // --- Development & Utilities ---
-            { id: "dev-tools-hub", category: "Dev & Utilities", name: "Tools Hub (Vite)", description: "Unified TS/React app containing HTML/PDF/Wiki to MD, JSON tools, and Legal Compiler.", icon: "Wrench", appUrl: "tools_app/dist/index.html", manualUrl: "tools_app/dist/manuals/html_to_md_manual.html", installed: true },
+            // --- English ---
+            { id: "english-word",       category: "English", name: "English Word",       icon: "BookOpen",       appUrl: "english_app/dist/index.html#/" },
+            { id: "english-card",       category: "English", name: "English Card",       icon: "BookMarked",     appUrl: "english_app/dist/index.html#/english-card" },
+            { id: "english-quiz",       category: "English", name: "English Quiz",       icon: "Brain",          appUrl: "english_app/dist/index.html#/english-quiz" },
+            { id: "countable-nouns",    category: "English", name: "Countable Nouns",    icon: "Hash",           appUrl: "english_app/dist/index.html#/countable-nouns" },
 
-            // --- Data & Language ---
-            { id: "english-hub", category: "Data & Language", name: "English Hub (Vite)", description: "Unified TS/React app containing English and Grammar tools.", icon: "BookOpen", appUrl: "english_app/dist/index.html", manualUrl: "english_app/dist/manuals/english_word_app_manual.html", installed: true },
+            // --- Grammar ---
+            { id: "grammar",            category: "Grammar", name: "Grammar Basic",      icon: "BookA",          appUrl: "english_app/dist/index.html#/grammar" },
+            { id: "grammar-high",       category: "Grammar", name: "Grammar High",       icon: "GraduationCap",  appUrl: "english_app/dist/index.html#/grammar-high-school" },
+            { id: "grammar-puzzle",     category: "Grammar", name: "Grammar Puzzle",     icon: "Puzzle",         appUrl: "english_app/dist/index.html#/grammar-puzzle" },
+            { id: "grammar-structure",  category: "Grammar", name: "Grammar Structure",  icon: "Layers",         appUrl: "english_app/dist/index.html#/grammar-structure" },
+            { id: "grammar-term",       category: "Grammar", name: "Grammar Term",       icon: "Type",           appUrl: "english_app/dist/index.html#/grammar-term" },
+            { id: "grammar-train",      category: "Grammar", name: "Grammar Train",      icon: "Pencil",         appUrl: "english_app/dist/index.html#/grammar-train" },
+            { id: "grammar-verb",       category: "Grammar", name: "Grammar Verb",       icon: "CheckSquare",    appUrl: "english_app/dist/index.html#/grammar-verb" },
 
+            // --- Syntax ---
+            { id: "modifiers",          category: "Syntax",  name: "Modifiers",          icon: "Scissors",       appUrl: "english_app/dist/index.html#/modifiers" },
+            { id: "no-m-sentence",      category: "Syntax",  name: "No-M Sentence",      icon: "MessageSquare",  appUrl: "english_app/dist/index.html#/no-m-sentence" },
+            { id: "no-m-puzzle",        category: "Syntax",  name: "No-M Puzzle",         icon: "Puzzle",         appUrl: "english_app/dist/index.html#/no-m-puzzle" },
+            { id: "syntax-as-code",     category: "Syntax",  name: "Syntax as Code",     icon: "TerminalSquare", appUrl: "english_app/dist/index.html#/syntax-as-code" },
+            { id: "syntax-parser",      category: "Syntax",  name: "Syntax Parser",      icon: "Network",        appUrl: "english_app/dist/index.html#/syntax-parser" },
+
+            // --- Tools ---
+            { id: "html-to-md",         category: "Tools",   name: "HTML to MD",         icon: "FileCode2",      appUrl: "tools_app/dist/index.html#/" },
+            { id: "pdf-to-md",          category: "Tools",   name: "PDF to MD",          icon: "FileText",       appUrl: "tools_app/dist/index.html#/pdf" },
+            { id: "wiki-to-md",         category: "Tools",   name: "Wiki to MD",         icon: "BookOpen",       appUrl: "tools_app/dist/index.html#/wiki" },
+            { id: "json-downloader",    category: "Tools",   name: "JSON Downloader",    icon: "DownloadCloud",  appUrl: "tools_app/dist/index.html#/json-dl" },
+            { id: "json-merger",        category: "Tools",   name: "JSON Merger",        icon: "GitMerge",       appUrl: "tools_app/dist/index.html#/json-merge" },
+            { id: "legal-compiler",     category: "Tools",   name: "Legal Compiler",     icon: "Gavel",          appUrl: "tools_app/dist/index.html#/legal" },
         ];
 
-        const TabItem = ({ icon, label, active = false, onClick }: { icon: string, label: string, active?: boolean, onClick?: () => void }) => {
-            useEffect(() => { lucide.createIcons(); });
+        const AppIcon = ({ app }: { app: AppItem }) => {
+            useEffect(() => { lucide.createIcons(); }, []);
             return (
-                <div onClick={onClick} className={`flex items-center px-4 h-full cursor-pointer transition-colors whitespace-nowrap border-b-2 ${active ? 'border-green-500 text-white bg-[#2a2a2b]' : 'border-transparent text-gray-400 hover:bg-[#2a2a2b] hover:text-gray-200'}`}>
-                    <i data-lucide={icon} className={`w-4 h-4 mr-2 ${active ? 'text-green-500' : ''}`}></i>
-                    <span className="text-sm font-medium">{label}</span>
-                </div>
-            );
-        };
-
-        const AppCard = ({ app }: { app: AppItem }) => {
-            useEffect(() => { lucide.createIcons(); });
-            return (
-                <div className="bg-[#252526] rounded-lg border border-[#3e3e42] p-5 flex flex-col h-72 hover:border-[#555555] transition-colors shadow-sm group">
-                    <div className="flex flex-col items-center mb-4 shrink-0">
-                        <div className="w-14 h-14 bg-[#333333] rounded-full flex items-center justify-center mb-3 text-green-500 shadow-inner group-hover:scale-105 transition-transform">
-                            <i data-lucide={app.icon} className="w-7 h-7"></i>
-                        </div>
-                        <h3 className="text-base font-bold text-white text-center leading-tight">{app.name}</h3>
-                        <span className="text-xs text-gray-400 mt-1">{app.category}</span>
+                <a
+                    href={app.appUrl}
+                    target="_blank"
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[#2a2a2b] transition-colors cursor-pointer no-underline group w-24 sm:w-28"
+                >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#2d2d30] rounded-2xl flex items-center justify-center text-green-500 group-hover:scale-110 group-hover:bg-[#333333] transition-all shadow-lg">
+                        <i data-lucide={app.icon} className="w-7 h-7 sm:w-8 sm:h-8"></i>
                     </div>
-
-                    <p className="text-xs text-gray-300 text-center flex-grow overflow-hidden line-clamp-3 leading-relaxed">
-                        {app.description}
-                    </p>
-
-                    <div className="mt-4 flex flex-col gap-2 w-full shrink-0">
-                        {app.installed ? (
-                            <>
-                                <a href={app.appUrl} target="_blank" className="w-full flex justify-center items-center bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm font-medium py-1.5 rounded transition-colors shadow-sm no-underline">
-                                    <i data-lucide="play" className="w-4 h-4 mr-2"></i>Launch
-                                </a>
-                                <a href={app.manualUrl} target="_blank" className="w-full flex justify-center items-center bg-[#333333] hover:bg-[#444444] text-[#cccccc] hover:text-white text-sm font-medium py-1.5 rounded transition-colors border border-[#444444] no-underline">
-                                    <i data-lucide="book-open" className="w-4 h-4 mr-2"></i>Manual
-                                </a>
-                            </>
-                        ) : (
-                            <button className="w-full bg-[#3c3c3c] hover:bg-[#4a4a4a] text-white text-sm font-medium py-2 rounded transition-colors border border-[#555555]">
-                                Install
-                            </button>
-                        )}
-                    </div>
-                </div>
+                    <span className="text-[11px] sm:text-xs text-gray-300 text-center leading-tight font-medium line-clamp-2 group-hover:text-white transition-colors">
+                        {app.name}
+                    </span>
+                </a>
             );
         };
 
         const App = () => {
-            const [activeCategory, setActiveCategory] = useState < string > ("All");
+            const [activeCategory, setActiveCategory] = useState<string>("All");
 
             const categories = ["All", ...Array.from(new Set(APP_DATA.map(app => app.category)))];
             const filteredApps = activeCategory === "All" ? APP_DATA : APP_DATA.filter(app => app.category === activeCategory);
 
+            useEffect(() => { lucide.createIcons(); });
+
             return (
-                <div className="flex flex-col w-full h-full bg-[#1e1e1e]">
+                <div className="flex flex-col w-full min-h-screen bg-[#1e1e1e]">
 
-                    {/* Top Navigation Bar */}
-                    <div className="w-full bg-[#181818] border-b border-[#333333] flex flex-col shrink-0">
-                        <div className="h-16 flex items-center px-4 md:px-6">
+                    {/* Header */}
+                    <div className="w-full bg-[#181818] border-b border-[#333333] shrink-0">
+                        <div className="h-14 flex items-center px-4 md:px-6">
                             <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-3 shadow-md shrink-0">
-                                <span className="text-white font-bold text-lg leading-none">N</span>
+                                <span className="text-white font-bold text-lg leading-none">S</span>
                             </div>
-                            <span className="text-lg font-bold tracking-wide text-gray-100 mr-6 shrink-0 hidden sm:block">Study App</span>
-                            
-                            {/* Scrollable Tabs */}
-                            <div className="flex-1 flex h-full overflow-x-auto items-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                <TabItem icon="layers" label="All" active={activeCategory === "All"} onClick={() => setActiveCategory("All")} />
-                                {categories.filter(c => c !== "All").map(cat => (
-                                    <TabItem key={cat} icon="folder" label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />
-                                ))}
-                            </div>
+                            <span className="text-base font-bold tracking-wide text-gray-100 mr-4 shrink-0">Study App</span>
+                            <span className="text-xs text-gray-500 hidden sm:inline">{filteredApps.length} apps</span>
                         </div>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-
-                        {/* Sub Header */}
-                        <div className="h-12 bg-[#1e1e1e] flex items-center px-4 sm:px-8 border-b border-[#333333] shrink-0">
-                            <span className="text-xs sm:text-sm text-gray-400 mr-3 hidden sm:inline">Applications on</span>
-                            <select className="bg-[#2d2d30] border border-[#3e3e42] text-xs sm:text-sm text-white rounded px-2 py-1 focus:outline-none focus:border-green-500 cursor-pointer">
-                                <option>base (root)</option>
-                            </select>
-                            <div className="ml-auto text-xs sm:text-sm text-gray-500">
-                                {filteredApps.length} apps found
-                            </div>
+                    {/* Category Tabs */}
+                    <div className="w-full bg-[#1e1e1e] border-b border-[#333333] shrink-0 px-4 md:px-6 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                        <div className="flex gap-1 py-2">
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                                        activeCategory === cat
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-[#2d2d30] text-gray-400 hover:bg-[#3a3a3c] hover:text-gray-200'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
                         </div>
-
-                        {/* Grid Area */}
-                        <div className="p-4 sm:p-8 overflow-y-auto h-full">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                                {filteredApps.map((app) => (
-                                    <AppCard key={app.id} app={app} />
-                                ))}
-                            </div>
-                        </div>
-
                     </div>
+
+                    {/* App Grid */}
+                    <div className="flex-1 p-4 sm:p-6 md:p-8">
+                        {categories.filter(c => c !== "All").filter(c => activeCategory === "All" || activeCategory === c).map(cat => (
+                            <div key={cat} className="mb-8">
+                                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-1">{cat}</h2>
+                                <div className="flex flex-wrap gap-2 sm:gap-4">
+                                    {APP_DATA.filter(app => app.category === cat).map(app => (
+                                        <AppIcon key={app.id} app={app} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                 </div>
             );
         };

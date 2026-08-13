@@ -113,11 +113,11 @@
                     <div className="mt-4 flex flex-col gap-2 w-full shrink-0">
                         {app.installed ? (
                             <>
-                                <a href={app.appUrl} className="w-full flex justify-center items-center bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm font-medium py-1.5 rounded transition-colors shadow-sm no-underline">
+                                <a href={app.appUrl} target="_blank" className="w-full flex justify-center items-center bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm font-medium py-1.5 rounded transition-colors shadow-sm no-underline">
                                     <i data-lucide="play" className="w-4 h-4 mr-2"></i>Launch
                                 </a>
-                                <a href={app.manualUrl} className="w-full flex justify-center items-center bg-[#333333] hover:bg-[#444444] text-[#cccccc] hover:text-white text-sm font-medium py-1.5 rounded transition-colors border border-[#444444] no-underline">
-                                    <i data-lucide="book-open" className="w-4 h-4 mr-2"></i>Manual (.md)
+                                <a href={app.manualUrl} target="_blank" className="w-full flex justify-center items-center bg-[#333333] hover:bg-[#444444] text-[#cccccc] hover:text-white text-sm font-medium py-1.5 rounded transition-colors border border-[#444444] no-underline">
+                                    <i data-lucide="book-open" className="w-4 h-4 mr-2"></i>Manual
                                 </a>
                             </>
                         ) : (

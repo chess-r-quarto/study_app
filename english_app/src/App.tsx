@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   BookOpen, Brain, BookMarked, MessageSquare, Puzzle, 
   Type, CheckSquare, Hash, Layers, Network, 
@@ -77,7 +77,7 @@ function Sidebar() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="flex h-screen bg-[#161512] text-[#bababa] font-sans">
         <Sidebar />
         <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
@@ -101,7 +101,7 @@ function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

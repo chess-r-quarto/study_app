@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { FileCode2, DownloadCloud, GitMerge, Gavel, FileText, BookOpen } from 'lucide-react';
 
 import HtmlToMd from './pages/HtmlToMd';
@@ -51,7 +51,7 @@ function Sidebar() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="flex h-screen bg-[#161512] text-[#bababa] font-sans">
         <Sidebar />
         <main className="flex-1 overflow-auto p-8">
@@ -65,7 +65,7 @@ function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

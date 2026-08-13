@@ -24,28 +24,7 @@ Analytical tools, parsers, and data extraction utilities.
 * Tools Hub (Vite) (`tools_app/dist/index.html`) - A unified Vite/React app consolidating HTML/PDF/Wiki to MD, JSON tools, and Legal Compiler.
 
 ### 📊 Data Science & Language
-Core data structuring, news readers, and vocabulary platforms.
-* Data Management (`data_management/data_management.html`)
 * English Hub (Vite) (`english_app/dist/index.html`) - A unified Vite/React app for English vocabulary, grammar, and syntax learning.
-
-### 🧮 Mathematics
-Mathematical symbol quizzes and statistical tools.
-* Mathchess (`math/math_quiz.html`)
-* Stat Graecia (`math/stat_graecia.html`)
-
-### 🏛️ Financial Planning (FP1)
-Specialized financial planning calculators and tax matrices for the FP1 exam.
-* Dividend Calc (`fp1/fp1_dividend_calc.html`)
-* Corporate Tax Matrix (`fp1/fp1_cor_tax_matrix.html`)
-* FP1 FAR (`fp1/fp1_far.html`)
-* FP1 Pension (`fp1/fp1_pension.html`)
-* FP1 Portfolio (`fp1/fp1_portfolio.html`)
-* Asset Value (`fp1/fp1_asset_value.html`)
-* Sell Buy Simulator (`fp1/fp1_sell_buy.html`)
-* Inheritance Tax (`fp1/fp1_souzoku.html`)
-* Small Scale Land Tax Relief (`fp1/fp1_small-scale-land-tax-relief.html`)
-* Analysis Tools (`fp1/analysis.html`)
-* Static Reference (`fp1/static.html`)
 
 ## ⚙️ Deployment
 

@@ -22,7 +22,6 @@ A minimalist, Lichess-inspired dark-themed gateway for accessing specialized stu
 ### 🛠️ Development & Utilities
 Analytical tools, parsers, and data extraction utilities.
 * Tools Hub (Vite) (`tools_app/dist/index.html`) - A unified Vite/React app consolidating HTML/PDF/Wiki to MD, JSON tools, and Legal Compiler.
-* JSON Downloader (Vite) (`json_download/index.html`)
 
 ### 📊 Data Science & Language
 Core data structuring, news readers, and vocabulary platforms.

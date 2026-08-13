@@ -1,6 +1,6 @@
 # Study App Portal
 
-**[Public Access](https://chess-r-quarto.github.io/study_app/)**
+**[Public Access](https://chess-r-quarto.github.io/study_app/navigator.html)**
 
 A minimalist, Lichess-inspired dark-themed gateway for accessing specialized study modules. Designed for focus and rapid access, leveraging React and TypeScript via Babel standalone.
 

@@ -1,0 +1,1036 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
+
+
+        import { createRoot } from 'react-dom/client';
+    import { 
+      Check, X, RefreshCw, Settings, BookOpen, 
+      Clipboard, UploadCloud, FileJson, RotateCcw, 
+      Minimize, Maximize, Hash, Shuffle, ListOrdered, 
+      Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
+      PlayCircle, Layers, Keyboard
+    } from 'lucide-react';
+
+    interface QuestionData {
+      id: number;
+      word: string;
+      pronunciation?: string;
+      pos: string;
+      meaning: string;
+      wrong: string;
+      context: string;
+      source: string;
+    }
+
+    type QuestionCountOption = '50' | '100' | 'all';
+    type SessionMode = 'card' | 'reading' | 'typing';
+
+    const DEFAULT_DATA: QuestionData[] = [
+      { id: 1, word: "prescriptive", pronunciation: "/prɪˈskrɪptɪv/", pos: "Adjective", meaning: "規範的な、指示する", wrong: "自由放任の", context: "The manual offers prescriptive rules for grammar and punctuation.", source: "Chicago Manual of Style" },
+      { id: 2, word: "authoritative", pronunciation: "/əˈθɔːrɪteɪtɪv/", pos: "Adjective", meaning: "権威ある、信頼できる", wrong: "疑わしい", context: "CMOS is considered an authoritative source for American English.", source: "Chicago Manual of Style" },
+      { id: 3, word: "plagiarism", pronunciation: "/ˈpleɪdʒərɪzəm/", pos: "Noun", meaning: "盗作、剽窃", wrong: "独創", context: "Strict citation guidelines help prevent plagiarism.", source: "Chicago Manual of Style" },
+      { id: 4, "word": "bibliography", pronunciation: "/ˌbɪbliˈɒɡrəfi/", pos: "Noun", meaning: "参考文献目録", wrong: "索引", context: "The bibliography lists all sources consulted by the author.", source: "Chicago Manual of Style" },
+      { id: 5, word: "manuscript", pronunciation: "/ˈmænjʊskrɪpt/", pos: "Noun", meaning: "原稿", wrong: "既刊本", context: "Authors submit their manuscripts to the publisher for review.", source: "Chicago Manual of Style" },
+      { id: 6, word: "rule of thumb", pronunciation: "/ruːl əv θʌm/", pos: "Idiom", meaning: "経験則、大まかな基準", wrong: "厳密な規則", context: "As a rule of thumb, one cup of rice needs two cups of water.", source: "Common Phrases" }
+    ];
+
+    const WindowControls = ({ onReset, onExitFS, onEnterFS }: { onReset: () => void, onExitFS: () => void, onEnterFS: () => void }) => (
+      <div className="flex gap-3 text-[#8c8c8c]">
+        <button onClick={onReset} className="hover:text-white transition-colors" title="Reset App"><RotateCcw size={16} /></button>
+        <button onClick={onExitFS} className="hover:text-white transition-colors" title="Exit Fullscreen"><Minimize size={16} /></button>
+        <button onClick={onEnterFS} className="hover:text-white transition-colors" title="Enter Fullscreen"><Maximize size={16} /></button>
+      </div>
+    );
+
+    interface AppContainerProps {
+      children: React.ReactNode;
+      title?: string;
+      className?: string;
+      onReset: () => void;
+      onExitFS: () => void;
+      onEnterFS: () => void;
+    }
+
+    const AppContainer = ({ children, title = "English_Word", className = "", onReset, onExitFS, onEnterFS }: AppContainerProps) => (
+      <div className={`w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
+        <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
+          <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
+            <BookOpen size={18} className="text-[#8c8c8c]" />
+            {title}
+          </div>
+          <WindowControls onReset={onReset} onExitFS={onExitFS} onEnterFS={onEnterFS} />
+        </div>
+        <div className="flex-1 flex flex-col relative bg-[#161512] overflow-hidden">
+          {children}
+        </div>
+      </div>
+    );
+
+    interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+      variant?: "primary" | "secondary" | "danger" | "ghost" | "blue" | "orange";
+      icon?: React.ElementType;
+    }
+
+    const Button = ({ onClick, children, variant = "primary", className = "", disabled = false, icon: Icon, ...props }: ButtonProps) => {
+      const baseStyle = "px-4 py-2 text-sm font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+      
+      const variants = {
+        primary: "bg-[#629924] text-white hover:bg-[#72a332] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+        secondary: "bg-[#383634] text-[#dbd9d6] hover:bg-[#454341] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+        blue: "bg-[#1b78d0] text-white hover:bg-[#2084e6] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+        orange: "bg-[#d35400] text-white hover:bg-[#e67e22] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+        danger: "bg-[#cc3333] text-white hover:bg-[#d64040] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none",
+        ghost: "bg-transparent text-[#8c8c8c] hover:bg-[#383634] hover:text-[#dbd9d6]"
+      };
+
+      const roundedClass = className.includes('rounded') ? '' : 'rounded-sm';
+
+      return (
+        <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${roundedClass} ${className}`} {...props}>
+          {Icon && <Icon size={18} />}
+          {children}
+        </button>
+      );
+    };
+
+    export default function EnglishCard() {
+      const [gameState, setGameState] = useState<'start' | 'editor' | 'playing' | 'result'>('start'); 
+      const [sessionMode, setSessionMode] = useState<SessionMode>('card');
+      const [questions, setQuestions] = useState<QuestionData[]>(DEFAULT_DATA);
+      const [activeQuestions, setActiveQuestions] = useState<QuestionData[]>([]);
+      const [incorrectQuestions, setIncorrectQuestions] = useState<QuestionData[]>([]); 
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [score, setScore] = useState(0); 
+      
+      const [isRevealed, setIsRevealed] = useState(false); 
+      
+      // Typing Mode States
+      const [inputValue, setInputValue] = useState("");
+      const [hasMistakedCurrent, setHasMistakedCurrent] = useState(false);
+      const [isTypingError, setIsTypingError] = useState(false);
+      
+      const [questionCount, setQuestionCount] = useState<QuestionCountOption>('all');
+      const [isRandomOrder, setIsRandomOrder] = useState<boolean>(false);
+      const [startPositionStr, setStartPositionStr] = useState<string>(""); 
+      const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+      const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
+      const [autoAudioEnabled, setAutoAudioEnabled] = useState<boolean>(false);
+      const [globalVolume, setGlobalVolume] = useState<number>(1.0);
+      const [voicesReady, setVoicesReady] = useState<boolean>(false);
+
+      const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
+      const [jsonError, setJsonError] = useState<string | null>(null);
+      
+      const fileInputRef = useRef<HTMLInputElement>(null);
+      const typingInputRef = useRef<HTMLInputElement>(null);
+      const isAutoplayRef = useRef<boolean>(isAutoplay);
+      const audioRef = useRef<HTMLAudioElement | null>(null);
+
+      useEffect(() => {
+        isAutoplayRef.current = isAutoplay;
+      }, [isAutoplay]);
+
+      useEffect(() => {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.onvoiceschanged = () => setVoicesReady(true);
+          window.speechSynthesis.getVoices();
+        }
+
+        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+        audio.loop = true;
+        audioRef.current = audio;
+        return () => {
+          audio.pause();
+        };
+      }, []);
+
+      useEffect(() => {
+        if (gameState !== 'playing' && audioRef.current) {
+          audioRef.current.pause();
+        }
+      }, [gameState]);
+
+      // Handle Typing Error Animation Reset
+      useEffect(() => {
+        let timer: any;
+        if (isTypingError) {
+          timer = setTimeout(() => setIsTypingError(false), 400);
+        }
+        return () => clearTimeout(timer);
+      }, [isTypingError]);
+
+      // Reset typing states and focus when question changes
+      useEffect(() => {
+        setInputValue("");
+        setHasMistakedCurrent(false);
+        setIsTypingError(false);
+        if (sessionMode === 'typing' && gameState === 'playing') {
+          setTimeout(() => typingInputRef.current?.focus(), 50);
+        }
+      }, [currentIndex, sessionMode, gameState]);
+
+      const currentQuestion = activeQuestions[currentIndex];
+
+      const getOptimalVoice = (lang: string) => {
+        if (!window.speechSynthesis) return null;
+        const voices = window.speechSynthesis.getVoices();
+        
+        if (lang.startsWith('en')) {
+          return voices.find(v => v.name === 'Google US English') ||
+                 voices.find(v => v.name === 'Samantha') ||
+                 voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') || 
+                 null;
+        }
+        if (lang.startsWith('ja')) {
+          return voices.find(v => v.name === 'Google 日本語') ||
+                 voices.find(v => v.name === 'Kyoko') ||
+                 voices.find(v => v.lang === 'ja-JP') || 
+                 null;
+        }
+        return voices.find(v => v.lang === lang) || null;
+      };
+
+      const speak = async (text: string, lang: string, rate: number = 0.9): Promise<void> => {
+        return new Promise((resolve) => {
+          if (!window.speechSynthesis || globalVolume <= 0) return resolve();
+          
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = lang;
+          utterance.rate = rate;
+          utterance.volume = globalVolume;
+          
+          const voice = getOptimalVoice(lang);
+          if (voice) utterance.voice = voice;
+
+          const fallbackTimeout = setTimeout(() => {
+            resolve();
+          }, Math.max(4000, text.length * 200));
+
+          utterance.onend = () => {
+            clearTimeout(fallbackTimeout);
+            resolve();
+          };
+          
+          utterance.onerror = (e) => {
+            console.warn('SpeechSynthesis Error:', e);
+            clearTimeout(fallbackTimeout);
+            resolve();
+          };
+
+          window.speechSynthesis.speak(utterance);
+
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        });
+      };
+
+      const playAudioSequence = async (question: QuestionData, mode: 'full' | 'word' | 'meaning_context') => {
+        if (!window.speechSynthesis || globalVolume <= 0) return;
+        setIsPlayingAudio(true);
+        window.speechSynthesis.cancel(); 
+
+        try {
+          if (mode === 'full' || mode === 'word') {
+            await speak(question.word, 'en-US', 0.85);
+          }
+          
+          if (mode === 'full' || mode === 'meaning_context') {
+            if (mode === 'full') await new Promise(r => setTimeout(r, 600)); 
+            await speak(question.meaning, 'ja-JP', 1.0);
+            
+            if (question.context) {
+              await new Promise(r => setTimeout(r, 800)); 
+              await speak(question.context, 'en-US', 0.9);
+            }
+          }
+        } finally {
+          setIsPlayingAudio(false);
+        }
+      };
+
+      // Flow Control & Autoplay
+      useEffect(() => {
+        let isActive = true;
+
+        const executeQuestionFlow = async () => {
+          if (!currentQuestion || gameState !== 'playing') return;
+
+          if (sessionMode === 'reading') {
+            if (isAutoplay) {
+              await playAudioSequence(currentQuestion, 'full');
+              if (isActive && isAutoplayRef.current) {
+                await new Promise(r => setTimeout(r, 1200)); 
+                if (isActive && isAutoplayRef.current) {
+                  nextQuestion();
+                }
+              }
+            }
+          } else if (sessionMode === 'card' || sessionMode === 'typing') {
+            if (!isRevealed && autoAudioEnabled && inputValue === "") {
+              await playAudioSequence(currentQuestion, 'word');
+            }
+          }
+        };
+
+        executeQuestionFlow();
+
+        return () => {
+          isActive = false;
+          window.speechSynthesis.cancel();
+          setIsPlayingAudio(false);
+        };
+      }, [currentQuestion, currentIndex, gameState, sessionMode, isAutoplay, isRevealed, autoAudioEnabled]);
+
+      useEffect(() => {
+        if ('mediaSession' in navigator && currentQuestion && gameState === 'playing') {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentQuestion.word,
+            artist: currentQuestion.meaning,
+            album: 'English_Word'
+          });
+
+          navigator.mediaSession.setActionHandler('play', () => {
+            setIsAutoplay(true);
+            if (audioRef.current && audioRef.current.paused) {
+              audioRef.current.play().catch(() => {});
+            }
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            setIsAutoplay(false);
+          });
+
+          navigator.mediaSession.setActionHandler('nexttrack', () => {
+            nextQuestion();
+          });
+
+          navigator.mediaSession.setActionHandler('previoustrack', () => {
+            if (currentIndex > 0) {
+              window.speechSynthesis.cancel();
+              setIsRevealed(false);
+              setCurrentIndex(i => i - 1);
+            }
+          });
+        }
+      }, [currentQuestion, gameState, currentIndex]);
+
+      const nextQuestion = () => {
+        setIsRevealed(false);
+        window.speechSynthesis.cancel();
+        setIsPlayingAudio(false);
+        if (currentIndex < activeQuestions.length - 1) {
+          setCurrentIndex(i => i + 1);
+        } else {
+          setGameState('result');
+        }
+      };
+
+      const handleManualAudioPlay = () => {
+        if (currentQuestion) {
+          playAudioSequence(currentQuestion, 'full');
+        }
+        if (sessionMode === 'typing') {
+           setTimeout(() => typingInputRef.current?.focus(), 50);
+        }
+      };
+
+      const startSession = (mode: SessionMode) => {
+        setSessionMode(mode);
+        setIsAutoplay(true);
+        if (audioRef.current) {
+          audioRef.current.play().catch(e => console.warn("MediaSession dummy audio requires interaction", e));
+        }
+
+        let pool = [...questions];
+        
+        if (isRandomOrder) {
+          pool.sort(() => Math.random() - 0.5);
+        } else {
+          pool.sort((a, b) => a.id - b.id);
+          const parsedStart = parseInt(startPositionStr, 10);
+          const startPos = isNaN(parsedStart) ? 1 : Math.min(parsedStart, 2000);
+          
+          // IDベースで開始位置を検索する
+          const startIndex = pool.findIndex(q => q.id >= startPos);
+          pool = pool.slice(startIndex !== -1 ? startIndex : 0);
+        }
+
+        let count = pool.length;
+        if (questionCount === '50') count = Math.min(50, pool.length);
+        else if (questionCount === '100') count = Math.min(100, pool.length);
+
+        setActiveQuestions(pool.slice(0, count));
+        setIncorrectQuestions([]); 
+        setScore(0);
+        setCurrentIndex(0);
+        setIsRevealed(false);
+        setGameState('playing');
+      };
+
+      const retryIncorrectQuestions = () => {
+        setActiveQuestions([...incorrectQuestions]);
+        setIncorrectQuestions([]); 
+        setScore(0);
+        setCurrentIndex(0);
+        setIsRevealed(false);
+        setGameState('playing');
+      };
+
+      const handleCardAnswer = (isKnown: boolean) => {
+        window.speechSynthesis.cancel();
+        setIsPlayingAudio(false);
+        
+        if (isKnown) {
+          setScore(s => s + 1);
+        } else {
+          setIncorrectQuestions(prev => [...prev, currentQuestion]);
+        }
+        nextQuestion();
+      };
+
+      const handleTypingSubmit = () => {
+        if (!currentQuestion) return;
+        
+        if (inputValue.trim() === currentQuestion.word.trim()) {
+          if (!hasMistakedCurrent) {
+            setScore(s => s + 1);
+          } else {
+            setIncorrectQuestions(prev => [...prev, currentQuestion]);
+          }
+          window.speechSynthesis.cancel();
+          setIsPlayingAudio(false);
+          nextQuestion();
+        } else {
+          setHasMistakedCurrent(true);
+          setIsTypingError(true);
+        }
+      };
+
+      const handleTypingSkip = () => {
+        setIncorrectQuestions(prev => [...prev, currentQuestion]);
+        window.speechSynthesis.cancel();
+        setIsPlayingAudio(false);
+        nextQuestion();
+      };
+
+      const returnToStart = () => {
+        window.speechSynthesis.cancel();
+        setIsPlayingAudio(false);
+        setIncorrectQuestions([]); 
+        setGameState('start');
+      };
+
+      const handlePasteFromClipboard = async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          setJsonInput(text);
+          setJsonError(null); 
+        } catch (err) {
+          setJsonError("Clipboard access denied. Please paste manually.");
+        }
+      };
+
+      const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          try {
+            JSON.parse(content); 
+            setJsonInput(content);
+            setJsonError(null);
+          } catch (error: any) {
+            setJsonError("Invalid JSON file: " + error.message);
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+      };
+
+      const triggerFileUpload = () => {
+        fileInputRef.current?.click();
+      };
+
+      const handleImport = () => {
+        try {
+          const parsed = JSON.parse(jsonInput);
+          if (!Array.isArray(parsed)) throw new Error("Format Error: Data must be a JSON Array [...]");
+          if (parsed.length === 0) throw new Error("Data Error: The array is empty.");
+          if (!parsed[0].word || !parsed[0].meaning || !parsed[0].pos) throw new Error("Structure Error: Missing 'word', 'meaning', or 'pos' fields.");
+          
+          setQuestions(parsed);
+          setJsonError(null);
+          setGameState('start'); 
+        } catch (e: any) {
+          setJsonError(e.message);
+        }
+      };
+
+      const handleFullScreenEnter = () => {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen().catch(err => console.log(err));
+        }
+      };
+
+      const handleFullScreenExit = () => {
+        if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen().catch(err => console.log(err));
+        }
+      };
+
+      const handleAppReset = () => {
+        returnToStart();
+      };
+
+      const handleStartPositionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (val === "" || (/^\d+$/.test(val) && parseInt(val, 10) <= 2000)) {
+           setStartPositionStr(val);
+        }
+      };
+
+      if (gameState === 'start') {
+        return (
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <AppContainer className="w-full h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] flex flex-col border-none sm:border-solid"
+              onReset={handleAppReset}
+              onEnterFS={handleFullScreenEnter}
+              onExitFS={handleFullScreenExit}
+            >
+              <div className="flex-1 flex flex-col items-center py-6 px-4 sm:justify-center sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto w-full bg-[#161512]">
+                <div className="text-center space-y-2 shrink-0">
+                  <h1 className="text-3xl sm:text-4xl font-bold tracking-wider text-[#dbd9d6]">ENGLISH WORD</h1>
+                  <p className="text-[#8c8c8c] text-sm">{questions.length} words loaded in database</p>
+                </div>
+
+                <div className="w-full max-w-sm space-y-6 pt-2 pb-6 shrink-0">
+                  <div className="space-y-4 bg-[#1b1a19] p-4 rounded-sm border border-[#383634]">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                        <Hash size={14} /> Questions
+                      </div>
+                      <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                        {(['50', '100', 'all'] as const).map(v => (
+                          <button
+                            key={v}
+                            onClick={() => setQuestionCount(v)}
+                            className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${questionCount === v ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
+                         <div className="flex items-center gap-2">
+                           <ListOrdered size={14} /> Order
+                         </div>
+                      </div>
+                      <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                        <button
+                          onClick={() => setIsRandomOrder(false)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm flex items-center justify-center gap-2 transition-colors ${!isRandomOrder ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          <ListOrdered size={14} /> ID Order
+                        </button>
+                        <button
+                          onClick={() => setIsRandomOrder(true)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm flex items-center justify-center gap-2 transition-colors ${isRandomOrder ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          <Shuffle size={14} /> Random
+                        </button>
+                      </div>
+                      
+                      {!isRandomOrder && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#262421]">
+                          <span className="text-xs font-bold text-[#8c8c8c] uppercase flex items-center gap-1">
+                            <PlayCircle size={14}/> Start At:
+                          </span>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            max="2000" 
+                            value={startPositionStr} 
+                            onChange={handleStartPositionChange}
+                            placeholder="1"
+                            className="bg-[#262421] border border-[#383634] text-[#dbd9d6] text-xs px-2 py-1.5 rounded-sm w-20 text-center focus:outline-none focus:border-[#8c8c8c] placeholder:text-[#8c8c8c] placeholder:opacity-50 transition-colors"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
+                        {autoAudioEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} Auto Audio (Card/Typing)
+                      </div>
+                      <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
+                        <button
+                          onClick={() => setAutoAudioEnabled(false)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!autoAudioEnabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          OFF
+                        </button>
+                        <button
+                          onClick={() => setAutoAudioEnabled(true)}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${autoAudioEnabled ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
+                        >
+                          ON
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#262421]">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
+                        <div className="flex items-center gap-2">
+                          {globalVolume > 0 ? <Volume2 size={14} /> : <VolumeX size={14} />} Master Volume
+                        </div>
+                        <span>{Math.round(globalVolume * 100)}%</span>
+                      </div>
+                      <div className="pt-2">
+                        <input 
+                          type="range" 
+                          min="0" max="1" step="0.1" 
+                          value={globalVolume} 
+                          onChange={(e) => setGlobalVolume(parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button onClick={() => startSession('card')} className="w-full py-4 text-sm sm:text-base" icon={Layers}>
+                        Cards
+                      </Button>
+                      <Button onClick={() => startSession('typing')} variant="orange" className="w-full py-4 text-sm sm:text-base" icon={Keyboard}>
+                        Typing
+                      </Button>
+                    </div>
+                    <Button onClick={() => startSession('reading')} variant="blue" className="w-full py-4 text-sm sm:text-base" icon={Headphones}>
+                      Reading
+                    </Button>
+                    <Button variant="secondary" onClick={() => setGameState('editor')} className="w-full py-3" icon={Settings}>
+                      Import JSON
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </AppContainer>
+          </div>
+        );
+      }
+
+      if (gameState === 'editor') {
+        return (
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <AppContainer title="Import Data" className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid"
+              onReset={handleAppReset}
+              onEnterFS={handleFullScreenEnter}
+              onExitFS={handleFullScreenExit}
+            >
+              <div className="flex flex-col h-full">
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  ref={fileInputRef} 
+                  onChange={handleFileSelect} 
+                  className="hidden" 
+                />
+
+                <div className="bg-[#1b1a19] border-b border-[#383634] p-2 flex justify-between items-center shrink-0">
+                   <div className="flex gap-2">
+                     <Button variant="ghost" onClick={triggerFileUpload} className="h-8 text-xs px-2 sm:px-4" icon={UploadCloud}>
+                       <span className="hidden sm:inline">Load File</span>
+                     </Button>
+                     <Button variant="ghost" onClick={handlePasteFromClipboard} className="h-8 text-xs px-2 sm:px-4" icon={Clipboard}>
+                       <span className="hidden sm:inline">Paste</span>
+                     </Button>
+                   </div>
+                   <Button variant="ghost" onClick={returnToStart} className="h-8 text-xs">Cancel</Button>
+                </div>
+                
+                <div className="flex-1 relative">
+                  <textarea
+                    className="w-full h-full p-4 font-mono text-sm bg-[#161512] text-[#85A94E] resize-none focus:outline-none placeholder:text-[#383634]"
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    spellCheck={false}
+                    placeholder="Paste JSON..."
+                  />
+                </div>
+
+                <div className="bg-[#1b1a19] p-4 border-t border-[#383634] flex justify-between items-center shrink-0">
+                  <div className="flex-1 pr-4">
+                    {jsonError ? (
+                      <span className="text-[#cc3333] text-xs sm:text-sm font-bold flex items-center gap-2">
+                        <X size={16} className="shrink-0" /> <span className="truncate">{jsonError}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[#8c8c8c] text-xs sm:text-sm font-bold flex items-center gap-2">
+                        <FileJson size={16} className="shrink-0" /> JSON Valid
+                      </span>
+                    )}
+                  </div>
+                  <Button onClick={handleImport} icon={Check} className="shrink-0 text-xs sm:text-sm">
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AppContainer>
+          </div>
+        );
+      }
+
+      if (gameState === 'result') {
+        return (
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <AppContainer title="Session Complete" className="w-full h-screen sm:h-[60vh] sm:min-h-[500px] sm:max-h-[700px] flex flex-col border-none sm:border-solid"
+              onReset={handleAppReset}
+              onEnterFS={handleFullScreenEnter}
+              onExitFS={handleFullScreenExit}
+            >
+              <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 space-y-8 text-center overflow-y-auto bg-[#161512]">
+                
+                {sessionMode === 'card' || sessionMode === 'typing' ? (
+                  <>
+                    <div className="space-y-2">
+                      <h2 className="text-xl sm:text-2xl font-bold text-[#8c8c8c] uppercase tracking-widest">
+                        {sessionMode === 'typing' ? 'Accuracy' : 'Known Words'}
+                      </h2>
+                      <div className="text-5xl sm:text-6xl font-bold text-[#dbd9d6]">
+                        {Math.round((score / activeQuestions.length) * 100)}%
+                      </div>
+                    </div>
+                    <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                      <p className="text-base sm:text-lg text-[#dbd9d6]">
+                        {sessionMode === 'typing' ? 'Perfectly Typed ' : 'You knew '}<span className="text-[#629924] font-bold">{score}</span> out of <span className="font-bold">{activeQuestions.length}</span> words.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <h2 className="text-xl sm:text-2xl font-bold text-[#8c8c8c] uppercase tracking-widest">Words Read</h2>
+                      <div className="text-5xl sm:text-6xl font-bold text-[#dbd9d6]">
+                        {activeQuestions.length}
+                      </div>
+                    </div>
+                    <div className="bg-[#1b1a19] border border-[#383634] px-6 sm:px-8 py-4 rounded-sm w-full max-w-sm">
+                      <p className="text-base sm:text-lg text-[#dbd9d6]">
+                        Reading session completed.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <div className="pt-4 sm:pt-8 w-full max-w-xs flex flex-col gap-3">
+                  {(sessionMode === 'card' || sessionMode === 'typing') && incorrectQuestions.length > 0 && (
+                    <Button onClick={retryIncorrectQuestions} variant="primary" className="w-full py-4 !rounded-xl" icon={RotateCcw}>
+                      Review Unknown ({incorrectQuestions.length})
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={returnToStart} 
+                    variant={(sessionMode === 'card' || sessionMode === 'typing') && incorrectQuestions.length > 0 ? "secondary" : "primary"} 
+                    className="w-full py-4 !rounded-xl" 
+                    icon={RefreshCw}
+                  >
+                    Return to Start
+                  </Button>
+                </div>
+
+              </div>
+            </AppContainer>
+          </div>
+        );
+      }
+
+      const getTitlePrefix = () => {
+        if (sessionMode === 'card') return 'Flashcards';
+        if (sessionMode === 'typing') return 'Typing';
+        return 'Reading';
+      };
+
+      return (
+        <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+          <AppContainer title={getTitlePrefix()} className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid"
+              onReset={handleAppReset}
+              onEnterFS={handleFullScreenEnter}
+              onExitFS={handleFullScreenExit}
+          >
+            {/* Progress Bar */}
+            <div className="h-1 w-full bg-[#1b1a19] shrink-0">
+              <div 
+                className={`h-full transition-all duration-300 ${sessionMode === 'reading' ? 'bg-[#1b78d0]' : sessionMode === 'typing' ? 'bg-[#d35400]' : 'bg-[#629924]'}`}
+                style={{ width: `${((currentIndex) / activeQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#161512]">
+              {sessionMode === 'card' ? (
+                // --- CARD MODE UI ---
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-y-auto w-full">
+                  <div className="w-full flex justify-between items-center mb-4 max-w-md shrink-0">
+                    <div className="text-xs font-bold text-[#8c8c8c] uppercase tracking-widest flex items-center gap-2">
+                      <Layers size={14} /> Card {currentIndex + 1} / {activeQuestions.length}
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-bold text-[#8c8c8c] uppercase text-right">
+                      ID: {currentQuestion.id}
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`w-full max-w-md flex flex-col relative rounded-2xl shadow-xl transition-all duration-300 cursor-pointer select-none border-2 shrink-0
+                      ${isRevealed 
+                        ? 'bg-[#1b1a19] border-[#383634] min-h-[350px]' 
+                        : 'bg-[#262421] border-[#383634] hover:border-[#8c8c8c] min-h-[250px] justify-center'
+                      }`}
+                    onClick={() => !isRevealed && setIsRevealed(true)}
+                  >
+                    <div className="p-6 sm:p-8 flex flex-col items-center flex-1 w-full relative">
+                      <div className="w-full flex justify-between items-start mb-6">
+                        <div className="px-3 py-1 bg-[#161512] border border-[#383634] rounded-md text-[#8c8c8c] text-xs font-bold uppercase tracking-widest">
+                          {currentQuestion.pos}
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleManualAudioPlay(); }}
+                          className="p-2 text-[#8c8c8c] hover:text-[#dbd9d6] hover:bg-[#383634] rounded-full transition-colors z-10"
+                          title="Play Audio"
+                        >
+                          {globalVolume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center w-full flex-1">
+                        <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight text-center break-words max-w-full">
+                          {currentQuestion.word}
+                        </h2>
+                        {currentQuestion.pronunciation && (
+                          <div className="mt-3 text-lg sm:text-xl text-[#8c8c8c] font-ipa tracking-wide">
+                            {currentQuestion.pronunciation}
+                          </div>
+                        )}
+                      </div>
+
+                      {isRevealed && (
+                        <div className="mt-8 pt-8 border-t border-[#383634] w-full flex flex-col items-center animate-in fade-in duration-300">
+                          <div className="text-2xl sm:text-3xl font-bold text-[#dbd9d6] text-center mb-4 leading-relaxed">
+                            {currentQuestion.meaning}
+                          </div>
+                          {currentQuestion.context && (
+                            <div className="text-[#8c8c8c] italic text-sm sm:text-base text-center bg-[#161512] p-4 rounded-lg w-full border border-[#383634]">
+                              {currentQuestion.context}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {!isRevealed && (
+                        <div className="absolute bottom-6 left-0 right-0 text-[#8c8c8c] text-sm flex justify-center items-center pointer-events-none">
+                           <span className="font-bold tracking-widest uppercase animate-pulse opacity-50">Tap to reveal</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`w-full max-w-md grid grid-cols-2 gap-4 mt-6 shrink-0 transition-all duration-300 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <Button 
+                      variant="danger" 
+                      onClick={() => handleCardAnswer(false)}
+                      className="py-4 sm:py-5 text-base sm:text-lg !rounded-xl shadow-lg transition-transform hover:scale-105"
+                      icon={X}
+                    >
+                      わからない
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleCardAnswer(true)}
+                      className="py-4 sm:py-5 text-base sm:text-lg !rounded-xl shadow-lg transition-transform hover:scale-105"
+                      icon={Check}
+                    >
+                      わかる
+                    </Button>
+                  </div>
+                </div>
+
+              ) : sessionMode === 'typing' ? (
+                // --- TYPING MODE UI ---
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-y-auto w-full">
+                  <div className="w-full flex justify-between items-center mb-4 max-w-md shrink-0">
+                    <div className="text-xs font-bold text-[#8c8c8c] uppercase tracking-widest flex items-center gap-2">
+                      <Keyboard size={14} /> Typing {currentIndex + 1} / {activeQuestions.length}
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-bold text-[#8c8c8c] uppercase text-right">
+                      ID: {currentQuestion.id}
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-md flex flex-col bg-[#1b1a19] border-2 border-[#383634] rounded-2xl shadow-xl min-h-[420px] shrink-0">
+                    <div className="p-6 sm:p-8 flex flex-col items-center flex-1 w-full relative">
+                      
+                      <div className="w-full flex justify-between items-start mb-4">
+                        <div className="px-3 py-1 bg-[#161512] border border-[#383634] rounded-md text-[#8c8c8c] text-xs font-bold uppercase tracking-widest">
+                          {currentQuestion.pos}
+                        </div>
+                        <button 
+                          onClick={handleManualAudioPlay}
+                          className="p-2 text-[#8c8c8c] hover:text-[#dbd9d6] hover:bg-[#383634] rounded-full transition-colors z-10"
+                          title="Play Audio"
+                        >
+                          {globalVolume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                        </button>
+                      </div>
+
+                      {/* Meaning & Context */}
+                      <div className="flex flex-col items-center justify-center w-full mb-6">
+                        <div className="text-2xl sm:text-3xl font-bold text-[#dbd9d6] text-center mb-4 leading-relaxed">
+                          {currentQuestion.meaning}
+                        </div>
+                        {currentQuestion.context && (
+                          <div className="text-[#8c8c8c] italic text-sm sm:text-base text-center bg-[#161512] p-4 rounded-lg w-full border border-[#383634]">
+                            {currentQuestion.context}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Word Display (Target) */}
+                      <div className="flex flex-col items-center justify-center w-full mb-6">
+                        <div className="text-2xl sm:text-3xl text-[#8c8c8c] font-mono tracking-wider opacity-60 break-words max-w-full text-center">
+                          {currentQuestion.word}
+                        </div>
+                        {currentQuestion.pronunciation && (
+                          <div className="mt-2 text-sm sm:text-base text-[#8c8c8c] font-ipa tracking-wide opacity-60">
+                            {currentQuestion.pronunciation}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Input */}
+                      <div className="w-full mt-auto">
+                        <input
+                          ref={typingInputRef}
+                          type="text"
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            // IMEの変換確定時のEnterを無視する
+                            if (e.nativeEvent.isComposing) return;
+                            if (e.key === 'Enter') handleTypingSubmit();
+                          }}
+                          autoCapitalize="none"
+                          autoComplete="off"
+                          spellCheck="false"
+                          autoCorrect="off"
+                          className={`w-full bg-[#161512] border-2 ${isTypingError ? 'border-[#cc3333] animate-shake text-[#cc3333]' : 'border-[#383634] focus:border-[#d35400] text-white'} rounded-xl px-4 py-4 text-2xl font-mono text-center outline-none transition-colors shadow-inner`}
+                          placeholder="Type here..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-md flex gap-4 mt-6 shrink-0">
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleTypingSkip}
+                      className="w-1/3 py-4 sm:py-5 text-sm sm:text-base !rounded-xl opacity-70 hover:opacity-100 hover:bg-[#383634]"
+                      title="わからない (Skip)"
+                    >
+                      <X size={18} /> Skip
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleTypingSubmit}
+                      className="flex-1 py-4 sm:py-5 text-sm sm:text-base !rounded-xl"
+                      icon={Check}
+                    >
+                      Enter
+                    </Button>
+                  </div>
+                </div>
+
+              ) : (
+                // --- READING MODE UI ---
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-y-auto w-full">
+                  <div className="w-full flex justify-between items-center mb-4 max-w-md shrink-0">
+                    <div className="text-xs font-bold text-[#8c8c8c] uppercase tracking-widest flex items-center gap-2">
+                      <Headphones size={14} /> Reading {currentIndex + 1} / {activeQuestions.length}
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-bold text-[#8c8c8c] uppercase text-right">
+                      ID: {currentQuestion.id}
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-md flex flex-col bg-[#1b1a19] border-2 border-[#383634] rounded-2xl shadow-xl min-h-[350px] shrink-0">
+                    <div className="p-6 sm:p-8 flex flex-col items-center flex-1 w-full">
+                      <div className="w-full flex justify-between items-start mb-6">
+                        <div className="px-3 py-1 bg-[#161512] border border-[#383634] rounded-md text-[#8c8c8c] text-xs font-bold uppercase tracking-widest">
+                          {currentQuestion.pos}
+                        </div>
+                        <button 
+                          onClick={handleManualAudioPlay}
+                          disabled={isPlayingAudio}
+                          className="p-2 text-[#8c8c8c] hover:text-[#dbd9d6] hover:bg-[#383634] rounded-full transition-colors disabled:opacity-50"
+                          title="Play Audio"
+                        >
+                          {globalVolume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                        </button>
+                      </div>
+                      
+                      <div className="flex flex-col items-center justify-center w-full flex-1 animate-in fade-in duration-300">
+                        <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight text-center break-words max-w-full">
+                          {currentQuestion.word}
+                        </h2>
+                        {currentQuestion.pronunciation && (
+                          <div className="mt-3 text-lg sm:text-xl text-[#8c8c8c] font-ipa tracking-wide">
+                            {currentQuestion.pronunciation}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="mt-8 pt-8 border-t border-[#383634] w-full flex flex-col items-center animate-in fade-in duration-500">
+                        <div className="text-2xl sm:text-3xl font-bold text-[#dbd9d6] text-center mb-4 leading-relaxed">
+                          {currentQuestion.meaning}
+                        </div>
+                        {currentQuestion.context && (
+                          <div className="text-[#8c8c8c] italic text-sm sm:text-base text-center bg-[#161512] p-4 rounded-lg w-full border border-[#383634]">
+                            {currentQuestion.context}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-md flex gap-4 mt-6 shrink-0">
+                    <Button 
+                      onClick={() => setIsAutoplay(!isAutoplay)} 
+                      variant={isAutoplay ? "secondary" : "blue"} 
+                      className="flex-1 py-4 sm:py-5 text-sm sm:text-base !rounded-xl"
+                      icon={isAutoplay ? Pause : Play}
+                    >
+                      <span className="hidden sm:inline">{isAutoplay ? "Pause Auto-play" : "Resume Auto-play"}</span>
+                      <span className="sm:hidden">{isAutoplay ? "Pause" : "Resume"}</span>
+                    </Button>
+                    {!isAutoplay && (
+                      <Button onClick={nextQuestion} variant="secondary" className="flex-1 py-4 sm:py-5 text-sm sm:text-base !rounded-xl">
+                        Next
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </AppContainer>
+        </div>
+      );
+    }
+
+    const root = createRoot(document.getElementById('root')!);
+    
+  

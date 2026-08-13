@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as lucide from 'lucide-react';
 
-        import {
+
+    import {
       Check, X, RefreshCw, Settings, BookOpen,
       Clipboard, UploadCloud, FileJson, RotateCcw,
       Minimize, Maximize, Hash, Shuffle, ListOrdered,
       Volume2, Gamepad2, Headphones, Pause, Play, VolumeX,
-      PlayCircle, Zap
+      PlayCircle
     } from 'lucide-react';
-
     interface QuestionData {
       id: number;
       word: string;
@@ -78,7 +78,7 @@ import * as lucide from 'lucide-react';
     }
 
     const AppContainer = ({ children, title = "English_Word", className = "", onReset, onExitFS, onEnterFS }: AppContainerProps) => (
-      <div className={`w-full mx-auto flex flex-col bg-[#262421] overflow-hidden ${className}`}>
+      <div className={`w-full max-w-3xl mx-auto flex flex-col bg-[#262421] shadow-xl sm:rounded-sm overflow-hidden border border-[#383634] ${className}`}>
         <div className="h-12 bg-[#1b1a19] border-b border-[#383634] flex items-center justify-between px-4 shrink-0">
           <div className="font-bold text-[#dbd9d6] flex items-center gap-2">
             <BookOpen size={18} className="text-[#8c8c8c]" />
@@ -143,7 +143,7 @@ import * as lucide from 'lucide-react';
       );
     };
 
-    export default function EnglishWord() {
+    export default function EnglishQuiz() {
       const [gameState, setGameState] = useState<'start' | 'editor' | 'playing' | 'result'>('start');
       const [sessionMode, setSessionMode] = useState<SessionMode>('quiz');
       const [questions, setQuestions] = useState<QuestionData[]>(DEFAULT_DATA);
@@ -162,7 +162,6 @@ import * as lucide from 'lucide-react';
       const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
       const [isAutoplay, setIsAutoplay] = useState<boolean>(true);
       const [quizAudioEnabled, setQuizAudioEnabled] = useState<boolean>(false);
-      const [isSpeedrun, setIsSpeedrun] = useState<boolean>(false);
       const [globalVolume, setGlobalVolume] = useState<number>(1.0);
 
       const [jsonInput, setJsonInput] = useState(JSON.stringify(DEFAULT_DATA, null, 2));
@@ -229,31 +228,19 @@ import * as lucide from 'lucide-react';
           const voice = getOptimalVoice(lang);
           if (voice) utterance.voice = voice;
 
-          let resolved = false;
-          const done = () => {
-            if (!resolved) {
-              resolved = true;
-              clearTimeout(fallbackTimeout);
-              clearInterval(keepAlive);
-              resolve();
-            }
+          const fallbackTimeout = setTimeout(() => {
+            resolve();
+          }, Math.max(4000, text.length * 200));
+
+          utterance.onend = () => {
+            clearTimeout(fallbackTimeout);
+            resolve();
           };
-
-          const fallbackTimeout = setTimeout(done, Math.max(4000, text.length * 200));
-
-          // macOS Safari/Chrome workaround: speechSynthesis freezes after ~15s
-          const keepAlive = setInterval(() => {
-            if (window.speechSynthesis.speaking) {
-              window.speechSynthesis.pause();
-              window.speechSynthesis.resume();
-            }
-          }, 5000);
-
-          utterance.onend = done;
 
           utterance.onerror = (e) => {
             console.warn('SpeechSynthesis Error:', e);
-            done();
+            clearTimeout(fallbackTimeout);
+            resolve();
           };
 
           window.speechSynthesis.speak(utterance);
@@ -444,10 +431,6 @@ import * as lucide from 'lucide-react';
         
         if (isCorrect) {
           setScore(s => s + 1);
-          if (isSpeedrun) {
-            nextQuestion();
-            return;
-          }
         } else {
           setMistakes(prev => {
             if (!prev.find(q => q.id === currentQuestion.id)) {
@@ -529,8 +512,8 @@ import * as lucide from 'lucide-react';
 
       if (gameState === 'start') {
         return (
-          <div className="h-screen flex bg-[#161512]">
-            <BaseWrapper className="w-full h-screen flex flex-col" onReset={handleAppReset}>
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <BaseWrapper className="w-full h-screen sm:h-[85vh] sm:min-h-[750px] sm:max-h-[900px] flex flex-col border-none sm:border-solid" onReset={handleAppReset}>
               <div className="flex-1 flex flex-col items-center py-6 px-4 sm:justify-center sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto w-full">
                 <div className="text-center space-y-2 shrink-0">
                   <h1 className="text-3xl sm:text-4xl font-bold tracking-wider text-[#dbd9d6]">ENGLISH WORD</h1>
@@ -616,26 +599,6 @@ import * as lucide from 'lucide-react';
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-bold text-[#8c8c8c] uppercase">
-                        <Zap size={14} /> Speedrun Mode
-                      </div>
-                      <div className="flex gap-1 bg-[#262421] p-1 rounded-sm border border-[#383634]">
-                        <button
-                          onClick={() => setIsSpeedrun(false)}
-                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${!isSpeedrun ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
-                        >
-                          OFF
-                        </button>
-                        <button
-                          onClick={() => setIsSpeedrun(true)}
-                          className={`flex-1 py-1.5 text-xs font-bold uppercase rounded-sm transition-colors ${isSpeedrun ? 'bg-[#383634] text-white shadow-sm' : 'text-[#8c8c8c] hover:text-[#dbd9d6]'}`}
-                        >
-                          ON
-                        </button>
-                      </div>
-                    </div>
-
                     <div className="space-y-2 pt-2 border-t border-[#262421]">
                       <div className="flex items-center justify-between text-xs font-bold text-[#8c8c8c] uppercase">
                         <div className="flex items-center gap-2">
@@ -677,8 +640,8 @@ import * as lucide from 'lucide-react';
 
       if (gameState === 'editor') {
         return (
-          <div className="h-screen flex bg-[#161512]">
-            <BaseWrapper title="Import Data" className="w-full h-screen flex flex-col" onReset={handleAppReset}>
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <BaseWrapper title="Import Data" className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid" onReset={handleAppReset}>
               <div className="flex flex-col h-full">
                 <input
                   type="file"
@@ -736,8 +699,8 @@ import * as lucide from 'lucide-react';
 
       if (gameState === 'result') {
         return (
-          <div className="h-screen flex bg-[#161512]">
-            <BaseWrapper title="Session Complete" className="w-full h-screen flex flex-col" onReset={handleAppReset}>
+          <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+            <BaseWrapper title="Session Complete" className="w-full h-screen sm:h-[60vh] sm:min-h-[500px] sm:max-h-[700px] flex flex-col border-none sm:border-solid" onReset={handleAppReset}>
               <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 space-y-8 text-center overflow-y-auto">
 
                 {sessionMode === 'quiz' ? (
@@ -787,8 +750,8 @@ import * as lucide from 'lucide-react';
       }
 
       return (
-        <div className="h-screen flex bg-[#161512]">
-          <BaseWrapper title={`${sessionMode === 'quiz' ? 'Quiz' : 'Reading'} : ${currentIndex + 1} / ${activeQuestions.length}`} className="w-full h-screen flex flex-col" onReset={handleAppReset}>
+        <div className="min-h-screen flex items-center justify-center sm:p-4 bg-[#161512]">
+          <BaseWrapper title={`${sessionMode === 'quiz' ? 'Quiz' : 'Reading'} : ${currentIndex + 1} / ${activeQuestions.length}`} className="w-full h-screen sm:h-[85vh] sm:min-h-[700px] sm:max-h-[900px] flex flex-col border-none sm:border-solid" onReset={handleAppReset}>
             <div className="h-1 w-full bg-[#1b1a19] shrink-0">
               <div
                 className={`h-full transition-all duration-300 ${sessionMode === 'reading' ? 'bg-[#1b78d0]' : 'bg-[#629924]'}`}
@@ -943,5 +906,6 @@ import * as lucide from 'lucide-react';
       );
     }
 
+    
     
   

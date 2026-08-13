@@ -1,0 +1,880 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
+
+export default function Grammar() {
+  return (
+    <div 
+      className="w-full h-full overflow-auto bg-white text-black"
+      dangerouslySetInnerHTML={{ __html: `<style>
+      :root {
+        --body-bg: #ffffff;
+        --text-color: #212529;
+        --heading-color: #333333;
+        --border-color: #dee2e6;
+        --table-stripe: #f8f9fa;
+        --link-color: #0d6efd;
+        --chapter-color: #c92a2a;
+        --tip-bg: #fdf6e3;
+        --tip-border: #f6e0b5;
+        --tip-text: #5c4b27;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--body-bg);
+        margin: 0;
+        padding: 2rem 1rem;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      h1, h2, h3 {
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--heading-color);
+      }
+
+      h1 { 
+        font-size: 2.25rem; 
+        border-bottom: 2px solid var(--border-color); 
+        padding-bottom: 0.5rem;
+      }
+      
+      h2 { 
+        font-size: 1.5rem; 
+        color: var(--chapter-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.3rem;
+        display: flex;
+        align-items: baseline;
+      }
+      
+      h2 span.chap-num {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-right: 0.5rem;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 1rem;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 2rem;
+      }
+
+      table {
+        width: 100%;
+        margin-bottom: 1rem;
+        vertical-align: top;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+
+      th, td {
+        padding: 0.85rem 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-weight: 600;
+        background-color: var(--body-bg);
+        border-bottom: 2px solid var(--border-color);
+        border-top: 2px solid var(--border-color);
+      }
+
+      tbody tr:nth-of-type(odd) {
+        background-color: var(--table-stripe);
+      }
+
+      strong {
+        font-weight: 700;
+        color: #000;
+        background-color: #fff3cd; 
+        padding: 0 0.2rem;
+        border-radius: 3px;
+      }
+
+      .term-en {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+
+      .tip-box {
+        background-color: var(--tip-bg);
+        border: 1px solid var(--tip-border);
+        color: var(--tip-text);
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        line-height: 1.4;
+      }
+      
+      .tip-box strong {
+        background-color: transparent;
+        color: var(--tip-text);
+      }
+
+      .guide-box {
+        background-color: #e9ecef;
+        border-left: 4px solid var(--chapter-color);
+        padding: 1rem;
+        border-radius: 0 4px 4px 0;
+        margin-bottom: 2rem;
+      }
+      .guide-box h3 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        border-bottom: none;
+      }
+      .guide-box ul {
+        padding-left: 1.5rem;
+        margin-bottom: 0;
+      }
+      .guide-box li {
+        margin-bottom: 0.5rem;
+      }
+
+      .toc {
+        background-color: var(--table-stripe);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+      }
+      .toc h2 {
+        margin-top: 0;
+        border-bottom: none;
+        font-size: 1.2rem;
+        color: var(--heading-color);
+      }
+      .toc ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-bottom: 0;
+        column-count: 2;
+      }
+      @media (max-width: 600px) {
+        .toc ul { column-count: 1; }
+      }
+      .toc li {
+        margin-bottom: 0.5rem;
+      }
+      .toc a {
+        color: var(--link-color);
+        text-decoration: none;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+    </style>
+
+
+    <h1>英文法用語集 <br><small style="font-size: 1.2rem; color: #666;">(語源・Tips 完全収録版)</small></h1>
+    <p>単語の成り立ち（語源）から文法の意味をひもとく、読んで納得できる用語集です。</p>
+
+    <div class="toc">
+      <h2>目次 (Contents)</h2>
+      <ul>
+        <li><a href="#matrix">🌟 特別マップ：文の要素と品詞の対応表</a></li>
+        <li><a href="#chap1">1. 文のしくみ</a></li>
+        <li><a href="#chap2">2. 動詞と助動詞</a></li>
+        <li><a href="#chap3">3. 名詞と代名詞</a></li>
+        <li><a href="#chap4">4. 冠詞と形容詞と副詞</a></li>
+        <li><a href="#chap5">5. さまざまな文</a></li>
+        <li><a href="#chap6">6. 文型と句</a></li>
+        <li><a href="#chap7">7. 比較表現</a></li>
+        <li><a href="#chap8">8. 受け身表現</a></li>
+        <li><a href="#chap9">9. 現在完了</a></li>
+        <li><a href="#chap10">10-11. 句で表す (不定詞・動名詞・分詞)</a></li>
+        <li><a href="#chap12">12. 前置詞</a></li>
+        <li><a href="#chap13">13. 節で表す(1) 接続詞と疑問詞</a></li>
+        <li><a href="#chap14">14. 節で表す(2) 関係代名詞</a></li>
+        <li><a href="#chap15">15. 仮定法と発展学習</a></li>
+      </ul>
+    </div>
+
+    <!-- 特別マップ -->
+    <h2 id="matrix"><span style="font-size: 1.5rem; margin-right: 0.5rem;">🌟</span> 特別マップ：文の要素と品詞の対応リスト</h2>
+    <p>この表は、<strong>「ある特定の席（エレメント）に、どの材料（品詞）を放り込めるか」</strong>を一覧化したものです。</p>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40%;">エレメント / 文の要素 (Sentence Element)</th>
+            <th style="width: 60%;">活用される品詞 (Parts of Speech)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>S：Subject</strong>（主語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)</td>
+          </tr>
+          <tr>
+            <td><strong>V：Verb</strong>（述語動詞）</td>
+            <td>動詞 (Verb)</td>
+          </tr>
+          <tr>
+            <td><strong>O：Object</strong>（目的語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)</td>
+          </tr>
+          <tr>
+            <td><strong>C：Complement</strong>（補語）</td>
+            <td>名詞・代名詞 (Noun / Pronoun)<br>形容詞 (Adjective)</td>
+          </tr>
+          <tr>
+            <td><strong>M：Modifier</strong>（修飾語）</td>
+            <td>形容詞 (Adjective)<br>副詞 (Adverb)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="guide-box">
+      <h3>このリストの活用ガイド</h3>
+      <ul>
+        <li><strong>骨組み（S / V / O）：</strong> ここには基本的に「名詞」と「動詞」しか入りません。文のメインメッセージを作る、重厚なパーツたちです。</li>
+        <li><strong>説明役（C）：</strong> 「S＝C」や「O＝C」というイコール関係を作る席です。名前（名詞）を置くこともあれば、様子（形容詞）を置くこともあります。</li>
+        <li><strong>飾り（M）：</strong> 文を豊かにする「修飾語」の席です。名詞を詳しくするなら形容詞、それ以外（動きや程度）を詳しくするなら副詞を使い分けます。</li>
+      </ul>
+      <p style="margin-top: 1rem; margin-bottom: 0;">💡 こうして2列に絞ると、「名詞」がいかに多くの席（S, O, C）を兼任しているか、そして<strong>「副詞」がいかに「M」という役割に特化しているか</strong>が際立ちますね。</p>
+    </div>
+
+    <!-- 1章 -->
+    <h2 id="chap1"><span class="chap-num">1</span> 文のしくみ</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>一般動詞</td>
+            <td>
+              <span class="term-en">Action / Ordinary Verb</span>
+            </td>
+            <td>I <strong>play</strong> baseball.</td>
+          </tr>
+          <tr>
+            <td>be動詞</td>
+            <td>
+              <span class="term-en">be Verb</span>
+              <div class="tip-box">💡 「存在する(be)」という意味が根本にあります。</div>
+            </td>
+            <td>He <strong>is</strong> a doctor.</td>
+          </tr>
+          <tr>
+            <td>主語 (S)</td>
+            <td>
+              <span class="term-en">Subject</span>
+              <div class="tip-box">💡 <strong>sub（下に）＋ ject（投げる）</strong><br>文の土台として、一番下にドンと置かれた主題のこと。</div>
+            </td>
+            <td><strong>My mother</strong> is kind.</td>
+          </tr>
+          <tr>
+            <td>目的語 (O)</td>
+            <td>
+              <span class="term-en">Object</span>
+              <div class="tip-box">💡 <strong>ob（向かって）＋ ject（投げる）</strong><br>動詞の動作が「向かって投げられる」対象のマトのこと。</div>
+            </td>
+            <td>I know <strong>him</strong>.</td>
+          </tr>
+          <tr>
+            <td>補語 (C)</td>
+            <td>
+              <span class="term-en">Complement</span>
+              <div class="tip-box">💡 <strong>com（完全に）＋ ple（満たす）</strong><br>S=Cなどの関係を作り、意味が足りない文を「完全に満たす（補う）」役割。</div>
+            </td>
+            <td>She became <strong>a teacher</strong>.</td>
+          </tr>
+          <tr>
+            <td>肯定文</td>
+            <td><span class="term-en">Affirmative Sentence</span></td>
+            <td><strong>I like apples.</strong></td>
+          </tr>
+          <tr>
+            <td>否定文</td>
+            <td>
+              <span class="term-en">Negative Sentence</span>
+              <div class="tip-box">💡 <strong>neg（ない）</strong>が含まれます。ネガティブ（後ろ向きな）と同じ語源です。</div>
+            </td>
+            <td>I <strong>do not</strong> like apples.</td>
+          </tr>
+          <tr>
+            <td>疑問文</td>
+            <td>
+              <span class="term-en">Interrogative Sentence</span>
+              <div class="tip-box">💡 <strong>inter（間に）＋ rogare（尋ねる）</strong><br>相手との間に入って問いかけるイメージ。</div>
+            </td>
+            <td><strong>Do</strong> you like apples<strong>?</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2章 -->
+    <h2 id="chap2"><span class="chap-num">2</span> 動詞と助動詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>過去形</td>
+            <td>
+              <span class="term-en">Past Tense</span>
+              <div class="tip-box">💡 <strong>pass（過ぎ去る）</strong>から派生。</div>
+            </td>
+            <td>I <strong>watched</strong> TV yesterday.</td>
+          </tr>
+          <tr>
+            <td>未来表現</td>
+            <td><span class="term-en">Future Expression</span></td>
+            <td>I <strong>will</strong> call you. / I <strong>am going to</strong> run.</td>
+          </tr>
+          <tr>
+            <td>進行形</td>
+            <td>
+              <span class="term-en">Progressive / Continuous</span>
+              <div class="tip-box">💡 <strong>pro（前へ）＋ gress（進む）</strong><br>まさに今、動作が前に進んでいる最中であることを示します。</div>
+            </td>
+            <td>He <strong>is reading</strong> a book now.</td>
+          </tr>
+          <tr>
+            <td>助動詞</td>
+            <td>
+              <span class="term-en">Auxiliary / Modal Verb</span>
+              <div class="tip-box">💡 <strong>auxiliary（補助の）</strong><br>メインの動詞に「能力(can)」「義務(must)」などの気分(Mode=Modal)を添えて助けます。</div>
+            </td>
+            <td>You <strong>can</strong> swim fast.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3章 -->
+    <h2 id="chap3"><span class="chap-num">3</span> 名詞と代名詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>可算名詞 (数えられる)</td>
+            <td><span class="term-en">Countable Noun</span></td>
+            <td>I have an <strong>apple</strong>.</td>
+          </tr>
+          <tr>
+            <td>不可算名詞 (数えられない)</td>
+            <td>
+              <span class="term-en">Uncountable Noun</span>
+              <div class="tip-box">💡 水や空気など、決まった形がなく「1個、2個」と数えられないもの。</div>
+            </td>
+            <td>I drink <strong>water</strong>.</td>
+          </tr>
+          <tr>
+            <td>複数形</td>
+            <td>
+              <span class="term-en">Plural Form</span>
+              <div class="tip-box">💡 <strong>plus（より多く）</strong>と同じ語源。1つより多いことを表します。</div>
+            </td>
+            <td>I like <strong>dogs</strong>.</td>
+          </tr>
+          <tr>
+            <td>指示代名詞</td>
+            <td>
+              <span class="term-en">Demonstrative Pronoun</span>
+              <div class="tip-box">💡 指をさしてデモンストレーション（明示）する代名詞。</div>
+            </td>
+            <td><strong>This</strong> is my pen.</td>
+          </tr>
+          <tr>
+            <td>所有格</td>
+            <td><span class="term-en">Possessive Case</span></td>
+            <td>This is <strong>my</strong> book.</td>
+          </tr>
+          <tr>
+            <td>所有代名詞</td>
+            <td>
+              <span class="term-en">Possessive Pronoun</span>
+              <div class="tip-box">💡 <strong>pro（〜の代わりに）＋ noun（名詞）</strong><br>my book の代わりに mine と一言で済ませる便利な代役。</div>
+            </td>
+            <td>That car is <strong>hers</strong>.</td>
+          </tr>
+          <tr>
+            <td>不定代名詞</td>
+            <td>
+              <span class="term-en">Indefinite Pronoun</span>
+              <div class="tip-box">💡 特定の「これ！」と定まっていない（in-definite）人やモノを指す言葉です。</div>
+            </td>
+            <td>Do you have <strong>any</strong> questions?</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4章 -->
+    <h2 id="chap4"><span class="chap-num">4</span> 冠詞と形容詞と副詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>不定冠詞 (a/an)</td>
+            <td><span class="term-en">Indefinite Article</span></td>
+            <td>It is <strong>a</strong> cat.</td>
+          </tr>
+          <tr>
+            <td>定冠詞 (the)</td>
+            <td>
+              <span class="term-en">Definite Article</span>
+              <div class="tip-box">💡 <strong>article（小さな関節・部品）</strong><br>話し手と聞き手の間で「あ、アレね」とバッチリ定まっている(definite)名詞にくっつく部品。</div>
+            </td>
+            <td>Look at <strong>the</strong> sky.</td>
+          </tr>
+          <tr>
+            <td>形容詞</td>
+            <td>
+              <span class="term-en">Adjective</span>
+              <div class="tip-box">💡 <strong>ad（〜へ）＋ ject（投げる）</strong><br>名詞のそばに「付け足して投げられた」言葉。名詞を飾ります。</div>
+            </td>
+            <td>It is a <strong>big</strong> tree.</td>
+          </tr>
+          <tr>
+            <td>副詞</td>
+            <td>
+              <span class="term-en">Adverb</span>
+              <div class="tip-box">💡 <strong>ad（〜へ）＋ verb（動詞）</strong><br>主に動詞に向かって意味を付け足す言葉。名詞「以外」を飾ります。</div>
+            </td>
+            <td>He runs <strong>very fast</strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5章 -->
+    <h2 id="chap5"><span class="chap-num">5</span> さまざまな文</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>疑問詞</td>
+            <td><span class="term-en">Interrogative Word</span></td>
+            <td><strong>What</strong> is this?</td>
+          </tr>
+          <tr>
+            <td>存在を表す文</td>
+            <td>
+              <span class="term-en">Existential Sentence</span>
+            </td>
+            <td><strong>There is</strong> a book on the desk.</td>
+          </tr>
+          <tr>
+            <td>命令文</td>
+            <td>
+              <span class="term-en">Imperative Sentence</span>
+              <div class="tip-box">💡 <strong>皇帝（Emperor）</strong>と同じ語源。権力を持って相手に命じる強いニュアンスを含みます。</div>
+            </td>
+            <td><strong>Stand up.</strong> / <strong>Be</strong> quiet.</td>
+          </tr>
+          <tr>
+            <td>感嘆文</td>
+            <td>
+              <span class="term-en">Exclamatory Sentence</span>
+              <div class="tip-box">💡 <strong>ex（外へ）＋ clamare（叫ぶ）</strong><br>感情が思わず外に叫び出てしまった文です。</div>
+            </td>
+            <td><strong>How</strong> beautiful this flower is<strong>!</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6章 -->
+    <h2 id="chap6"><span class="chap-num">6</span> 文型と句</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>補語のある文 (SVC)</td>
+            <td><span class="term-en">SVC Pattern</span></td>
+            <td>She <strong>looks happy</strong>.</td>
+          </tr>
+          <tr>
+            <td>目的語が2つある文 (SVOO)</td>
+            <td><span class="term-en">SVOO Pattern</span></td>
+            <td>He gave <strong>me a ring</strong>.</td>
+          </tr>
+          <tr>
+            <td>目的語に補語がつく文 (SVOC)</td>
+            <td><span class="term-en">SVOC Pattern</span></td>
+            <td>We call <strong>him Ken</strong>.</td>
+          </tr>
+          <tr>
+            <td>句</td>
+            <td>
+              <span class="term-en">Phrase</span>
+              <div class="tip-box">💡 ギリシャ語の「話すこと」が語源。SとVを含まない、2語以上でできた意味のカタマリのことです。</div>
+            </td>
+            <td>The cat <strong>under the table</strong> is cute.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 7章 -->
+    <h2 id="chap7"><span class="chap-num">7</span> 比較表現</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>原級</td>
+            <td><span class="term-en">Positive Degree</span></td>
+            <td>He is <strong>as tall as</strong> you.</td>
+          </tr>
+          <tr>
+            <td>比較級</td>
+            <td>
+              <span class="term-en">Comparative Degree</span>
+              <div class="tip-box">💡 <strong>com（共に）＋ par（等しい）</strong><br>2つのものを横に並べて見比べる（ペアにする）こと。</div>
+            </td>
+            <td>This bag is <strong>bigger than</strong> that one.</td>
+          </tr>
+          <tr>
+            <td>最上級</td>
+            <td>
+              <span class="term-en">Superlative Degree</span>
+              <div class="tip-box">💡 <strong>super（上に）＋ lative（運ばれた）</strong><br>他のみんなよりも一番上に持ち上げられた、最高の状態。</div>
+            </td>
+            <td>Mt. Fuji is <strong>the highest</strong> in Japan.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 8章 -->
+    <h2 id="chap8"><span class="chap-num">8</span> 受け身表現</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>能動態</td>
+            <td>
+              <span class="term-en">Active Voice</span>
+              <div class="tip-box">💡 <strong>act（行動する）</strong><br>主語が自ら積極的に動作を行う形です。</div>
+            </td>
+            <td><strong>Everybody loves</strong> him.</td>
+          </tr>
+          <tr>
+            <td>受動態 (受け身)</td>
+            <td>
+              <span class="term-en">Passive Voice</span>
+              <div class="tip-box">💡 <strong>pass（受ける・耐える）</strong><br>パッション（キリストの受難）と同語源。動作を「受ける」側が主役になります。</div>
+            </td>
+            <td>He <strong>is loved by</strong> everybody.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 9章 -->
+    <h2 id="chap9"><span class="chap-num">9</span> 現在完了</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>完了・結果</td>
+            <td>
+              <span class="term-en">Completion / Result</span>
+              <div class="tip-box">💡 完了形(Perfect)は <strong>per（完全に）＋ fect（なされた）</strong>。過去の出来事が「今」に繋がっているパーフェクトな状態を表します。</div>
+            </td>
+            <td>I <strong>have just finished</strong> my homework.</td>
+          </tr>
+          <tr>
+            <td>経験</td>
+            <td><span class="term-en">Experience</span></td>
+            <td>I <strong>have visited</strong> Kyoto twice.</td>
+          </tr>
+          <tr>
+            <td>継続</td>
+            <td><span class="term-en">Continuation</span></td>
+            <td>I <strong>have lived</strong> here for 10 years.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 10章 & 11章 -->
+    <h2 id="chap10"><span class="chap-num">10-11</span> 句で表す (不定詞・動名詞・分詞)</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>不定詞 (名詞的用法)</td>
+            <td>
+              <span class="term-en">Infinitive (Noun Use)</span>
+              <div class="tip-box">💡 <strong>in（ない）＋ finite（限られた）</strong><br>インフィニティ（無限）と同語源。主語の形（IやHe）に「限定されず」、常に原形で使える動詞のこと。</div>
+            </td>
+            <td>I like <strong>to play</strong> soccer.</td>
+          </tr>
+          <tr>
+            <td>不定詞 (形容詞的用法)</td>
+            <td><span class="term-en">Infinitive (Adjective Use)</span></td>
+            <td>I have a lot of homework <strong>to do</strong>.</td>
+          </tr>
+          <tr>
+            <td>不定詞 (副詞的用法)</td>
+            <td><span class="term-en">Infinitive (Adverb Use)</span></td>
+            <td>I went to the park <strong>to play</strong> soccer.</td>
+          </tr>
+          <tr>
+            <td>動名詞</td>
+            <td>
+              <span class="term-en">Gerund</span>
+              <div class="tip-box">💡 ラテン語の「なされるべきこと」に由来。動詞を無理やり名詞化したものです。</div>
+            </td>
+            <td><strong>Playing</strong> soccer is fun.</td>
+          </tr>
+          <tr>
+            <td>分詞 (現在分詞)</td>
+            <td>
+              <span class="term-en">Present Participle</span>
+              <div class="tip-box">💡 <strong>part（参加する・分け合う）</strong><br>動詞から派生して、形容詞の性質も「分け合っている」言葉です。</div>
+            </td>
+            <td>Look at the <strong>sleeping</strong> baby.</td>
+          </tr>
+          <tr>
+            <td>分詞 (過去分詞)</td>
+            <td><span class="term-en">Past Participle</span></td>
+            <td>This is a <strong>broken</strong> window.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 12章 -->
+    <h2 id="chap12"><span class="chap-num">12</span> 前置詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>前置詞 (場所・時など)</td>
+            <td>
+              <span class="term-en">Preposition</span>
+              <div class="tip-box">💡 <strong>pre（前に）＋ position（置く）</strong><br>その名の通り、名詞の「前」に置かれて、位置関係や時を表す言葉です。</div>
+            </td>
+            <td>I live <strong>in</strong> Tokyo. / See you <strong>on</strong> Sunday.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 13章 -->
+    <h2 id="chap13"><span class="chap-num">13</span> 節で表す(1) 接続詞と疑問詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>等位接続詞</td>
+            <td>
+              <span class="term-en">Coordinating Conjunction</span>
+              <div class="tip-box">💡 <strong>con（共に）＋ junct（結ぶ）</strong><br>ジャンクション（交差点）と同じ語源。andやbutなど対等に結ぶグループ。</div>
+            </td>
+            <td>I am tired <strong>but</strong> happy.</td>
+          </tr>
+          <tr>
+            <td>従属接続詞 (副詞節)</td>
+            <td>
+              <span class="term-en">Subordinating Conjunction</span>
+            </td>
+            <td><strong>When</strong> I was a child, I lived here.</td>
+          </tr>
+          <tr>
+            <td>thatの節 (名詞節)</td>
+            <td>
+              <span class="term-en">That-clause (Noun Clause)</span>
+              <div class="tip-box">💡 <strong>Clause（節）</strong>は「閉じる」が語源。クローゼットと同じで、SとVを含み、ある程度意味が完結(閉じた)カタマリのこと。</div>
+            </td>
+            <td>I think <strong>that</strong> he is right.</td>
+          </tr>
+          <tr>
+            <td>間接疑問</td>
+            <td>
+              <span class="term-en">Indirect Question</span>
+              <div class="tip-box">💡 疑問文が別の文の「一部（目的語など）」として組み込まれた形。</div>
+            </td>
+            <td>I don't know <strong>where he lives</strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 14章 -->
+    <h2 id="chap14"><span class="chap-num">14</span> 節で表す(2) 関係代名詞</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>主格の関係代名詞</td>
+            <td>
+              <span class="term-en">Subjective Relative Pronoun</span>
+              <div class="tip-box">💡 <strong>re（後ろへ）＋ lative（運ぶ）</strong><br>前にある名詞（先行詞）と関係づけて、後ろの説明文へと意味を運んでつなぐ働きをします。</div>
+            </td>
+            <td>I know a boy <strong>who</strong> speaks French.</td>
+          </tr>
+          <tr>
+            <td>目的格の関係代名詞</td>
+            <td><span class="term-en">Objective Relative Pronoun</span></td>
+            <td>This is the book <strong>which</strong> I bought.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 15章 -->
+    <h2 id="chap15"><span class="chap-num">15</span> 仮定法と発展学習</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">日本語名称</th>
+            <th style="width: 42%;">英語名称 / 語源・Tips</th>
+            <th style="width: 40%;">例文 (該当部太字)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>仮定法</td>
+            <td>
+              <span class="term-en">Subjunctive Mood</span>
+              <div class="tip-box">💡 <strong>sub（下に）＋ junct（結ぶ）</strong><br>現実の世界の下に従属している「頭の中の想像・反事実」の世界を結びつける文法です。</div>
+            </td>
+            <td>If I <strong>were</strong> a bird, I <strong>could</strong> fly.</td>
+          </tr>
+          <tr>
+            <td>付加疑問</td>
+            <td><span class="term-en">Tag Question</span></td>
+            <td>You are a student, <strong>aren't you?</strong></td>
+          </tr>
+          <tr>
+            <td>直接話法・間接話法</td>
+            <td><span class="term-en">Direct / Indirect Speech</span></td>
+            <td>He <strong>said to me, "I am tired."</strong></td>
+          </tr>
+          <tr>
+            <td>知覚動詞</td>
+            <td><span class="term-en">Verb of Perception</span></td>
+            <td>I <strong>saw</strong> him <strong>cross</strong> the street.</td>
+          </tr>
+          <tr>
+            <td>使役動詞</td>
+            <td>
+              <span class="term-en">Causative Verb</span>
+              <div class="tip-box">💡 <strong>cause（原因・引き起こす）</strong><br>他人に何かをさせる（引き起こす）動詞。make, have, let など。</div>
+            </td>
+            <td>He <strong>made</strong> me <strong>cry</strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  ` }} 
+    />
+  );
+}

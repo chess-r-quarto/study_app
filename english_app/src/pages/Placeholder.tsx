@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
 import { Settings } from 'lucide-react';
 
 export default function Placeholder({ title }: { title: string }) {

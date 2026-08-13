@@ -1,0 +1,559 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
+
+
+    
+
+    // ==========================================
+    // 1. Default JSON Data
+    // ==========================================
+    const DEFAULT_JSON = `[
+      {
+        "id": "q001",
+        "title": "Q001 - Prepositional Phrase (前置詞句による後置修飾)",
+        "sentence": "The development of a new digital marketing strategy is on the agenda for this afternoon’s meeting.",
+        "translation": "新たなデジタルマーケティング戦略の立案が、今日の午後の会議の議題に上がっている。",
+        "tips": "主語の「development」を、前置詞句「of a new digital marketing strategy」が後ろから修飾しています。「on the agenda...」はbe動詞の直後に置かれ、M（副詞句）として述語動詞にぶら下げる形で処理しています。",
+        "structure": [
+          {
+            "type": "S",
+            "text": "development",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "The", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "a", "p": "Art."}, {"t": "new", "p": "Adj."}, {"t": "digital", "p": "Adj."}, {"t": "marketing", "p": "Noun"}, {"t": "strategy", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "is",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": [
+              {"t": "on", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "agenda", "p": "Noun"}, {"t": "for", "p": "Prep."}, {"t": "this", "p": "Pron."}, {"t": "afternoon’s", "p": "Noun"}, {"t": "meeting.", "p": "Noun"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "q002",
+        "title": "Q002 - Adverb Modification (副詞の修飾)",
+        "sentence": "The Berovo Institute regularly publishes the results of its research in renowned scientific journals.",
+        "translation": "Berovo研究所は、著名な科学誌で定期的に研究結果を公表している。",
+        "tips": "副詞「regularly」が述語動詞「publishes」を前置修飾しています。場所を表す「in renowned scientific journals」は述語動詞への後置修飾として格納しています。",
+        "structure": [
+          {
+            "type": "S",
+            "text": "Institute",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "The", "p": "Art."}, {"t": "Berovo", "p": "Noun"}
+            ],
+            "postM": []
+          },
+          {
+            "type": "V",
+            "text": "publishes",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [
+              {"t": "regularly", "p": "Adv."}
+            ],
+            "postM": [
+              {"t": "in", "p": "Prep."}, {"t": "renowned", "p": "Adj."}, {"t": "scientific", "p": "Adj."}, {"t": "journals.", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "O",
+            "text": "results",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "the", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "its", "p": "Pron."}, {"t": "research", "p": "Noun"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "q003",
+        "title": "Q003 - Infinitive as Complement (補語としての不定詞)",
+        "sentence": "Full-scale development of the lightweight aircraft is set to begin in the spring of next year.",
+        "translation": "その軽量の航空機の全面的な開発は、来春始まりそうだ。",
+        "tips": "「is set to begin」は「is（V） + set（C）」として捉え、「to begin...」は補語「set」を修飾する要素として配置しています。",
+        "structure": [
+          {
+            "type": "S",
+            "text": "development",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "Full-scale", "p": "Adj."}
+            ],
+            "postM": [
+              {"t": "of", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "lightweight", "p": "Adj."}, {"t": "aircraft", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "is",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": []
+          },
+          {
+            "type": "C",
+            "text": "set",
+            "pos": "Past Part.",
+            "label": "Complement",
+            "preM": [],
+            "postM": [
+              {"t": "to", "p": "Inf. to"}, {"t": "begin", "p": "Inf. Verb"}, {"t": "in", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "spring", "p": "Noun"}, {"t": "of", "p": "Prep."}, {"t": "next", "p": "Adj."}, {"t": "year.", "p": "Noun"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "q004",
+        "title": "Q004 - Future Continuous Tense (未来進行形)",
+        "sentence": "A nutritionist from Shaffer University will be discussing her latest research on food additives.",
+        "translation": "Shaffer大学の栄養士が、食品添加物に関する彼女の最新の研究について話す予定だ。",
+        "tips": "「will be discussing」は「discussing」をメインのVとし、「will be」を助動詞的な前置修飾として格納しています。",
+        "structure": [
+          {
+            "type": "S",
+            "text": "nutritionist",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [
+              {"t": "A", "p": "Art."}
+            ],
+            "postM": [
+              {"t": "from", "p": "Prep."}, {"t": "Shaffer", "p": "Noun"}, {"t": "University", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "V",
+            "text": "discussing",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [
+              {"t": "will", "p": "Verb"}, {"t": "be", "p": "Verb"}
+            ],
+            "postM": []
+          },
+          {
+            "type": "O",
+            "text": "research",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "her", "p": "Pron."}, {"t": "latest", "p": "Adj."}
+            ],
+            "postM": [
+              {"t": "on", "p": "Prep."}, {"t": "food", "p": "Noun"}, {"t": "additives.", "p": "Noun"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "q005",
+        "title": "Q005 - Phrase Modification (句による修飾)",
+        "sentence": "Ms. Hopkins shared her observations regarding the company’s overseas operations with the other executive committee members.",
+        "translation": "Hopkinsさんは、会社の海外業務に関する自らの気づきを他の執行役員たちと共有した。",
+        "tips": "前置詞「regarding」以下の句は目的語「observations」を修飾し、「with」以下の句は「shared（誰と共有したか）」を修飾するため述語動詞にぶら下げています。",
+        "structure": [
+          {
+            "type": "S",
+            "text": "Ms. Hopkins",
+            "pos": "Noun",
+            "label": "Subject",
+            "preM": [],
+            "postM": []
+          },
+          {
+            "type": "V",
+            "text": "shared",
+            "pos": "Verb",
+            "label": "Verb",
+            "preM": [],
+            "postM": [
+              {"t": "with", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "other", "p": "Adj."}, {"t": "executive", "p": "Noun"}, {"t": "committee", "p": "Noun"}, {"t": "members.", "p": "Noun"}
+            ]
+          },
+          {
+            "type": "O",
+            "text": "observations",
+            "pos": "Noun",
+            "label": "Object",
+            "preM": [
+              {"t": "her", "p": "Pron."}
+            ],
+            "postM": [
+              {"t": "regarding", "p": "Prep."}, {"t": "the", "p": "Art."}, {"t": "company’s", "p": "Noun"}, {"t": "overseas", "p": "Adj."}, {"t": "operations", "p": "Noun"}
+            ]
+          }
+        ]
+      }
+    ]`;
+
+    // ==========================================
+    // 2. TTS Helper
+    // ==========================================
+    const speakText = (text, isEnabled) => {
+      if (!isEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.85;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // ==========================================
+    // 3. UI Components
+    // ==========================================
+    const MenuScreen = ({ jsonInput, setJsonInput, ttsEnabled, setTtsEnabled, hideModifiersInit, setHideModifiersInit, onParse }) => {
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            JSON.parse(e.target.result as string);
+            setJsonInput(e.target.result as string);
+          } catch (error) {
+            alert("The uploaded file does not contain valid JSON.");
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-start pt-8">
+          <div className="md:col-span-4 flex flex-col gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">SYNTAX PARSER</h1>
+              <p className="text-[#888888] text-sm leading-relaxed">Visualize English syntax cleanly. Import JSON to practice parsing SVOC cores.</p>
+            </div>
+            
+            <div className="bg-[#262421] p-5 rounded border border-[#3c3934]">
+              <h2 className="text-xs font-bold text-[#888888] mb-5 uppercase tracking-widest border-b border-[#3c3934] pb-2">SETTINGS</h2>
+              
+              <label className="flex items-center justify-between cursor-pointer group mb-5">
+                <span className="text-[#bababa] group-hover:text-white transition-colors text-sm font-medium">Text-to-Speech</span>
+                <div className="relative">
+                  <input type="checkbox" className="sr-only" checked={ttsEnabled} onChange={(e) => setTtsEnabled(e.target.checked)} />
+                  <div className={`block w-10 h-5 rounded-full transition-colors ${ttsEnabled ? 'bg-[#629924]' : 'bg-[#161512] border border-[#3c3934]'}`}></div>
+                  <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${ttsEnabled ? 'transform translate-x-5' : ''}`}></div>
+                </div>
+              </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-[#bababa] group-hover:text-white transition-colors text-sm font-medium">Hide Modifiers by Default</span>
+                <div className="relative">
+                  <input type="checkbox" className="sr-only" checked={hideModifiersInit} onChange={(e) => setHideModifiersInit(e.target.checked)} />
+                  <div className={`block w-10 h-5 rounded-full transition-colors ${hideModifiersInit ? 'bg-[#3692e7]' : 'bg-[#161512] border border-[#3c3934]'}`}></div>
+                  <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${hideModifiersInit ? 'transform translate-x-5' : ''}`}></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="md:col-span-8 flex flex-col h-[70vh]">
+            <div className="flex justify-between items-end mb-3">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xs font-bold text-[#888888] uppercase tracking-widest">JSON IMPORT</h2>
+                <label className="cursor-pointer bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide flex items-center gap-2 border border-[#3c3934] transition-colors">
+                  UPLOAD .JSON
+                  <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </div>
+              <button onClick={onParse} className="bg-[#629924] hover:bg-[#7bc42f] text-white px-8 py-2.5 rounded text-sm font-bold uppercase tracking-widest transition-colors shadow-[0_3px_0_0_#49741a] active:translate-y-[3px] active:shadow-none">
+                PARSE DATA
+              </button>
+            </div>
+            <textarea 
+              className="w-full flex-grow bg-[#161512] border border-[#3c3934] p-4 text-[#bababa] font-mono text-sm rounded outline-none focus:border-[#3692e7] resize-none"
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              spellCheck="false"
+            />
+          </div>
+        </div>
+      );
+    };
+
+    const ParserScreen = ({ dataList, currentIndex, setCurrentIndex, ttsEnabled, hideModifiersInit, onBack }) => {
+      const [hideM, setHideM] = useState(hideModifiersInit);
+      const currentData = dataList[currentIndex];
+
+      useEffect(() => {
+        setHideM(hideModifiersInit);
+        if (ttsEnabled && currentData) {
+          speakText(currentData.sentence, ttsEnabled);
+        }
+      }, [currentIndex, currentData, ttsEnabled, hideModifiersInit]);
+
+      const handleToggle = () => {
+        setHideM(!hideM);
+      };
+
+      const handleNext = () => {
+        setCurrentIndex(prev => (prev < dataList.length - 1 ? prev + 1 : 0));
+      };
+
+      const handlePrev = () => {
+        setCurrentIndex(prev => (prev > 0 ? prev - 1 : dataList.length - 1));
+      };
+
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          
+          if (e.key.toLowerCase() === 'm') {
+            setHideM(prev => !prev);
+          } else if (e.key === 'ArrowRight') {
+            handleNext();
+          } else if (e.key === 'ArrowLeft') {
+            handlePrev(); 
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [currentIndex, dataList.length]);
+
+      if (!currentData) return null;
+
+      const getCoreColors = (type) => {
+        switch(type.replace(/[0-9]/g, '')) {
+          case 'S': return { text: 'text-[#db5353]', border: 'border-[#db5353]' };
+          case 'V': return { text: 'text-[#e69138]', border: 'border-[#e69138]' };
+          case 'O': return { text: 'text-[#f1c232]', border: 'border-[#f1c232]' };
+          case 'C': return { text: 'text-[#8e7cc3]', border: 'border-[#8e7cc3]' };
+          default: return { text: 'text-[#888888]', border: 'border-[#504c45]' };
+        }
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-4">
+          
+          {/* Top Control Bar */}
+          <div className="flex justify-between items-center bg-[#262421] p-3 rounded border border-[#3c3934]">
+            <button onClick={onBack} className="bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-4 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 border border-[#3c3934] transition-colors">
+              MENU
+            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={handlePrev} className="bg-[#302e2b] hover:bg-[#3c3934] text-[#bababa] px-5 py-2 rounded font-bold text-xs uppercase tracking-widest transition-colors border border-[#3c3934]">
+                PREV
+              </button>
+              <div className="text-[#888888] font-mono text-sm px-2 text-center min-w-[60px]">
+                {currentIndex + 1} <span className="mx-1 text-[#504c45]">/</span> {dataList.length}
+              </div>
+              <button onClick={handleNext} className="bg-[#3692e7] hover:bg-[#5fb0fc] text-white px-6 py-2 rounded font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-[0_3px_0_0_#1b5c97] active:translate-y-[3px] active:shadow-none">
+                NEXT
+              </button>
+            </div>
+          </div>
+
+          {/* Left-Aligned Vertical Block Viewer */}
+          <div className="bg-[#262421] px-6 py-12 md:px-16 md:py-16 rounded border border-[#3c3934] min-h-[300px] flex flex-col justify-start items-start w-full overflow-x-auto">
+            <div className="flex flex-col gap-12 w-full font-medium tracking-wide">
+              {currentData.structure.map((el, i) => {
+                const colors = getCoreColors(el.type);
+                return (
+                  <div key={`frag-${i}`} className="flex flex-col items-start gap-3 w-full">
+                    
+                    {/* Pre-Modifiers (GREEN, Indented) */}
+                    {el.preM.length > 0 && (
+                      <div className={`flex flex-wrap items-end gap-x-3 gap-y-2 pl-4 md:pl-6 border-l-[3px] transition-colors duration-300 ${hideM ? 'border-[#3c3934]' : 'border-[#7bc42f] border-opacity-40'}`}>
+                        {el.preM.map((m, j) => (
+                          <ruby key={`pre-${i}-${j}`} className="ruby-over">
+                            <span className={`transition-colors duration-300 text-[20px] md:text-[24px] ${hideM ? 'text-[#3c3934]' : 'text-[#7bc42f]'}`}>
+                              {m.t}
+                            </span>
+                            <rt className={`text-[11px] md:text-[13px] font-bold tracking-wider transition-opacity duration-300 ${hideM ? 'opacity-0' : 'text-[#7bc42f] opacity-80'}`}>
+                              {m.p}
+                            </rt>
+                          </ruby>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Core Element (SVOC, Leftmost) */}
+                    <div className="flex flex-wrap items-end my-1">
+                      <ruby className="ruby-under">
+                        <span className={`inline-block font-bold text-[28px] md:text-[36px] leading-normal text-white border-b-[3px] pb-3 mb-1 ${colors.border}`}>
+                          {el.text}
+                        </span>
+                        <rt className={`text-[12px] md:text-[14px] font-black tracking-widest ${colors.text} pt-1`}>
+                          {el.type} <span className="text-[10px] md:text-[12px] text-[#888888] font-normal tracking-normal ml-1.5">{el.pos}</span>
+                        </rt>
+                      </ruby>
+                    </div>
+
+                    {/* Post-Modifiers (BLUE, Indented) */}
+                    {el.postM.length > 0 && (
+                      <div className={`flex flex-wrap items-end gap-x-3 gap-y-2 pl-4 md:pl-6 border-l-[3px] transition-colors duration-300 ${hideM ? 'border-[#3c3934]' : 'border-[#3692e7] border-opacity-40'}`}>
+                        {el.postM.map((m, j) => (
+                          <ruby key={`post-${i}-${j}`} className="ruby-over">
+                            <span className={`transition-colors duration-300 text-[20px] md:text-[24px] ${hideM ? 'text-[#3c3934]' : 'text-[#3692e7]'}`}>
+                              {m.t}
+                            </span>
+                            <rt className={`text-[11px] md:text-[13px] font-bold tracking-wider transition-opacity duration-300 ${hideM ? 'opacity-0' : 'text-[#3692e7] opacity-80'}`}>
+                              {m.p}
+                            </rt>
+                          </ruby>
+                        ))}
+                      </div>
+                    )}
+                    
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Toggle Button */}
+          <div className="flex justify-center my-2">
+            <button 
+              onClick={handleToggle}
+              className={`px-10 py-3 rounded font-bold uppercase tracking-widest transition-all text-xs border ${
+                hideM 
+                ? 'bg-[#302e2b] text-white border-[#504c45] hover:bg-[#3c3934]' 
+                : 'bg-[#161512] text-[#bababa] border-[#3c3934] hover:border-[#629924] hover:text-white'
+              }`}
+            >
+              {hideM ? 'SHOW MODIFIERS (M)' : 'HIDE MODIFIERS (M)'}
+            </button>
+          </div>
+
+          {/* Data Display Area */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            
+            {/* Original Sentence & Translation Panel */}
+            {(currentData.sentence || currentData.translation) && (
+              <div className="bg-[#262421] p-6 rounded border border-[#3c3934] flex flex-col gap-5">
+                {currentData.sentence && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[#888888] text-[10px] font-bold uppercase tracking-widest">
+                        ORIGINAL SENTENCE
+                      </span>
+                      <button 
+                        onClick={() => speakText(currentData.sentence, true)}
+                        className="bg-[#161512] hover:bg-[#302e2b] text-[#bababa] hover:text-white px-3 py-1 rounded text-[9px] font-bold uppercase tracking-widest transition-colors border border-[#3c3934] hover:border-[#629924]"
+                      >
+                        LISTEN
+                      </button>
+                    </div>
+                    <p className="text-white text-base md:text-lg leading-relaxed pl-4 border-l-2 border-[#504c45] italic font-serif">
+                      {currentData.sentence}
+                    </p>
+                  </div>
+                )}
+                
+                {currentData.translation && (
+                  <div>
+                    <span className="text-[#888888] text-[10px] font-bold uppercase tracking-widest mb-3 block">
+                      TRANSLATION
+                    </span>
+                    <p className="text-[#bababa] text-sm md:text-base leading-relaxed pl-4 border-l-2 border-[#504c45]">
+                      {currentData.translation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tips Panel */}
+            {currentData.tips && (
+              <div className="bg-[#262421] p-6 rounded border border-[#3c3934]">
+                <span className="text-[#888888] text-[10px] font-bold uppercase tracking-widest mb-3 block">
+                  PARSING TIPS
+                </span>
+                <p className="text-[#bababa] text-sm md:text-base leading-relaxed pl-4 border-l-2 border-[#504c45]">
+                  {currentData.tips}
+                </p>
+              </div>
+            )}
+            
+          </div>
+
+        </div>
+      );
+    };
+
+    export default function SyntaxParser() {
+      const [screen, setScreen] = useState('menu');
+      const [jsonInput, setJsonInput] = useState(DEFAULT_JSON);
+      const [jsonData, setJsonData] = useState([]);
+      const [ttsEnabled, setTtsEnabled] = useState(false);
+      const [hideModifiersInit, setHideModifiersInit] = useState(true);
+      const [currentIndex, setCurrentIndex] = useState(0);
+
+      const handleParseStart = () => {
+        try {
+          const parsed = JSON.parse(jsonInput);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            alert("Please provide a valid JSON array.");
+            return;
+          }
+          setJsonData(parsed);
+          setCurrentIndex(0);
+          setScreen('parser');
+        } catch (e) {
+          alert("Invalid JSON format.");
+        }
+      };
+
+      const handleBackToMenu = () => {
+        window.speechSynthesis.cancel();
+        setScreen('menu');
+      };
+
+      return (
+        <div className="min-h-screen font-sans px-4 pb-12">
+          <nav className="flex items-center py-4 px-2 mb-4 border-b border-[#262421]">
+            <div className="text-white font-black text-xl tracking-tighter mr-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleBackToMenu}>
+              syntax<span className="text-[#629924]">.parser</span>
+            </div>
+          </nav>
+
+          {screen === 'menu' && (
+            <MenuScreen 
+              jsonInput={jsonInput} 
+              setJsonInput={setJsonInput}
+              ttsEnabled={ttsEnabled}
+              setTtsEnabled={setTtsEnabled}
+              hideModifiersInit={hideModifiersInit}
+              setHideModifiersInit={setHideModifiersInit}
+              onParse={handleParseStart}
+            />
+          )}
+
+          {screen === 'parser' && (
+            <ParserScreen 
+              dataList={jsonData}
+              currentIndex={currentIndex}
+              setCurrentIndex={setCurrentIndex}
+              ttsEnabled={ttsEnabled}
+              hideModifiersInit={hideModifiersInit}
+              onBack={handleBackToMenu}
+            />
+          )}
+        </div>
+      );
+    };
+
+    
+    
+  

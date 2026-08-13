@@ -1,0 +1,372 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
+
+export default function GrammarTrain() {
+  return (
+    <div 
+      className="w-full h-full overflow-auto bg-white text-black"
+      dangerouslySetInnerHTML={{ __html: `<style>
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+      
+      body {
+        font-family: 'Noto Sans JP', sans-serif;
+        background-color: #f8fafc;
+        color: #334155;
+      }
+
+      /* 鉄道の路線図風の線 */
+      .rail-line {
+        position: relative;
+      }
+      .rail-line::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 24px;
+        width: 6px;
+        background-color: #cbd5e1;
+        z-index: 0;
+        border-radius: 3px;
+      }
+      
+      /* 駅（セクション）のマーカー */
+      .station-marker {
+        position: relative;
+        z-index: 1;
+      }
+      
+      /* 列車の箱（CSS図形） */
+      .train-car {
+        background: linear-gradient(to bottom, #f1f5f9 0%, #e2e8f0 100%);
+        border: 2px solid #94a3b8;
+        border-radius: 4px 4px 2px 2px;
+        position: relative;
+      }
+      
+      /* 仮定法用：シミュレーション上の半透明の列車 */
+      .train-car-virtual {
+        background: repeating-linear-gradient(
+          45deg,
+          #f8fafc,
+          #f8fafc 10px,
+          #f1f5f9 10px,
+          #f1f5f9 20px
+        );
+        border: 2px dashed #94a3b8;
+        border-radius: 4px 4px 2px 2px;
+        position: relative;
+        opacity: 0.8;
+      }
+      
+      .train-window {
+        background-color: #38bdf8;
+        border: 1px solid #0284c7;
+        border-radius: 2px;
+      }
+      .train-wheel {
+        width: 12px;
+        height: 12px;
+        background-color: #475569;
+        border-radius: 50%;
+        position: absolute;
+        bottom: -6px;
+      }
+    </style>
+
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+      
+      <!-- ヘッダー部分 -->
+      <header class="bg-slate-800 text-white p-8 text-center border-b-4 border-sky-500">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-3">
+          <span class="text-5xl">🚅</span> 英文法・鉄道運行マップ
+        </h1>
+        <p class="text-slate-300">〜 鉄道路線とダイヤで理解する英語の構造アプローチ 〜</p>
+      </header>
+
+      <!-- メインコンテンツ（路線図風レイアウト） -->
+      <div class="p-6 md:p-10 rail-line space-y-12">
+
+        <!-- 1. 基本文型 -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-sky-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">1</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            基本文型（SVOC） <span class="text-lg font-normal text-slate-500">＝ 新幹線の指定席</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            文章（Sentence）の核となる骨組みは、座席数が厳密に決まった新幹線の指定席。ルールに従って乗客である単語（Word）、句（Phrase）、節（Clause）が座ります。
+          </p>
+          
+          <!-- 指定席の図解 -->
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+            <div class="flex flex-wrap gap-2 justify-center text-center font-mono font-bold">
+              <div class="bg-sky-100 border-2 border-sky-400 p-3 rounded w-32 flex flex-col justify-between">
+                <div class="text-xs text-sky-700 leading-tight mb-2">Subject<br><span class="text-[10px] font-normal">(主語)</span></div>
+                <div class="text-2xl text-sky-800">S</div>
+              </div>
+              <div class="bg-rose-100 border-2 border-rose-400 p-3 rounded w-32 flex flex-col justify-between">
+                <div class="text-xs text-rose-700 leading-tight mb-2">Verb<br><span class="text-[10px] font-normal">(動詞)</span></div>
+                <div class="text-2xl text-rose-800">V</div>
+              </div>
+              <div class="bg-emerald-100 border-2 border-emerald-400 p-3 rounded w-32 flex flex-col justify-between">
+                <div class="text-xs text-emerald-700 leading-tight mb-2">Object<br><span class="text-[10px] font-normal">(目的語)</span></div>
+                <div class="text-2xl text-emerald-800">O</div>
+              </div>
+              <div class="bg-amber-100 border-2 border-amber-400 p-3 rounded w-32 flex flex-col justify-between">
+                <div class="text-xs text-amber-700 leading-tight mb-2">Complement<br><span class="text-[10px] font-normal">(補語)</span></div>
+                <div class="text-2xl text-amber-800">C</div>
+              </div>
+            </div>
+            <p class="text-sm text-center mt-4 text-slate-500 bg-white inline-block px-3 py-1 rounded-full border border-slate-200 shadow-sm mx-auto flex w-fit">
+              ※各席には1語が座ることもあれば、句(Phrase)・節(Clause)が複数席をぶち抜いて座ることも。
+            </p>
+          </div>
+        </div>
+
+        <!-- 2. 修飾語 -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-sky-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">2</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            修飾語（Modifier） <span class="text-lg font-normal text-slate-500">＝ 通路に立つ立ち客</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            修飾語（Modifier: M）は指定席を持たないフリーな乗客。神出鬼没に現れますが、文の要素にはならないため、最悪全員降りても列車は目的地へ走れます。
+          </p>
+          
+          <!-- 立ち客の図解 -->
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center relative overflow-hidden">
+             <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                <div class="text-slate-500 animate-pulse flex flex-col items-center">
+                  <span class="text-xs font-bold mb-1">Modifier</span>
+                  <span>🚶‍♂️ (M)</span>
+                </div>
+                <div class="bg-white border-2 border-slate-300 px-4 py-2 rounded shadow-sm">
+                  <span class="text-xs text-sky-600 font-bold block mb-1">Subject</span>
+                  [S] The train
+                </div>
+                <div class="bg-white border-2 border-slate-300 px-4 py-2 rounded shadow-sm">
+                  <span class="text-xs text-rose-600 font-bold block mb-1">Verb</span>
+                  [V] stopped
+                </div>
+                <div class="text-slate-500 animate-pulse flex flex-col items-center">
+                  <span class="text-xs font-bold mb-1">Modifier</span>
+                  <span>🚶‍♀️ (M)</span>
+                </div>
+             </div>
+             <p class="text-sm mt-4 text-slate-600 font-mono bg-slate-200 p-2 rounded">
+               <span class="text-slate-400">Suddenly [M],</span> the train [S] stopped [V] <span class="text-slate-400">at the platform [M].</span>
+             </p>
+          </div>
+        </div>
+
+        <!-- 3. 連結車両 -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-sky-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">3</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            従属節（Dependent Clauses） <span class="text-lg font-normal text-slate-500">＝ 連結車両</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            that節やwh節など、接続詞（Conjunction）や関係詞（Relative）を使って後ろに「ガチャン！」と新しい車両（節: Clause）を連結します。連結車両の中にも小さな指定席（s, v...）が並んでいます。
+          </p>
+          
+          <!-- 連結車両の図解（CSS） -->
+          <div class="bg-sky-50 p-6 rounded-lg border border-sky-200 overflow-x-auto">
+            <div class="flex items-center min-w-max pb-2">
+              
+              <!-- 先頭車両 (主節) -->
+              <div class="train-car w-32 h-24 flex flex-col items-center justify-center px-2">
+                <div class="text-[10px] text-slate-500 font-bold mt-1">Main Clause</div>
+                <div class="flex gap-2 w-full px-2 mt-1">
+                  <div class="train-window w-8 h-6 flex items-center justify-center text-xs font-bold text-white">S</div>
+                  <div class="train-window w-8 h-6 flex items-center justify-center text-xs font-bold text-white">V</div>
+                </div>
+                <div class="text-xs font-bold mt-2 text-slate-700">I think</div>
+                <div class="train-wheel left-2"></div>
+                <div class="train-wheel right-2"></div>
+              </div>
+              
+              <!-- 連結器 -->
+              <div class="w-12 border-b-4 border-slate-800 flex flex-col justify-center items-center text-[10px] font-bold text-rose-600 pb-1">
+                that<br><span class="text-[8px] font-normal text-slate-500">(Conjunction)</span>
+              </div>
+              
+              <!-- 連結車両 1 (that節) -->
+              <div class="train-car w-44 h-24 flex flex-col items-center justify-center px-2">
+                <div class="text-[10px] text-slate-500 font-bold mt-1">Noun Clause</div>
+                <div class="flex gap-1 w-full px-2 mt-1 justify-center">
+                  <div class="train-window w-6 h-6 flex items-center justify-center text-xs text-white">s</div>
+                  <div class="train-window w-6 h-6 flex items-center justify-center text-xs text-white">v</div>
+                  <div class="train-window w-6 h-6 flex items-center justify-center text-xs text-white">o</div>
+                </div>
+                <div class="text-[10px] font-bold mt-2 text-slate-700 truncate">the passenger lost...</div>
+                <div class="train-wheel left-4"></div>
+                <div class="train-wheel right-4"></div>
+              </div>
+
+               <!-- 連結器 -->
+               <div class="w-12 border-b-4 border-slate-800 flex flex-col justify-center items-center text-[10px] font-bold text-rose-600 pb-1">
+                which<br><span class="text-[8px] font-normal text-slate-500">(Relative)</span>
+              </div>
+
+              <!-- 連結車両 2 (wh節) -->
+              <div class="train-car w-32 h-24 flex flex-col items-center justify-center px-2">
+                <div class="text-[10px] text-slate-500 font-bold mt-1">Adjective Clause</div>
+                <div class="flex gap-2 w-full px-2 mt-1 justify-center">
+                  <div class="train-window w-6 h-6 flex items-center justify-center text-xs text-white">s</div>
+                  <div class="train-window w-6 h-6 flex items-center justify-center text-xs text-white">v</div>
+                </div>
+                <div class="text-[10px] font-bold mt-2 text-slate-700">he bought</div>
+                <div class="train-wheel left-2"></div>
+                <div class="train-wheel right-2"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 時制と相 (NEW) -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-indigo-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">4</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            時制と相（Tense & Aspect） <span class="text-lg font-normal text-slate-500">＝ 運行表と現在地</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            動詞（V）の形は、列車の現在位置や運行状況を知らせるGPSのようなものです。単なる時間（過去・現在・未来）だけでなく、その行動が「完了したか」「進行中か」という状態（相）も示します。
+          </p>
+
+          <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+            <ul class="space-y-4">
+              <li class="flex items-start gap-3">
+                <div class="bg-white p-2 rounded shadow-sm border border-slate-200 text-lg">📍</div>
+                <div>
+                  <strong class="text-indigo-800">現在形（Present Tense）：時刻表に載っている「普遍的な運行」</strong><br>
+                  <span class="text-sm text-slate-600">"The train leaves at 8." (この列車はいつも8時に発車する性質・事実)</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="bg-white p-2 rounded shadow-sm border border-slate-200 text-lg">💨</div>
+                <div>
+                  <strong class="text-indigo-800">進行形（Progressive Aspect）：目の前を通過中の「臨場感」</strong><br>
+                  <span class="text-sm text-slate-600">"The train is leaving." (まさに今、ホームから動き出している最中！)</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="bg-white p-2 rounded shadow-sm border border-slate-200 text-lg">🏁</div>
+                <div>
+                  <strong class="text-indigo-800">完了形（Perfect Aspect）：到着済みの状態を今も「引き継いでいる」</strong><br>
+                  <span class="text-sm text-slate-600">"The train has left." (すでに発車した。だから今、ホームに列車はない状態だ)</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 5. 仮定法 (NEW) -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-purple-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">5</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            仮定法（Subjunctive Mood） <span class="text-lg font-normal text-slate-500">＝ シミュレーションダイヤ</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            現実の線路（直説法）を走っているのではなく、「もしあの路線を走らせたら？」という机上の空論。現実との距離感を出すために、あえて**「時制を過去（一つ前の駅）」**にずらして表現します。
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- 事前検討 -->
+            <div class="bg-purple-50 p-5 rounded border border-purple-200 relative">
+              <h3 class="font-bold text-purple-800 flex items-center gap-2 mb-2">
+                <span class="text-xl">🗺️</span> 事前検討（仮定法過去）
+              </h3>
+              <p class="text-sm text-purple-700 font-medium mb-3">「もし今、特急を走らせたら、間に合うのになぁ…（実際は走っていない）」</p>
+              <div class="bg-white p-4 rounded shadow-sm border border-slate-200 font-mono text-sm relative overflow-hidden h-24 flex flex-col justify-center">
+                <!-- 幽霊列車のCSS -->
+                <div class="train-car-virtual w-20 h-10 absolute right-2 top-2 flex items-center justify-center text-[10px] text-slate-500 font-bold bg-white/50 backdrop-blur-sm">
+                  Virtual
+                </div>
+                <div>If I <strong>had</strong> a rapid train,</div>
+                <div>I <strong>could</strong> arrive on time.</div>
+              </div>
+            </div>
+            <!-- 事後評価 -->
+            <div class="bg-purple-50 p-5 rounded border border-purple-200 relative">
+              <h3 class="font-bold text-purple-800 flex items-center gap-2 mb-2">
+                <span class="text-xl">📊</span> 事後評価（仮定法過去完了）
+              </h3>
+              <p class="text-sm text-purple-700 font-medium mb-3">「あの時、急行に乗っていれば、遅れなかったのに…（実際は乗り遅れた）」</p>
+              <div class="bg-white p-4 rounded shadow-sm border border-slate-200 font-mono text-sm relative overflow-hidden h-24 flex flex-col justify-center">
+                <!-- 幽霊列車のCSS -->
+                <div class="train-car-virtual w-20 h-10 absolute right-2 top-2 flex items-center justify-center text-[10px] text-slate-500 font-bold bg-white/50 backdrop-blur-sm">
+                  Virtual
+                </div>
+                <div>If I <strong>had caught</strong> the express,</div>
+                <div>I <strong>would not have been</strong> late.</div>
+              </div>
+            </div>
+          </div>
+          <p class="text-sm mt-3 text-slate-600 bg-slate-100 p-3 rounded-lg border border-slate-200 inline-block w-full">
+            💡 <strong class="text-purple-600">時制を1つ過去にずらす理由：</strong> 「これは現実の今の話ではなく、シミュレーション（仮想）の列車ですよ」という読者へのアナウンスです。
+          </p>
+        </div>
+
+        <!-- 6. パラグラフと乗り換え -->
+        <div class="relative pl-16">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-emerald-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">6</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            パラグラフ展開（Paragraphs） <span class="text-lg font-normal text-slate-500">＝ 環状線と乗り換え</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            1つの段落（Paragraph）は1つの主題（Topic）を回る環状線（山手線）。段落が変わるときは、別の路線（京浜東北線）へのスムーズな乗り換えです。
+          </p>
+          
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-emerald-50 p-5 rounded border border-emerald-200 text-center flex flex-col justify-center">
+              <div class="text-4xl mb-3">🔁</div>
+              <h3 class="font-bold text-emerald-800 text-lg">Topic & Paragraph</h3>
+              <p class="text-sm text-emerald-700 mt-2 font-medium">One Paragraph, One Topic.</p>
+              <p class="text-xs text-emerald-600 mt-1">軌道を外れず、1つのテーマで1周する山手線ダイヤ。</p>
+            </div>
+            <div class="bg-emerald-50 p-5 rounded border border-emerald-200 text-center flex flex-col justify-center">
+              <div class="text-4xl mb-3">🔀</div>
+              <h3 class="font-bold text-emerald-800 text-lg">Discourse Markers</h3>
+              <p class="text-sm text-emerald-700 mt-2 font-medium">However, Therefore, In addition...</p>
+              <p class="text-xs text-emerald-600 mt-1">論理展開の標識（ディスコースマーカー）が乗り換え案内板。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. 文章の締め -->
+        <div class="relative pl-16 pb-8">
+          <div class="station-marker absolute left-0 top-1 w-14 h-14 bg-slate-800 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xl font-bold">終</div>
+          
+          <h2 class="text-2xl font-bold text-slate-800 mb-3 flex items-center gap-2 flex-wrap">
+            文章の締め（Conclusion） <span class="text-lg font-normal text-slate-500">＝ 車掌の停止確認</span>
+          </h2>
+          <p class="mb-4 leading-relaxed">
+            長旅の終わり。車掌（筆者: Author）が安全な到着を確認し、乗客（読者: Reader）を「納得の結論」という終着駅のホームへ送り出します。
+          </p>
+
+          <div class="bg-slate-800 text-white p-6 rounded-lg text-center mt-6 shadow-inner relative overflow-hidden">
+            <!-- 背景の装飾 -->
+            <div class="absolute -right-4 -bottom-4 text-7xl opacity-10">🚉</div>
+            <div class="text-5xl mb-4">🚉</div>
+            <div class="text-2xl font-bold mb-2 tracking-widest text-sky-300">CONCLUSION</div>
+            <p class="text-slate-300 text-sm mt-4 border-t border-slate-600 pt-4 max-w-sm mx-auto">
+              「よし、すべての車両（パラグラフ）が定刻通り、安全に到着したな。」
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  ` }} 
+    />
+  );
+}

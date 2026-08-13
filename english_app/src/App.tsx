@@ -3,12 +3,25 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import { 
   BookOpen, Brain, BookMarked, MessageSquare, Puzzle, 
   Type, CheckSquare, Hash, Layers, Network, 
-  Pencil, TerminalSquare, Search, Scissors, BookA
+  Pencil, TerminalSquare, Scissors, BookA
 } from 'lucide-react';
 
 import EnglishWord from './pages/EnglishWord';
 import GrammarPuzzle from './pages/GrammarPuzzle';
-import Placeholder from './pages/Placeholder';
+import CountableNouns from './pages/CountableNouns';
+import EnglishCard from './pages/EnglishCard';
+import EnglishQuiz from './pages/EnglishQuiz';
+import Grammar from './pages/Grammar';
+import GrammarHighSchool from './pages/GrammarHighSchool';
+import GrammarStructure from './pages/GrammarStructure';
+import GrammarTerm from './pages/GrammarTerm';
+import GrammarTrain from './pages/GrammarTrain';
+import GrammarVerb from './pages/GrammarVerb';
+import Modifiers from './pages/Modifiers';
+import NoMPuzzle from './pages/NoMPuzzle';
+import NoMSentence from './pages/NoMSentence';
+import SyntaxAsCode from './pages/SyntaxAsCode';
+import SyntaxParser from './pages/SyntaxParser';
 
 function Sidebar() {
   const location = useLocation();
@@ -38,7 +51,7 @@ function Sidebar() {
           <BookOpen size={20} className="text-[#3692e7]" /> ENGLISH HUB
         </h1>
       </div>
-      <nav className="flex-1 overflow-y-auto flex flex-col gap-1 px-3 py-4">
+      <nav className="flex-1 overflow-y-auto flex flex-col gap-1 px-3 py-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
         {links.map((link) => {
           const isActive = location.pathname === link.path;
           const Icon = link.icon;
@@ -71,22 +84,20 @@ function App() {
           <Routes>
             <Route path="/" element={<EnglishWord />} />
             <Route path="/grammar-puzzle" element={<GrammarPuzzle />} />
-            
-            {/* Placeholders */}
-            <Route path="/english-card" element={<Placeholder title="English Card" />} />
-            <Route path="/english-quiz" element={<Placeholder title="English Quiz" />} />
-            <Route path="/grammar" element={<Placeholder title="Grammar Basic" />} />
-            <Route path="/grammar-high-school" element={<Placeholder title="Grammar (High School)" />} />
-            <Route path="/grammar-structure" element={<Placeholder title="Grammar Structure" />} />
-            <Route path="/grammar-term" element={<Placeholder title="Grammar Term" />} />
-            <Route path="/grammar-verb" element={<Placeholder title="Grammar Verb" />} />
-            <Route path="/grammar-train" element={<Placeholder title="Grammar Train" />} />
-            <Route path="/modifiers" element={<Placeholder title="Modifiers" />} />
-            <Route path="/countable-nouns" element={<Placeholder title="Countable Nouns" />} />
-            <Route path="/no-m-sentence" element={<Placeholder title="No M Sentence" />} />
-            <Route path="/no-m-puzzle" element={<Placeholder title="No M Puzzle" />} />
-            <Route path="/syntax-as-code" element={<Placeholder title="Syntax as Code" />} />
-            <Route path="/syntax-parser" element={<Placeholder title="Syntax Parser" />} />
+            <Route path="/english-card" element={<EnglishCard />} />
+            <Route path="/english-quiz" element={<EnglishQuiz />} />
+            <Route path="/grammar" element={<Grammar />} />
+            <Route path="/grammar-high-school" element={<GrammarHighSchool />} />
+            <Route path="/grammar-structure" element={<GrammarStructure />} />
+            <Route path="/grammar-term" element={<GrammarTerm />} />
+            <Route path="/grammar-verb" element={<GrammarVerb />} />
+            <Route path="/grammar-train" element={<GrammarTrain />} />
+            <Route path="/modifiers" element={<Modifiers />} />
+            <Route path="/countable-nouns" element={<CountableNouns />} />
+            <Route path="/no-m-sentence" element={<NoMSentence />} />
+            <Route path="/no-m-puzzle" element={<NoMPuzzle />} />
+            <Route path="/syntax-as-code" element={<SyntaxAsCode />} />
+            <Route path="/syntax-parser" element={<SyntaxParser />} />
           </Routes>
         </main>
       </div>

@@ -1,0 +1,924 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as lucide from 'lucide-react';
+
+export default function SyntaxAsCode() {
+  return (
+    <div 
+      className="w-full h-full overflow-auto bg-white text-black"
+      dangerouslySetInnerHTML={{ __html: `<style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #212529;
+      --heading-color: #1a1a1a;
+      --sidebar-bg: #f8f9fa;
+      --sidebar-border: #e9ecef;
+      --link-color: #0d6efd;
+      --code-bg: #f8f9fa;
+      --code-border: #dee2e6;
+      --python-color: #3572A5;
+      --r-color: #198CE7;
+      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+      --font-heading: Georgia, "Times New Roman", Times, serif;
+      --font-code: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      color: var(--text-color);
+      line-height: 1.6;
+      display: flex;
+      background-color: var(--bg-color);
+    }
+
+    /* Sidebar Navigation */
+    nav {
+      width: 250px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      padding: 2rem 1rem;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    nav h3 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      color: #6c757d;
+      margin-bottom: 1rem;
+      font-family: var(--font-main);
+    }
+
+    nav ul {
+      list-style: none;
+    }
+
+    nav ul li {
+      margin-bottom: 0.5rem;
+    }
+
+    nav ul li a {
+      text-decoration: none;
+      color: var(--text-color);
+      font-size: 0.95rem;
+      display: block;
+      padding: 0.2rem 0;
+      transition: color 0.2s;
+    }
+
+    nav ul li a:hover {
+      color: var(--link-color);
+    }
+
+    /* Main Content */
+    main {
+      flex-grow: 1;
+      padding: 3rem 4rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font-heading);
+      color: var(--heading-color);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 1px solid var(--sidebar-border);
+      padding-bottom: 1rem;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      border-bottom: 1px solid var(--sidebar-border);
+      padding-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      margin-bottom: 1rem;
+      padding-left: 2rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .abstract {
+      background-color: var(--sidebar-bg);
+      border-left: 4px solid var(--link-color);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      font-style: italic;
+    }
+
+    /* Definition List styling */
+    dt {
+      font-weight: bold;
+      color: var(--heading-color);
+      margin-top: 1rem;
+      font-size: 1.1rem;
+    }
+
+    dd {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .etymology {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-bottom: 0.2rem;
+    }
+
+    /* Code Comparison Layout */
+    .code-comparison {
+      display: flex;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .code-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .code-block {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 4px;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .code-header {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .code-header.python { background-color: var(--python-color); }
+    .code-header.r { background-color: var(--r-color); }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    code {
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+      color: #24292e;
+    }
+
+    p code, li code {
+      background-color: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+      color: #d63384;
+    }
+
+    .example-box {
+      background-color: #fdfdfe;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #10b981;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .example-box strong { color: #047857; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+
+    th, td {
+      border: 1px solid var(--code-border);
+      padding: 0.75rem;
+      text-align: left;
+    }
+
+    th { background-color: var(--sidebar-bg); }
+
+    /* 12 Tenses Grid Styling */
+    .matrix-table th {
+      text-align: center;
+      background-color: var(--sidebar-bg);
+    }
+    
+    .matrix-table td {
+      text-align: center;
+      font-family: var(--font-code);
+      font-size: 0.9rem;
+      background-color: #ffffff;
+    }
+
+    .graph-container {
+      background: #ffffff;
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      overflow-x: auto;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .tense-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .tense-card {
+      background-color: var(--bg-color);
+      border: 1px solid var(--code-border);
+      border-radius: 6px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tense-card h4 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      color: var(--python-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .geom-icon {
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+
+    .tense-card .example {
+      font-weight: bold;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px dashed var(--code-border);
+      color: var(--heading-color);
+    }
+
+    .tense-card p {
+      font-size: 0.9rem;
+      color: #495057;
+      margin-bottom: 1rem;
+      flex-grow: 1;
+    }
+
+    .tense-card pre {
+      background-color: #24292e;
+      color: #f8f8f2;
+      padding: 1rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    .tense-card pre code {
+      color: inherit;
+      background: none;
+      padding: 0;
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      nav { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--sidebar-border); }
+      main { padding: 2rem 1.5rem; }
+      .code-comparison { flex-direction: column; }
+      .tense-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
+
+  <nav>
+    <h3>Contents</h3>
+    <ul>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#variables">1. 変数と型の定義</a></li>
+      <li><a href="#signatures">2. 関数シグネチャ (5文型)</a></li>
+      <li><a href="#runtime">3. ランタイム実行 (Stockfish Engine)</a></li>
+      <li><a href="#routing">4. 引数設計 (SVOO)</a></li>
+      <li><a href="#debugging">5. 実践的デバッグ (Modifier)</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <h1 id="intro">English Syntax as Code (v2.0)</h1>
+    
+    <div class="abstract">
+      <p><strong>自然言語を「プログラミングコード」として解釈する構文仕様書</strong></p>
+      <p>本ドキュメントは、英語の構文を曖昧な自然言語としてではなく、厳密な型定義と関数シグネチャを持つ「コード」として解釈するための公式リファレンスである。「5文型」という伝統的な分類を、ソフトウェアエンジニアリングの視点（型の制約、メモリ操作、実行スレッド）から再構築した。</p>
+    </div>
+
+    <h2 id="variables">1. 引数（変数）の定義と語源</h2>
+    <p>英語を構成する各要素は、プログラムにおける変数、インスタンス、メソッド、アノテーションとして厳密に型定義される。</p>
+
+    <dl>
+      <dt>Subject (S) / 主語</dt>
+      <dd>
+        <div class="etymology">語源：sub（下に） + iacere（投げる） ＝ 下に置かれた土台</div>
+        <strong>[プログラミング定義]</strong> 処理の実行主体となる <code>Instance</code> または <code>Object</code>。メソッドを呼び出す大元（レシーバー）。
+      </dd>
+
+      <dt>Verb (V) / 動詞</dt>
+      <dd>
+        <div class="etymology">語源：verbum（言葉そのもの）</div>
+        <strong>[プログラミング定義]</strong> 主体が実行する <code>Method</code> や関数。文の処理内容（振る舞い）を決定する。状態を更新する代入演算子（<code>=</code>, <code>&lt;-</code>）の役割を果たすこともある。
+      </dd>
+
+      <dt>Object (O) / 目的語</dt>
+      <dd>
+        <div class="etymology">語源：ob（向かって） + iacere（投げる） ＝ 動作の標的</div>
+        <strong>[プログラミング定義]</strong> メソッド（Verb）に渡される必須の <code>Argument</code>（引数）。<code>null</code>（欠損値）を許容しない。
+      </dd>
+
+      <dt>Complement (C) / 補語</dt>
+      <dd>
+        <div class="etymology">語源：complere（満たす、補完する）</div>
+        <strong>[プログラミング定義]</strong> Subject または Object のプロパティに代入される <code>State</code> や <code>Value</code>。型は文字列（名詞）または論理値・列挙型（形容詞）。
+      </dd>
+
+      <dt>Modifier (M) / 修飾語</dt>
+      <dd>
+        <div class="etymology">語源：modificare（制限する、調整する）</div>
+        <strong>[プログラミング定義]</strong> 実行結果のメインロジックに影響を与えない <code>Annotation</code> またはコード内の <code>/* Comment */</code>。型のインターフェース（前置詞＋名詞など）さえ守れば、どこに挿入してもコンパイルエラーにならない。
+      </dd>
+    </dl>
+
+    <h3 id="type-constraints" style="margin-top: 2.5rem; font-size: 1.35rem;">【補足】エレメントと品詞の対応マトリックス</h3>
+    <p>この表は、<strong>「ある特定の席（エレメント）に、どの材料（品詞）を放り込めるか」</strong>というプログラミングにおける型制約（Type Constraint）を一覧化したものである。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45%; text-align: left;">エレメント / 文の要素 (Sentence Element)</th>
+          <th style="text-align: left;">活用される品詞 (Parts of Speech)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S：Subject（主語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)</td>
+        </tr>
+        <tr>
+          <td><strong>V：Verb（述語動詞）</strong></td>
+          <td>動詞 (Verb)</td>
+        </tr>
+        <tr>
+          <td><strong>O：Object（目的語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)</td>
+        </tr>
+        <tr>
+          <td><strong>C：Complement（補語）</strong></td>
+          <td>名詞・代名詞 (Noun / Pronoun)<br>形容詞 (Adjective)</td>
+        </tr>
+        <tr>
+          <td><strong>M：Modifier（修飾語）</strong></td>
+          <td>形容詞 (Adjective)<br>副詞 (Adverb)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="example-box">
+      <strong>このリストの活用ガイド</strong><br><br>
+      <ul style="margin-bottom: 1rem;">
+        <li><strong>骨組み（S / V / O）：</strong> ここには基本的に<strong>「名詞」と「動詞」</strong>しか入らない。文のメインメッセージを作る、重厚なパーツ（必須の引数）である。</li>
+        <li><strong>説明役（C）：</strong> 「S＝C」や「O＝C」というイコール関係を作る席。名前（名詞）を置くこともあれば、様子（形容詞）を置くこともある。</li>
+        <li><strong>飾り（M）：</strong> 文を豊かにする「修飾語」の席。名詞を詳しくするなら形容詞、それ以外（動きや程度）を詳しくするなら副詞を使い分ける。</li>
+      </ul>
+      <p style="margin-bottom: 0;">こうして2列に絞ると、「名詞」がいかに多くの席（S, O, C）を兼任しているか、そして<strong>「副詞」がいかに「M」という役割に特化しているか</strong>が際立つ。</p>
+    </div>
+
+    <h2 id="signatures">2. 関数シグネチャ（5つの基本構文）</h2>
+    <p>いわゆる「5文型」は、メソッドの引数の渡し方とメモリ操作のパターン（関数シグネチャ）に過ぎない。Pythonのオブジェクト指向と、Rの関数型アプローチの両面から定義する。</p>
+
+    <h3>パターン1：自己完結メソッド (SV)</h3>
+    <p>外部引数を必要としない、主体のみで完結するVoid型メソッド。副作用（Side Effect）はSubject内部に限定される。</p>
+    
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python (OOP)</span></div>
+          <pre><code># Syntax: Subject.execute_verb()
+def process(sun):
+  sun.rise()</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R (Functional)</span></div>
+          <pre><code># Syntax: execute_verb(Subject)
+process &lt;- function(sun) {
+  rise(sun)
+}</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="example-box">
+      <strong>EXAMPLE:</strong> The sun rises. (太陽が昇る)<br>
+      -&gt; 外部へエネルギー（引数）が漏れず、自己完結する。
+    </div>
+
+    <h3>パターン2：プロパティの代入 (SVC)</h3>
+    <p>Verbが単なるセッター（代入演算子）として機能し、Subjectの属性（Property）を同期的に更新する。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python</span></div>
+          <pre><code># Syntax: Subject.state = Complement
+soup.state = "hot"</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R</span></div>
+          <pre><code># Syntax: Subject$state &lt;- Complement
+soup$state &lt;- "hot"</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="example-box">
+      <strong>EXAMPLE:</strong> The soup is hot. (そのスープは熱い)<br>
+      -&gt; <code>The soup = hot</code> の関係。Verbは繋ぐだけの連結動詞。
+    </div>
+
+    <h3>パターン3：引数実行メソッド (SVO)</h3>
+    <p>外部の引数（Object）を受け取り、それに対して処理を実行する単一引数関数。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python</span></div>
+          <pre><code># Syntax: Subject.execute_verb(Object)
+i.read(book)</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R</span></div>
+          <pre><code># Syntax: execute_verb(Subject, Object)
+read(subject = i, object = book)</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="example-box">
+      <strong>EXAMPLE:</strong> I read a book. (私は本を読む)<br>
+      -&gt; <code>I</code> が <code>book</code> に対して <code>read</code> を実行。
+    </div>
+
+    <h3>パターン4：複数引数のルーティング (SVOO)</h3>
+    <p>IndirectObject（宛先）と DirectObject（ペイロード）の2つの引数を転送する。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python</span></div>
+          <pre><code># Syntax: Subject.execute_verb(target, payload)
+he.give(target=me, payload=pen)</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R</span></div>
+          <pre><code># Syntax: execute_verb(Subj, target, payload)
+give(he, target = me, payload = pen)</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="example-box">
+      <strong>EXAMPLE:</strong> He gave me a pen. (彼は私にペンをくれた)<br>
+      -&gt; 宛先 <code>me</code> に 実データ <code>a pen</code> を転送。
+    </div>
+
+    <h3>パターン5：オブジェクト状態の書き換え (SVOC)</h3>
+    <p>高階関数/副作用の極致。Subjectが処理を実行した副作用として、文の中に「小さな代入式（O=C）」がスレッドとして発生する。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python</span></div>
+          <pre><code># Nested Logic (Side Effect)
+they.make(him)
+him.state = "happy" # 同期的な状態変化</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R</span></div>
+          <pre><code># Mutable state simulation
+him &lt;- make(they, target = him)
+attr(him, "state") &lt;- "happy"</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="example-box">
+      <strong>EXAMPLE:</strong> They made him happy. (彼らは彼を幸せにした)<br>
+      -&gt; <code>make</code> 処理の結果、<code>him = happy</code> という状態が動的に生成される。
+    </div>
+
+    <h2 id="runtime">3. ランタイム実行：Stockfish Engine の状態空間（12の時制と相）</h2>
+    <p>英語の時制（Tense）と相（Aspect）は、チェスエンジン（Stockfish）のGUI画面（コンソール）における **「評価値の表示状態」** のメタファーとして直感的に理解できる。</p>
+    <ul>
+      <li><strong>Past (過去)</strong>: PGNに書き出された過去ログ。画面にはもう表示されていない（<span style="color: #94a3b8; font-weight:bold;">グレーアウト</span>）。</li>
+      <li><strong>Present (現在)</strong>: 今まさに計算中で、画面にアクティブに表示されている（<span style="color: #ef4444; font-weight:bold;">実色</span>）。</li>
+      <li><strong>Future (未来)</strong>: キューに積まれたタスク。これから画面に表示される予定のもの（<span style="border-bottom: 2px dashed #6366f1; color: #6366f1; font-weight:bold;">点線枠</span>）。</li>
+    </ul>
+
+    <!-- 12時制 すべてをプロットしたインフォグラフィック -->
+    <div class="graph-container">
+      <h4 style="margin-top: 0; text-align: center; color: #495057; font-family: var(--font-heading);">Engine State Plot: All 12 Tenses Visualized</h4>
+      <svg viewBox="0 0 900 420" style="width: 100%; min-width: 700px; height: auto; font-family: var(--font-main);">
+        <defs>
+          <!-- 背景ゾーン用グラデーション -->
+          <linearGradient id="gradPast" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f8fafc" stop-opacity="1" />
+            <stop offset="100%" stop-color="#f1f5f9" stop-opacity="1" />
+          </linearGradient>
+          <linearGradient id="gradFuture" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f1f5f9" stop-opacity="1" />
+            <stop offset="100%" stop-color="#f8fafc" stop-opacity="1" />
+          </linearGradient>
+          
+          <!-- Accumulate (Volume) 用グラデーション -->
+          <linearGradient id="volPresent" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.05" />
+          </linearGradient>
+          
+          <!-- 矢印マーカー -->
+          <marker id="arrowPast" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+          </marker>
+          <marker id="arrowPresent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+          </marker>
+          <marker id="arrowFuture" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="none" stroke="#f59e0b" stroke-width="2" />
+          </marker>
+        </defs>
+
+        <!-- === 背景ゾーン (Time) === -->
+        <rect x="0" y="0" width="300" height="380" fill="url(#gradPast)" />
+        <rect x="300" y="0" width="300" height="380" fill="#ffffff" />
+        <rect x="600" y="0" width="300" height="380" fill="url(#gradFuture)" />
+
+        <!-- 境界線 -->
+        <line x1="300" y1="0" x2="300" y2="380" stroke="#cbd5e1" stroke-dasharray="4,4" stroke-width="2" />
+        <line x1="600" y1="0" x2="600" y2="380" stroke="#cbd5e1" stroke-dasharray="4,4" stroke-width="2" />
+
+        <!-- X-Axis -->
+        <line x1="0" y1="360" x2="900" y2="360" stroke="#64748b" stroke-width="2" />
+
+        <!-- X-Axis Labels (Tense) -->
+        <text x="150" y="390" text-anchor="middle" font-weight="bold" fill="#64748b" font-size="14">PAST (PGN History)</text>
+        <text x="450" y="390" text-anchor="middle" font-weight="bold" fill="#2563eb" font-size="16">PRESENT (Root Node)</text>
+        <text x="750" y="390" text-anchor="middle" font-weight="bold" fill="#64748b" font-size="14">FUTURE (Task Queue)</text>
+        
+        <!-- Y-Axis Label -->
+        <text x="15" y="25" font-weight="bold" fill="#94a3b8" font-size="12">Evaluation Depth (Effort)</text>
+
+
+        <!-- === 1. Perfect Progressive (Volume / Accumulate) === -->
+        <!-- 時間経過とともに深さが増していく背景の面グラフ -->
+        <!-- Past (グレーアウト) -->
+        <path d="M 0 360 L 0 310 Q 150 280 300 240 L 300 360 Z" fill="#e2e8f0" />
+        <text x="150" y="340" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I had been calculating (Vol)</text>
+        
+        <!-- Present (青グラデ) -->
+        <path d="M 300 360 L 300 240 Q 450 180 600 120 L 600 360 Z" fill="url(#volPresent)" />
+        <path d="M 300 240 Q 450 180 600 120" fill="none" stroke="#6366f1" stroke-width="2" />
+        <text x="450" y="320" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">I have been calculating (Vol)</text>
+        
+        <!-- Future (点線枠・透過) -->
+        <path d="M 600 360 L 600 120 Q 750 60 900 40 L 900 360" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="4,4" />
+        <text x="750" y="280" text-anchor="middle" font-size="11" font-weight="bold" fill="#6366f1">I will have been calculating (Vol)</text>
+
+
+        <!-- === 2. Perfect (Area / TT Cached) === -->
+        <!-- Past (グレーアウトの面) -->
+        <rect x="100" y="210" width="100" height="30" rx="4" fill="#cbd5e1" fill-opacity="0.6" stroke="#94a3b8" />
+        <text x="150" y="230" text-anchor="middle" font-size="11" font-weight="bold" fill="#475569">I had solved (Area)</text>
+
+        <!-- Present (緑の実色面) -->
+        <rect x="400" y="150" width="100" height="30" rx="4" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="2" />
+        <text x="450" y="170" text-anchor="middle" font-size="12" font-weight="bold" fill="#047857">I have solved (Area)</text>
+
+        <!-- Future (緑の点線枠) -->
+        <rect x="700" y="90" width="100" height="30" rx="4" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4" />
+        <text x="750" y="110" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">I will have solved (Area)</text>
+
+
+        <!-- === 3. Progressive (Vector / Searching) === -->
+        <!-- Past (グレーの波線) -->
+        <path d="M 100 160 Q 150 130 190 160" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowPast)" />
+        <text x="150" y="145" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I was searching (Vector)</text>
+
+        <!-- Present (オレンジの実線) -->
+        <path d="M 400 100 Q 450 60 490 100" fill="none" stroke="#f59e0b" stroke-width="3" marker-end="url(#arrowPresent)" />
+        <text x="450" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#d97706">I am searching (Vector)</text>
+
+        <!-- Future (オレンジの点線波線) -->
+        <path d="M 700 40 Q 750 10 790 40" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrowFuture)" />
+        <text x="750" y="25" text-anchor="middle" font-size="11" font-weight="bold" fill="#f59e0b">I will be searching (Vector)</text>
+
+
+        <!-- === 4. Simple (Point / Static Eval) === -->
+        <!-- Past (グレーアウトの点) -->
+        <circle cx="150" cy="100" r="5" fill="#94a3b8" />
+        <text x="150" y="118" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">I evaluated (Point)</text>
+
+        <!-- Present (赤の実色の点) -->
+        <circle cx="450" cy="40" r="6" fill="#ef4444" />
+        <text x="450" y="60" text-anchor="middle" font-size="12" font-weight="bold" fill="#ef4444">I evaluate (Point)</text>
+
+        <!-- Future (赤の中抜き点線円) -->
+        <circle cx="750" cy="-20" r="6" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2" transform="translate(0, 100)" />
+        <text x="750" y="100" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">I will evaluate (Point)</text>
+
+      </svg>
+    </div>
+
+    <!-- 表のマトリクス -->
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>計算状態 <br><small>(Aspect)</small> \ 探索木ノード位置 <br><small>(Tense)</small></th>
+          <th>Past <br><small>(グレーアウト / PGN)</small></th>
+          <th>Present <br><small>(実色 / GUI表示中)</small></th>
+          <th>Future <br><small>(点線枠 / キュー予測)</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Simple<br><small>(点: Static Eval)</small></th>
+          <td style="color: #64748b;">I evaluated</td>
+          <td style="color: #ef4444; font-weight: bold;">I evaluate</td>
+          <td style="color: #ef4444; border: 1px dashed #ef4444; background: #fff5f5;">I will evaluate</td>
+        </tr>
+        <tr>
+          <th>Progressive<br><small>(線: Searching Vector)</small></th>
+          <td style="color: #64748b;">I was searching</td>
+          <td style="color: #d97706; font-weight: bold;">I am searching</td>
+          <td style="color: #d97706; border: 1px dashed #d97706; background: #fffbeb;">I will be searching</td>
+        </tr>
+        <tr>
+          <th>Perfect<br><small>(面: TT Cached Area)</small></th>
+          <td style="color: #64748b;">I had solved</td>
+          <td style="color: #047857; font-weight: bold;">I have solved</td>
+          <td style="color: #047857; border: 1px dashed #047857; background: #f0fdf4;">I will have solved</td>
+        </tr>
+        <tr>
+          <th>Perfect Progressive<br><small>(体積: Depth Accumulate)</small></th>
+          <td style="color: #64748b;">I had been calculating</td>
+          <td style="color: #4338ca; font-weight: bold;">I have been calculating</td>
+          <td style="color: #4338ca; border: 1px dashed #4338ca; background: #eef2ff;">I will have been calculating</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--sidebar-border);">
+
+    <!-- Present Tense Group -->
+    <h3>1. Present (Root Node / 現在の盤面)</h3>
+    <p>今まさにGUI画面にアクティブに表示されている実色の評価値。</p>
+    <div class="tense-grid">
+      <div class="tense-card">
+        <h4><span class="geom-icon">🔴</span> Present Simple (現在単純形)</h4>
+        <div class="example">The engine evaluates the position.</div>
+        <p><strong>【状態: Point / 点】</strong><br>静的評価（Static Evaluation）。時間幅を持たず、特定のノードにおける瞬間的なスナップショット値（スコア）。</p>
+        <pre><code>// 0次元的な静的評価値
+const score = evaluate(current_pos);</code></pre>
+      </div>
+      <div class="tense-card">
+        <h4><span class="geom-icon">↗️</span> Present Progressive (現在進行形)</h4>
+        <div class="example">The engine is searching the lines.</div>
+        <p><strong>【状態: Vector / ベクトル・波】</strong><br>現在進行形でCPUリソースを消費し、探索を実行中。状態が動的に遷移しているベクトル。</p>
+        <pre><code>// 1次元的なリソースの流動
+while (time_allocated > 0) {
+  search_tree(current_pos);
+  yield; // 計算を継続
+}</code></pre>
+      </div>
+      <div class="tense-card">
+        <h4><span class="geom-icon">🟩</span> Present Perfect (現在完了形)</h4>
+        <div class="example">The engine has cached the position.</div>
+        <p><strong>【状態: Area / 面・領域】</strong><br>過去の探索結果がTT（Transposition Table）に保存され、現在のノード評価を「面」としてカバーしている完了状態。</p>
+        <pre><code>// 2次元的なカバー範囲（キャッシュ）
+if (TT.contains(hash)) {
+  return TT.get(hash).score;
+}</code></pre>
+      </div>
+      <div class="tense-card">
+        <h4><span class="geom-icon">🟦</span> Present Perf. Prog. (現在完了進行形)</h4>
+        <div class="example">The engine has been calculating depth 40.</div>
+        <p><strong>【状態: Volume / 体積・蓄積】</strong><br>過去から継続して同一局面の探索を行っており、到達深度（Depth）やノード数が蓄積されている状態。</p>
+        <pre><code>// 3次元的な計算量の積み上げ
+while (engine.uptime() > 0) {
+  depth.accumulate();
+  update_stats(depth);
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Past Tense Group -->
+    <h3>2. Past (Game History / 過去のPGN履歴)</h3>
+    <p>すでにPGN等にログとして保存され、現在のGUI画面からは消えたグレーアウト状態。</p>
+    <div class="tense-grid">
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">⚪</span> Past Simple (過去単純形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine played e4.</div>
+        <p><strong>【状態: Past Point】</strong><br>履歴に書き込まれた単なる点（Ply）。現在の探索スレッドには影響を与えない完了したトランザクション。</p>
+        <pre><code>// 履歴への固定化
+game_history.push({
+  move: "e2e4",
+  time: "yesterday"
+});</code></pre>
+      </div>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">〰️</span> Past Progressive (過去進行形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine was analyzing the blunder.</div>
+        <p><strong>【状態: Past Vector】</strong><br>過去の特定の時間枠において、エンジンがリソースを割いて探索を行っていたという状態ログ。</p>
+        <pre><code>// 過去の特定時点での状態トレース
+let log = logs.get("move_15");
+assert(log.status === "searching");</code></pre>
+      </div>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">🔲</span> Past Perfect (過去完了形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine had already found a mate.</div>
+        <p><strong>【状態: Past Area】</strong><br>過去の特定時点を基準とした時、それより以前の探索によって既に結論の面が構築され、準備されていた状態。</p>
+        <pre><code>// 過去のある時点でのキャッシュヒット
+let snapshot = db.get("ply_20");
+assert(snapshot.mate_found === true);</code></pre>
+      </div>
+      <div class="tense-card" style="opacity: 0.8; background-color: #f8fafc;">
+        <h4 style="color: #64748b;"><span class="geom-icon">📦</span> Past Perf. Prog. (過去完了進行形)</h4>
+        <div class="example" style="color: #475569; border-bottom-color: #cbd5e1;">The engine had been pondering the move.</div>
+        <p><strong>【状態: Past Volume】</strong><br>過去のある時点までずっと計算量を蓄積し続けていたという計算資源の塊の記録。</p>
+        <pre><code>// 過去の蓄積エネルギー量
+let stats = db.get("opponent_turn");
+assert(stats.nodes > 1_000_000);</code></pre>
+      </div>
+    </div>
+
+    <!-- Future Tense Group -->
+    <h3>3. Future (Future Nodes / 探索木の未来展開)</h3>
+    <p>これから計算され、未来のタイミングでGUI画面に表示される予定の点線枠（予測）。</p>
+    <div class="tense-grid">
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">⭕</span> Future Simple (未来単純形)</h4>
+        <div class="example">The engine will evaluate this branch.</div>
+        <p><strong>【状態: Future Point】</strong><br>探索キューに積まれたタスク（Promise）。将来、到達した瞬間に静的評価（点）が行われる予定。</p>
+        <pre><code>// タスクキューへの追加
+task_queue.push(node);
+// or
+Promise.resolve(evaluate(node));</code></pre>
+      </div>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">〽️</span> Future Progressive (未来進行形)</h4>
+        <div class="example">The engine will be searching the endgame.</div>
+        <p><strong>【状態: Future Vector】</strong><br>探索が特定の手順まで進んだ未来時点で、そこで探索スレッドがアクティブになっているだろうという予測。</p>
+        <pre><code>// 未来のフェーズ移行予測
+let phase = estimate(depth + 10);
+expect(phase).toBe("endgame_search");</code></pre>
+      </div>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">🏁</span> Future Perfect (未来完了形)</h4>
+        <div class="example">The engine will have solved the puzzle.</div>
+        <p><strong>【状態: Future Area】</strong><br>未来の特定時点において、必要な評価空間が完全にカバー（完了・面化）し終わっているという状態の確約。</p>
+        <pre><code>// 未来の完了条件の充足
+await search_until(depth == 30);
+state.is_solved = true;</code></pre>
+      </div>
+      <div class="tense-card" style="border: 2px dashed #cbd5e1;">
+        <h4 style="color: #64748b;"><span class="geom-icon">📶</span> Future Perf. Prog. (未来完了進行形)</h4>
+        <div class="example">The engine will have been running for hours.</div>
+        <p><strong>【状態: Future Volume】</strong><br>未来の特定時点において、累積したノード数が巨大な体積となり、依然として増え続けている状態予測。</p>
+        <pre><code>// 未来時点での累積リソース予測
+let time = target_time - start_time;
+assert(time > hours(5));</code></pre>
+      </div>
+    </div>
+
+    <h2 id="routing">4. SVOOの引数設計：ターゲットとペイロード</h2>
+    <p>パターン4（SVOO）において、2つの引数（Object）は等価ではない。「宛先情報」と「実データ」という役割の違いがある。</p>
+    <ul>
+      <li><code>IndirectObject (O1)</code>: <strong>Routing Target</strong>（宛先情報 / オプション）</li>
+      <li><code>DirectObject (O2)</code>: <strong>Payload</strong>（送信される実データ / 必須）</li>
+    </ul>
+    <p>原則としてPayloadが必須であり、Targetは省略するか、Modifierとして外部に追い出すことが可能である。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python: Parameter Downgrade</span></div>
+          <pre><code># 1. Full Parameters (SVOO)
+subject.send(target=him, payload=gift)
+
+# 2. Downgrade to Modifier (SVO + M)
+# targetがアノテーション化
+subject.send(payload=gift) # [Mod: to him]
+
+# 3. Target Omission (SVO)
+subject.send(payload=gift)</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R: Parameter Downgrade</span></div>
+          <pre><code># 1. Full Parameters (SVOO)
+send(target = him, payload = gift)
+
+# 2. Downgrade to Modifier (SVO + M)
+# Mは attributes 等で付加されるイメージ
+res &lt;- send(payload = gift)
+attr(res, "target") &lt;- "him"
+
+# 3. Target Omission (SVO)
+send(payload = gift)</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="debugging">5. Modifier（修飾語）の実践的デバッグ</h2>
+    <p>実際の英文が複雑化し、<code>SMVMOM</code> のように肥大化する原因は、すべて Modifier（M）の追加によるものである。構文解析を行う際は、これらを<strong>コメントアウトしてメインロジックから切り離す</strong>ことで、全体の構造が明確になる。</p>
+
+    <div class="code-comparison">
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header python"><span>Python: Parsed Syntax</span></div>
+          <pre><code># [Modifier: Yesterday]
+subject_I \
+  .execute_bought( # [Mod: who usually save...]
+    object_a_book  # [Mod: about space]
+  )
+# [Modifier: safely]
+# [Modifier: on the internet]
+
+# Execution Logic:
+# subject_I.execute_bought(object_a_book)</code></pre>
+        </div>
+      </div>
+      <div class="code-col">
+        <div class="code-block">
+          <div class="code-header r"><span>R: Parsed Syntax</span></div>
+          <pre><code># attr: Yesterday
+bought(
+  subject = I, # attr: who usually save...
+  object = a_book # attr: about space
+)
+# attr: safely
+# attr: on the internet
+
+# Execution Logic:
+# bought(subject = I, object = a_book)</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="example-box">
+      <strong>Original Text:</strong><br>
+      Yesterday, I, who usually save money, bought a book about space safely on the internet.<br><br>
+      <strong>Parsed (Mを不可視化):</strong><br>
+      <del style="color: #94a3b8">Yesterday,</del> <strong>I</strong>, <del style="color: #94a3b8">who usually save money</del>, <strong>bought a book</strong> <del style="color: #94a3b8">about space safely on the internet.</del><br><br>
+      英語読解における最大のコツは、前置詞（in, at, for, to等）や関係代名詞（who, which等）を見つけた瞬間に、そこから先を <code>/* ... */</code> として脳内で不可視化することである。
+    </div>
+
+  </main>
+` }} 
+    />
+  );
+}

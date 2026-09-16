@@ -1,0 +1,3705 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自治体業務プロジェクトマネージャー (Local PM Framework)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gov: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0fd',
+              600: '#1d6cd6',
+              700: '#1353b3',
+              800: '#104391',
+              900: '#0c3574',
+            },
+            slate: {
+              850: '#172033',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars and accessible focus styles */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .matrix-cell { transition: all 0.2s ease; }
+    .matrix-cell:hover { filter: brightness(0.95); }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- App Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-700 shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Project Quick Info -->
+        <div class="flex items-center space-x-3 overflow-hidden">
+          <div class="flex-shrink-0 bg-gov-600 text-white p-2 rounded-lg shadow">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+            </svg>
+          </div>
+          <div class="truncate">
+            <div class="flex items-center space-x-2">
+              <h1 id="headerProjectName" class="text-base sm:text-lg font-bold text-slate-100 truncate">未設定のプロジェクト</h1>
+              <span id="headerProjectCodeBadge" class="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-mono hidden sm:inline-block">PRJ-001</span>
+            </div>
+            <p class="text-xs text-slate-400 flex items-center space-x-1 truncate">
+              <span id="headerOrgDept">自治体実務支援 / 自律構造化PM</span>
+              <span class="mx-1">•</span>
+              <span id="headerSaveStatus" class="text-emerald-400 font-medium flex items-center">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1"></span>保存済
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Top Action Buttons -->
+        <div class="flex items-center space-x-1 sm:space-x-2">
+          <button id="btnSampleProject" class="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md border border-slate-600 flex items-center space-x-1 transition" title="自治体業務の具体例データをロードします">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.001z"></path></svg>
+            <span class="hidden md:inline">サンプル読込</span>
+          </button>
+
+          <button id="btnNewProject" class="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md border border-slate-600 flex items-center space-x-1 transition" title="新規に白紙のプロジェクトを作成">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span class="hidden md:inline">新規</span>
+          </button>
+
+          <button id="btnImportJson" class="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md border border-slate-600 flex items-center space-x-1 transition" title="保存済みJSONファイルを読み込み">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            <span class="hidden md:inline">開く</span>
+          </button>
+
+          <button id="btnExportJson" class="px-2.5 py-1.5 text-xs bg-gov-700 hover:bg-gov-600 text-white font-medium rounded-md shadow flex items-center space-x-1 transition" title="ポータブルなJSONファイルとして保存・書き出し">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>JSON保存</span>
+          </button>
+
+          <button id="btnHistorySnapshots" class="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md border border-slate-600 flex items-center space-x-1 transition" title="ブラウザ内の保存世代・スナップショットを管理">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="hidden lg:inline">保存世代</span>
+          </button>
+
+          <button id="btnSettings" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-md transition" title="設定・プライバシー情報" aria-label="設定">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-slate-800 border-t border-slate-700 px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 text-xs sm:text-sm" aria-label="Tabs" id="mainTabNav">
+        <button data-tab="overview" class="tab-btn active px-3 py-1.5 font-medium rounded-md bg-gov-700 text-white whitespace-nowrap flex items-center space-x-1.5 shadow-sm">
+          <span>📊</span><span>概要・状況</span>
+        </button>
+        <button data-tab="charter" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>📜</span><span>事業目的・計画 (憲章)</span>
+        </button>
+        <button data-tab="stakeholders" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>👥</span><span>関係者 (ステークホルダー)</span>
+        </button>
+        <button data-tab="tasks" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>📅</span><span>工程表 (ガントチャート)</span>
+        </button>
+        <button data-tab="risks" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>⚠️</span><span>懸念・課題 (リスク/課題)</span>
+        </button>
+        <button data-tab="decisions" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>⚖️</span><span>決定事項録 (Decision Log)</span>
+        </button>
+        <button data-tab="deliverables" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>📦</span><span>成果物 (納品物)</span>
+        </button>
+        <button data-tab="closure" class="tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5">
+          <span>🏁</span><span>完了・引継報告</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- 1. OVERVIEW TAB -->
+    <section id="tab-overview" class="tab-content space-y-6">
+      <!-- Welcome / KPI Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">全体進捗率</p>
+            <h3 id="kpiProgress" class="text-2xl font-bold text-gov-700 mt-1">0%</h3>
+            <p id="kpiProgressSub" class="text-xs text-slate-400 mt-0.5">タスク進捗の加重平均</p>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-gov-50 border-4 border-gov-600 flex items-center justify-center font-bold text-xs text-gov-800" id="kpiProgressCircle">
+            0%
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">作業タスク残</p>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <h3 id="kpiTasksPending" class="text-2xl font-bold text-slate-800">0</h3>
+            <span class="text-xs text-slate-500">/ <span id="kpiTasksTotal">0</span> 件</span>
+          </div>
+          <p id="kpiTasksDueSoon" class="text-xs text-amber-600 mt-0.5 font-medium">直近1週間の期限: 0件</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">懸念・発生中課題</p>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <h3 id="kpiRisksOpen" class="text-2xl font-bold text-amber-600">0</h3>
+            <span class="text-xs text-slate-500">懸念 / <span id="kpiIssuesOpen" class="text-rose-600 font-bold">0</span> 件の課題</span>
+          </div>
+          <p id="kpiRisksHigh" class="text-xs text-rose-500 mt-0.5 font-medium">高リスク: 0件</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">関係者・決定事項</p>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <h3 id="kpiStakeholders" class="text-2xl font-bold text-slate-800">0</h3>
+            <span class="text-xs text-slate-500">名 / <span id="kpiDecisions" class="font-bold text-slate-700">0</span> 件決定</span>
+          </div>
+          <p id="kpiEngagementGap" class="text-xs text-indigo-600 mt-0.5 font-medium">要対応ギャップ: 0名</p>
+        </div>
+      </div>
+
+      <!-- Quick Executive Summary & Milestone Progress -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Project Summary Card -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center space-x-2">
+                <span class="text-lg">🏢</span>
+                <h3 class="font-bold text-slate-800 text-base" id="ovProjectTitleDisplay">事業名未定</h3>
+              </div>
+              <button onclick="window.app.switchTab('charter')" class="text-xs text-gov-700 hover:text-gov-800 font-medium flex items-center">
+                計画書を編集 →
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4 py-2 bg-slate-50 rounded-lg p-3 text-xs">
+              <div>
+                <span class="text-slate-400 block">主幹組織 / 課</span>
+                <span id="ovDept" class="font-semibold text-slate-700">未設定</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">事業担当者 (PM)</span>
+                <span id="ovManager" class="font-semibold text-slate-700">未設定</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">計画期間</span>
+                <span id="ovDateRange" class="font-semibold text-slate-700">未定</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">概算予算</span>
+                <span id="ovBudget" class="font-semibold text-slate-700">未定</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold text-slate-600 mb-1 flex items-center">
+                <span class="w-1.5 h-3 bg-gov-600 rounded-sm mr-1.5"></span>事業の目的 (なぜ行うのか)
+              </h4>
+              <p id="ovPurpose" class="text-sm text-slate-700 line-clamp-3 bg-white p-2 rounded border border-slate-100 italic">
+                (事業目的が未入力です。「事業目的・計画」タブで背景と目的を入力してください)
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>最終更新: <span id="ovUpdatedAt">今日</span></span>
+            <div class="flex space-x-2">
+              <button onclick="window.app.openQuickTips('projectOverview')" class="text-gov-700 hover:underline flex items-center">
+                💡 自治体実務での活用Tips
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming Milestones -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center">
+              <span>🎯</span><span class="ml-1.5">重要マイルストーン (節目)</span>
+            </h3>
+            <button onclick="window.app.switchTab('tasks')" class="text-xs text-gov-700 hover:underline">工程表 →</button>
+          </div>
+          <div id="ovMilestonesList" class="space-y-2.5 flex-1 overflow-y-auto max-h-56 pr-1 text-xs">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Attention Items: Risks, Critical Tasks, Latest Decisions -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Critical Issues / Risks -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+            <h4 class="text-xs font-bold text-slate-700 uppercase flex items-center">
+              <span class="text-rose-500 mr-1">⚠️</span> 直ちに対処すべき課題・懸念
+            </h4>
+            <button onclick="window.app.switchTab('risks')" class="text-xs text-gov-700 hover:underline">一覧</button>
+          </div>
+          <div id="ovUrgentRisksList" class="space-y-2 text-xs">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Recent Decisions -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+            <h4 class="text-xs font-bold text-slate-700 uppercase flex items-center">
+              <span class="text-indigo-500 mr-1">⚖️</span> 直近の重要決定・方針決定
+            </h4>
+            <button onclick="window.app.switchTab('decisions')" class="text-xs text-gov-700 hover:underline">一覧</button>
+          </div>
+          <div id="ovRecentDecisionsList" class="space-y-2 text-xs">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Stakeholder Attention -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+            <h4 class="text-xs font-bold text-slate-700 uppercase flex items-center">
+              <span class="text-teal-600 mr-1">👥</span> 重点調整対象者 (High Power)
+            </h4>
+            <button onclick="window.app.switchTab('stakeholders')" class="text-xs text-gov-700 hover:underline">分析表</button>
+          </div>
+          <div id="ovKeyStakeholdersList" class="space-y-2 text-xs">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PROJECT CHARTER TAB -->
+    <section id="tab-charter" class="tab-content space-y-6 hidden">
+      <!-- Charter Header / Explain banner -->
+      <div class="bg-gov-50 border border-gov-200 rounded-xl p-4 flex items-start justify-between">
+        <div class="flex items-start space-x-3">
+          <div class="text-2xl mt-0.5">📜</div>
+          <div>
+            <h2 class="text-base font-bold text-gov-900">事業目的・計画書 (プロジェクト憲章)</h2>
+            <p class="text-xs text-gov-700 mt-1">
+              「なぜこの事業を行うのか」「何を目指し、何はやらないのか」を整理します。難解な言葉を使わず、次の担当者や他部署にも伝わる平易な言葉で入力してください。入力した内容はいつでも修正・自動保存されます。
+            </p>
+          </div>
+        </div>
+        <button onclick="window.app.openQuickTips('projectCharter')" class="px-3 py-1.5 bg-white text-gov-800 text-xs font-semibold rounded-md border border-gov-300 shadow-sm hover:bg-gov-100 flex-shrink-0 flex items-center space-x-1">
+          <span>💡</span><span>憲章とは？(Tips)</span>
+        </button>
+      </div>
+
+      <!-- Basic Project Metadata Box -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center justify-between">
+          <span class="flex items-center"><span class="w-2 h-2 bg-gov-600 rounded-full mr-2"></span>基本情報・主管部署</span>
+          <span class="text-xs font-normal text-slate-400">※後からの引継ぎや行政文書作成時にそのまま使えます</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">事業・プロジェクト名 <span class="text-rose-500">*</span></label>
+            <input type="text" id="charterProjectName" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 庁舎窓口案内サイン計画刷新事業">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">事業コード / 予算科目番号</label>
+            <input type="text" id="charterProjectCode" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: R08-INFO-004">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">所管自治体 / 組織名</label>
+            <input type="text" id="charterOrganization" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: ○○市役所">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">主幹部課 / 係</label>
+            <input type="text" id="charterDepartment" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 総務部 庁舎管理課 施設係">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">事業主担当者 (PM役割)</label>
+            <input type="text" id="charterProjectManager" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 主査 山田 太郎">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">概算事業費 / 確保予算</label>
+            <input type="text" id="charterBudget" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 4,800,000円 (債務負担行為含)">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block font-semibold text-slate-700 mb-1">担当者の権限範囲 (どこまで決裁可能か)</label>
+            <input type="text" id="charterAuthority" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 仕様策定・業者連絡は担当者決裁、設計承認・契約変更は課長決裁">
+          </div>
+        </div>
+      </div>
+
+      <!-- Structured Charter Fields -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 1. 背景 -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm">
+                1. 事業の背景 (なぜ今この仕事が必要なのか？)
+              </label>
+              <button onclick="window.app.openItemTips('background')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterBackground" rows="4" class="w-full p-2.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 庁舎建設から30年が経過し、窓口案内板の老朽化と視認性低下が顕著。また外国人来庁者や車椅子利用者の増加に伴い、多言語・ユニバーサルデザインへの刷新要望が市民アンケートで多数寄せられているため。"></textarea>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">※PMBOKでは「プロジェクトの妥当性・ビジネスケース」に相当します。</p>
+        </div>
+
+        <!-- 2. 目的 -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm">
+                2. 事業の目的 (最終的にどういう状態にしたいか？)
+              </label>
+              <button onclick="window.app.openItemTips('purpose')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterPurpose" rows="4" class="w-full p-2.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 初めて来庁した市民や要支援者が迷わずに目的の窓口へ到達できる快適・安心な案内サイン体系を構築し、総合案内の問い合わせ滞留時間を半減させる。"></textarea>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">※PMBOKでは「目的 (Purpose / High-level Objectives)」に相当します。</p>
+        </div>
+
+        <!-- 3. 今回やること (Scope) -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm text-emerald-800">
+                3. 今回実施すること (やることの範囲)
+              </label>
+              <button onclick="window.app.openItemTips('scope')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterScope" rows="4" class="w-full p-2.5 text-xs border border-emerald-300 bg-emerald-50/20 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 
+・本庁舎1階〜3階の天井吊り下げ型案内板およびフロアマップの撤去・新設
+・4言語（日・英・中・韓）対応のピクトグラム導入
+・デジタルサイネージ1台の設置テスト"></textarea>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">※PMBOKでは「プロジェクトスコープ (Scope Description)」です。</p>
+        </div>
+
+        <!-- 4. 今回やらないこと (Out of Scope) -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm text-rose-800">
+                4. 今回「やらない」こと (境界線の明確化)
+              </label>
+              <button onclick="window.app.openItemTips('outOfScope')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterOutOfScope" rows="4" class="w-full p-2.5 text-xs border border-rose-300 bg-rose-50/20 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 
+・別館・出張所の案内サイン改修（次年度以降の別事業で検討）
+・窓口カウンター内部の什器・レイアウト改修
+・庁舎外周の道路誘導看板の更新"></textarea>
+          </div>
+          <p class="text-[11px] text-rose-600/80 mt-2">★後から「あれもやってくれると思った」というトラブルを防ぐ最重要項目です。</p>
+        </div>
+
+        <!-- 5. 成功基準 -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm">
+                5. 成功したと言える条件 (評価指標・判定基準)
+              </label>
+              <button onclick="window.app.openItemTips('successCriteria')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterSuccessCriteria" rows="3" class="w-full p-2.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 
+1. 令和8年12月25日までに施工完了し、供用開始すること。
+2. 当初予算枠（480万円）以内に収めること。
+3. 施工後アンケートで市民の視認性満足度85%以上を達成すること。"></textarea>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">※PMBOKでは「成功基準 (Success Criteria)」に相当。</p>
+        </div>
+
+        <!-- 6. 制約事項 & 前提条件 -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-slate-800 text-sm">
+                6. 守るべき制約・前提条件 (予算・法律・開庁日等)
+              </label>
+              <button onclick="window.app.openItemTips('constraints')" class="text-xs text-gov-700 hover:underline flex items-center">
+                <span>💡</span><span>Tips</span>
+              </button>
+            </div>
+            <textarea id="charterConstraints" rows="3" class="w-full p-2.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600 leading-relaxed" placeholder="例: 
+【制約】開庁日（平日昼間）の騒音・振動作業は不可。工事は閉庁日（土日夜間）に限定。
+【前提】現在の天井ボードの耐荷重が案内板新設に耐えうること（耐震調査済み前提）。"></textarea>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">※PMBOKの「制約事項 (Constraints)」と「前提条件 (Assumptions)」。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. STAKEHOLDERS TAB -->
+    <section id="tab-stakeholders" class="tab-content space-y-6 hidden">
+      <!-- Banner & Tips -->
+      <div class="bg-slate-800 text-white p-4 rounded-xl flex items-center justify-between shadow">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">👥</span>
+          <div>
+            <h2 class="text-base font-bold">関係者・ステークホルダー分析 (Power / Interest Grid)</h2>
+            <p class="text-xs text-slate-300 mt-0.5">
+              事業に影響力を持つ幹部、利用する他部署、外部協力者などを整理し、「誰にいつ根回しや相談をすべきか」を可視化します。
+            </p>
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="window.app.openQuickTips('stakeholders')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs rounded-md border border-slate-500 flex items-center space-x-1">
+            <span>💡</span><span>関係者管理Tips</span>
+          </button>
+          <button onclick="window.app.openStakeholderModal()" class="px-3 py-1.5 bg-gov-600 hover:bg-gov-500 text-white text-xs font-semibold rounded-md shadow flex items-center space-x-1">
+            <span>＋</span><span>関係者を追加</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Matrix and List Split View -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- SVG Power / Interest Matrix (Interactive) -->
+        <div class="lg:col-span-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center">
+              <span>🗺️</span><span class="ml-1.5">影響力・関心度マトリックス (4象限マップ)</span>
+            </h3>
+            <span class="text-[11px] text-slate-500">点を選択で詳細表示</span>
+          </div>
+
+          <!-- The Matrix Container -->
+          <div class="relative w-full aspect-square max-h-[460px] mx-auto border border-slate-200 rounded-lg bg-slate-50 overflow-hidden flex items-center justify-center">
+            <svg id="stakeholderMatrixSvg" class="w-full h-full" viewBox="0 0 500 500">
+              <!-- Background Quads -->
+              <!-- Top Left: High Power / Low Interest (Keep Satisfied) -->
+              <rect x="20" y="20" width="230" height="230" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+              <text x="30" y="45" font-size="12" font-weight="bold" fill="#475569">満足度を維持 (High Power / Low Interest)</text>
+              <text x="30" y="62" font-size="10" fill="#94a3b8">要点のみ報告・不意打ちを避ける (例: 財務部・総務部長)</text>
+
+              <!-- Top Right: High Power / High Interest (Manage Closely) -->
+              <rect x="250" y="20" width="230" height="230" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1" />
+              <text x="260" y="45" font-size="12" font-weight="bold" fill="#1d4ed8">最重要パートナー・密に連携 (Manage Closely)</text>
+              <text x="260" y="62" font-size="10" fill="#60a5fa">定期協議・意思決定を共有 (例: 主管課長・窓口部署)</text>
+
+              <!-- Bottom Left: Low Power / Low Interest (Monitor) -->
+              <rect x="20" y="250" width="230" height="230" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" />
+              <text x="30" y="275" font-size="12" font-weight="bold" fill="#64748b">状況を定期監視 (Monitor)</text>
+              <text x="30" y="292" font-size="10" fill="#94a3b8">最小限の労力で全体告知 (例: 一般来庁者)</text>
+
+              <!-- Bottom Right: Low Power / High Interest (Keep Informed) -->
+              <rect x="250" y="250" width="230" height="230" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1" />
+              <text x="260" y="275" font-size="12" font-weight="bold" fill="#15803d">丁寧な情報提供 (Keep Informed)</text>
+              <text x="260" y="292" font-size="10" fill="#86efac">進捗をこまめに共有し味方につける (例: 推進協力員)</text>
+
+              <!-- Center Axis -->
+              <line x1="250" y1="20" x2="250" y2="480" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,4" />
+              <line x1="20" y1="250" x2="480" y2="250" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,4" />
+
+              <!-- Axis Labels -->
+              <text x="250" y="495" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">関心度 (Interest) → 高い</text>
+              <text x="12" y="250" text-anchor="middle" transform="rotate(-90 12,250)" font-size="11" font-weight="bold" fill="#334155">影響力 (Power) → 強い</text>
+
+              <!-- Dynamic Points rendered by JS -->
+              <g id="stakeholderPointsGroup"></g>
+            </svg>
+          </div>
+
+          <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span>● 支持的 / 推進</span>
+            <span>▲ 中立 / 静観</span>
+            <span>■ 慎重 / 要配慮</span>
+            <span>⚠️ 関与度ギャップあり</span>
+          </div>
+        </div>
+
+        <!-- Stakeholders Table & List -->
+        <div class="lg:col-span-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+              <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                <span>📋</span><span class="ml-1.5">関係者一覧 (Stakeholder Register)</span>
+              </h3>
+              <span id="stakeholderCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0名</span>
+            </div>
+
+            <div class="overflow-x-auto max-h-[420px] overflow-y-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-semibold sticky top-0 border-b border-slate-200">
+                  <tr>
+                    <th class="p-2">氏名 / 組織</th>
+                    <th class="p-2">役割</th>
+                    <th class="p-2">影響/関心</th>
+                    <th class="p-2">態度 / ギャップ</th>
+                    <th class="p-2 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="stakeholderTableBody" class="divide-y divide-slate-100">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 bg-amber-50 p-2.5 rounded-lg border border-amber-200 flex items-start space-x-2 text-xs text-amber-900">
+            <span class="text-amber-600 text-base">💡</span>
+            <div>
+              <span class="font-bold">行政実務のコツ:</span>
+              <span>「態度（支持・中立・慎重）」は個人の主観的評価ではなく、「現時点で事業方針に合意が得られているか」という合意形成のステータスとして扱いましょう。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. TASKS & GANTT TAB -->
+    <section id="tab-tasks" class="tab-content space-y-6 hidden">
+      <!-- Toolbar -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📅</span>
+          <div>
+            <h2 class="text-base font-bold text-slate-800">工程表・作業管理 (Gantt Chart & WBS)</h2>
+            <p class="text-xs text-slate-500">タスクを入力すると自動的にガントチャートが描画されます。マイルストーン（節目）も設定できます。</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <!-- Scale view buttons -->
+          <div class="inline-flex rounded-md shadow-sm border border-slate-300 overflow-hidden text-xs">
+            <button id="ganttScaleDay" class="px-2.5 py-1.5 bg-gov-600 text-white font-medium">日表示</button>
+            <button id="ganttScaleWeek" class="px-2.5 py-1.5 bg-white text-slate-700 hover:bg-slate-50 font-medium">週表示</button>
+            <button id="ganttScaleMonth" class="px-2.5 py-1.5 bg-white text-slate-700 hover:bg-slate-50 font-medium">月表示</button>
+          </div>
+
+          <button onclick="window.app.openQuickTips('ganttChart')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md border border-slate-300">
+            💡 工程管理Tips
+          </button>
+          <button onclick="window.app.openTaskModal()" class="px-3 py-1.5 bg-gov-600 hover:bg-gov-500 text-white text-xs font-semibold rounded-md shadow flex items-center space-x-1">
+            <span>＋</span><span>タスク追加</span>
+          </button>
+          <button onclick="window.app.openMilestoneModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-md shadow flex items-center space-x-1">
+            <span>🎯</span><span>マイルストーン追加</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Gantt View Container -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-4">
+            <span class="flex items-center"><span class="w-3 h-3 bg-gov-600 rounded-sm inline-block mr-1"></span> 通常タスク</span>
+            <span class="flex items-center"><span class="w-3 h-3 bg-amber-500 rotate-45 inline-block mr-1"></span> マイルストーン</span>
+            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block mr-1"></span> 本日 (Today Line)</span>
+          </div>
+          <div class="text-slate-500 font-mono" id="ganttDateRangeInfo">2026/09/01 〜 2026/12/31</div>
+        </div>
+
+        <!-- Scrollable Gantt Body -->
+        <div class="overflow-x-auto" id="ganttScrollWrapper" style="min-height: 380px;">
+          <div id="ganttChartContainer" class="relative min-w-[900px] select-none pb-8">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks / Milestones Table below Gantt -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+          <h3 class="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center">
+            <span>📋</span><span class="ml-1.5">タスク・工程一覧詳細 (WBS)</span>
+          </h3>
+          <span id="taskCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0件</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-2">状態</th>
+                <th class="p-2">タスク名 / 節目</th>
+                <th class="p-2">担当者</th>
+                <th class="p-2">開始日 〜 終了日</th>
+                <th class="p-2">進捗率</th>
+                <th class="p-2">優先度</th>
+                <th class="p-2 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="taskTableBody" class="divide-y divide-slate-100">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. RISKS & ISSUES TAB -->
+    <section id="tab-risks" class="tab-content space-y-6 hidden">
+      <!-- Banner -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between">
+        <div class="flex items-start space-x-3">
+          <span class="text-2xl mt-0.5">⚠️</span>
+          <div>
+            <h2 class="text-base font-bold text-amber-950">懸念事項 (リスク) と 発生中問題 (課題) の管理</h2>
+            <p class="text-xs text-amber-800 mt-1">
+              「まだ起きていないが起きるとまずいこと（リスク）」と「すでに発生して困っていること（課題 / Issue）」を明確に区別して整理します。
+            </p>
+          </div>
+        </div>
+        <button onclick="window.app.openQuickTips('riskAndIssue')" class="px-3 py-1.5 bg-white text-amber-900 text-xs font-semibold rounded-md border border-amber-300 shadow-sm hover:bg-amber-100 flex-shrink-0 flex items-center space-x-1">
+          <span>💡</span><span>リスクと課題の違いTips</span>
+        </button>
+      </div>
+
+      <!-- Split: Risk Register (Left) & Issue Log (Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- RISKS SECTION -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm flex items-center">
+                  <span class="text-amber-500 mr-1.5">⚡</span>将来の懸念・リスク (Risk Register)
+                </h3>
+                <p class="text-[11px] text-slate-400">発生確率 × 影響度 ＝ リスクスコア</p>
+              </div>
+              <button onclick="window.app.openRiskModal()" class="px-2.5 py-1 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded font-medium shadow flex items-center space-x-1">
+                <span>＋</span><span>リスク登録</span>
+              </button>
+            </div>
+
+            <!-- Risk Matrix 5x5 preview mini -->
+            <div class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-600 mb-2">
+                <span>リスクマトリックス (5段階評価マップ)</span>
+                <span class="text-[10px] text-slate-400">赤: 優先対策 / 黄: 監視</span>
+              </div>
+              <div class="w-full flex items-center justify-center">
+                <svg id="riskMatrixSvg" class="w-full max-w-[340px] aspect-[5/3]" viewBox="0 0 250 150">
+                  <!-- Generated by JS -->
+                </svg>
+              </div>
+            </div>
+
+            <!-- Risk List -->
+            <div class="overflow-y-auto max-h-80 space-y-2" id="riskListContainer">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ISSUES SECTION -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm flex items-center">
+                  <span class="text-rose-500 mr-1.5">🔥</span>現在発生している課題・問題 (Issue Log)
+                </h3>
+                <p class="text-[11px] text-slate-400">「いま誰がボールを持っていて、いつまでに解決するか」</p>
+              </div>
+              <button onclick="window.app.openIssueModal()" class="px-2.5 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded font-medium shadow flex items-center space-x-1">
+                <span>＋</span><span>課題登録</span>
+              </button>
+            </div>
+
+            <!-- Issue List -->
+            <div class="overflow-y-auto max-h-[460px] space-y-2.5" id="issueListContainer">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. DECISIONS TAB -->
+    <section id="tab-decisions" class="tab-content space-y-6 hidden">
+      <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start justify-between">
+        <div class="flex items-start space-x-3">
+          <span class="text-2xl mt-0.5">⚖️</span>
+          <div>
+            <h2 class="text-base font-bold text-indigo-950">意思決定の経緯・決定事項録 (Decision Log)</h2>
+            <p class="text-xs text-indigo-800 mt-1">
+              自治体実務で最も重要な「誰が、いつ、どのような理由でその方針を決めたか」を記録します。年度替わりの異動や議会答弁での経緯確認、後々の「言った言わない」を防ぐ強力な記録となります。
+            </p>
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="window.app.openQuickTips('decisionLog')" class="px-3 py-1.5 bg-white text-indigo-900 text-xs font-semibold rounded-md border border-indigo-300 shadow-sm hover:bg-indigo-100 flex-shrink-0 flex items-center space-x-1">
+            <span>💡</span><span>決定録の重要性Tips</span>
+          </button>
+          <button onclick="window.app.openDecisionModal()" class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-semibold rounded-md shadow flex items-center space-x-1">
+            <span>＋</span><span>決定事項を記録</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <h3 class="font-bold text-slate-800 text-sm">決定事項タイムライン一覧</h3>
+          <span id="decisionCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0件</span>
+        </div>
+        <div id="decisionTimelineContainer" class="space-y-4">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. DELIVERABLES TAB -->
+    <section id="tab-deliverables" class="tab-content space-y-6 hidden">
+      <div class="bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-start justify-between">
+        <div class="flex items-start space-x-3">
+          <span class="text-2xl mt-0.5">📦</span>
+          <div>
+            <h2 class="text-base font-bold text-teal-950">成果物・納品物管理 (Deliverable Register)</h2>
+            <p class="text-xs text-teal-800 mt-1">
+              事業によって最終的に残るもの（仕様書、案内看板本体、報告書、マニュアル、データ一式など）の完成状態と受入検査条件を管理します。
+            </p>
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="window.app.openQuickTips('deliverables')" class="px-3 py-1.5 bg-white text-teal-900 text-xs font-semibold rounded-md border border-teal-300 shadow-sm hover:bg-teal-100 flex-shrink-0 flex items-center space-x-1">
+            <span>💡</span><span>成果物受入Tips</span>
+          </button>
+          <button onclick="window.app.openDeliverableModal()" class="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-md shadow flex items-center space-x-1">
+            <span>＋</span><span>成果物を追加</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="deliverablesGridContainer">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- 8. PROJECT CLOSURE TAB -->
+    <section id="tab-closure" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 text-white rounded-xl p-5 shadow-sm flex items-start justify-between">
+        <div class="flex items-start space-x-3">
+          <span class="text-2xl mt-0.5">🏁</span>
+          <div>
+            <h2 class="text-base font-bold">事業完了・引継報告書 (Project Closure & Lessons Learned)</h2>
+            <p class="text-xs text-slate-300 mt-1">
+              事業終了時に「何が達成でき、何が課題として残ったか」「次の担当者が同じ失敗をしないための教訓（ノウハウ）」をまとめます。
+            </p>
+          </div>
+        </div>
+        <button onclick="window.app.openQuickTips('projectClosure')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-md border border-slate-600 flex-shrink-0 flex items-center space-x-1">
+          <span>💡</span><span>引継ぎ・教訓Tips</span>
+        </button>
+      </div>
+
+      <!-- Closure Form Fields -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-slate-200 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">事業完了日</label>
+            <input type="date" id="closureCompletionDate" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">総合完了ステータス</label>
+            <select id="closureOverallStatus" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600">
+              <option value="in_progress">事業継続中 (未完了)</option>
+              <option value="completed_success">完全達成・無事完了</option>
+              <option value="completed_partial">一部目標を残して完了</option>
+              <option value="cancelled">事業中止・凍結</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">決裁・完了承認状況</label>
+            <input type="text" id="closureApproval" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 令和8年12月28日 課長供覧決裁済">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+          <div>
+            <label class="block font-bold text-slate-800 mb-1 text-emerald-800 flex items-center">
+              <span>🎯</span><span class="ml-1">達成できたこと (成果・成功点)</span>
+            </label>
+            <textarea id="closureAchievements" rows="4" class="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 当初予定期日までに全フロアの案内サイン更新を完了。来庁者アンケートで「見やすくなった」の回答が92%に達した。予算執行も当初比で30万円削減できた。"></textarea>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-800 mb-1 text-rose-800 flex items-center">
+              <span>⚠️</span><span class="ml-1">未達成だったこと・残された課題</span>
+            </label>
+            <textarea id="closureUnachieved" rows="4" class="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: デジタルサイネージのリアルタイム混雑表示連動はネットワーク回線工事の制約により次年度以降へ持ち越しとなった。"></textarea>
+          </div>
+
+          <div class="md:col-span-2 bg-amber-50/50 p-4 rounded-lg border border-amber-200">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block font-bold text-amber-950 text-sm flex items-center">
+                <span>💡</span><span class="ml-1.5">教訓・反省点・申し送り事項 (Lessons Learned)</span>
+              </label>
+              <span class="text-[11px] text-amber-800 font-medium">★次年度の担当者が同じ失敗を繰り返さないための最重要ノウハウ</span>
+            </div>
+            <textarea id="closureLessonsLearned" rows="4" class="w-full p-2.5 border border-amber-300 bg-white rounded-md focus:ring-1 focus:ring-gov-600 text-xs" placeholder="例: 
+【仕様策定】障害当事者団体への事前意見照会は、仕様書入札公示の最低2ヶ月前に実施すべきだった（直前の修正要望への対応が逼迫したため）。
+【工事日程】夜間工事は警備会社への鍵貸出届出が3日前までに必要。事前の警備部局との調整フローを標準化しておくこと。"></textarea>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-800 mb-1 flex items-center">
+              <span>🤝</span><span class="ml-1">引き継ぎ事項 (後任者・維持管理担当へ)</span>
+            </label>
+            <textarea id="closureHandover" rows="4" class="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 看板面の定期清掃マニュアルは施設管理係へ共有済。ピクトグラムのAdobe Illustrator生データは庁内共有フォルダ (//srv01/share/sign_data) に格納済。"></textarea>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-800 mb-1 flex items-center">
+              <span>⏩</span><span class="ml-1">今後の対応・展開予定</span>
+            </label>
+            <textarea id="closureFutureActions" rows="4" class="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-gov-600" placeholder="例: 令和9年度当初予算にて別館および市民会館への横展開を要求予定。"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Universal Tips Modal -->
+  <div id="tipsModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">💡</span>
+          <h3 id="tipsModalTitle" class="font-bold text-base">PM実務解説 & 用語Tips</h3>
+        </div>
+        <button onclick="window.app.closeModal('tipsModal')" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs leading-relaxed text-slate-700" id="tipsModalBody">
+        <!-- Injected dynamically -->
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="window.app.closeModal('tipsModal')" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Stakeholder Modal (Add / Edit) -->
+  <div id="stakeholderModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-xl rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="px-5 py-4 bg-slate-800 text-white flex items-center justify-between">
+        <h3 id="stakeholderModalTitle" class="font-bold text-sm">関係者の追加・編集</h3>
+        <button onclick="window.app.closeModal('stakeholderModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <form id="stakeholderForm" class="p-5 overflow-y-auto space-y-3 text-xs">
+        <input type="hidden" id="shId">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">氏名 / 担当者名 <span class="text-rose-500">*</span></label>
+            <input type="text" id="shName" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 鈴木 一郎">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">組織 / 所属部署 <span class="text-rose-500">*</span></label>
+            <input type="text" id="shOrg" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 市民生活部 窓口サービス課">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">本事業での役割</label>
+            <input type="text" id="shRole" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 窓口運用キーパーソン / 現場責任者">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">態度 (現在の認識・姿勢)</label>
+            <select id="shAttitude" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+              <option value="supportive">支持的・積極推進</option>
+              <option value="neutral">中立・静観</option>
+              <option value="cautious">慎重・懸念あり</option>
+              <option value="resistant">反対・抵抗感あり</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded border border-slate-200">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 flex justify-between">
+              <span>影響力 (Power): <span id="shPowerVal" class="text-gov-700 font-bold">3</span></span>
+              <span class="text-[10px] text-slate-400">1:低 〜 5:決定権限</span>
+            </label>
+            <input type="range" id="shPower" min="1" max="5" value="3" class="w-full" oninput="document.getElementById('shPowerVal').innerText=this.value">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 flex justify-between">
+              <span>関心度 (Interest): <span id="shInterestVal" class="text-gov-700 font-bold">3</span></span>
+              <span class="text-[10px] text-slate-400">1:無関心 〜 5:極めて高い</span>
+            </label>
+            <input type="range" id="shInterest" min="1" max="5" value="3" class="w-full" oninput="document.getElementById('shInterestVal').innerText=this.value">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">現在の関与度 (Current)</label>
+            <select id="shCurrentEngagement" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+              <option value="unaware">認知なし (未把握)</option>
+              <option value="resistant">抵抗 (反対)</option>
+              <option value="neutral">中立 (傍観)</option>
+              <option value="supportive">支持 (協力的)</option>
+              <option value="leading">主導 (推進)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">望ましい関与度 (Desired)</label>
+            <select id="shDesiredEngagement" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+              <option value="neutral">中立で十分</option>
+              <option value="supportive" selected>支持・協力を得たい</option>
+              <option value="leading">自ら主導してほしい</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">対応方針 (どう巻き込み、合意形成するか)</label>
+          <input type="text" id="shStrategy" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 月1回の進捗打ち合わせで事前に原案を見せ、意見を反映させる">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">連絡手段</label>
+            <input type="text" id="shCommunicationMethod" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 庁内メール + 定例対面協議">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">連絡頻度</label>
+            <input type="text" id="shCommunicationFrequency" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 隔週1回 / 節目毎">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">特記事項・メモ (過去の経緯や懸念など)</label>
+          <textarea id="shNotes" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 過去のサイン変更時に窓口職員から見づらいと意見が出た経緯あり。事前配慮が有効。"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('stakeholderModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-gov-600 hover:bg-gov-500 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Task Modal (Add / Edit) -->
+  <div id="taskModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="px-5 py-4 bg-slate-800 text-white flex items-center justify-between">
+        <h3 id="taskModalTitle" class="font-bold text-sm">タスクの登録・編集</h3>
+        <button onclick="window.app.closeModal('taskModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <form id="taskForm" class="p-5 overflow-y-auto space-y-3 text-xs">
+        <input type="hidden" id="taskId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">作業・タスク名 <span class="text-rose-500">*</span></label>
+          <input type="text" id="taskName" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 基本設計書・デザイン案の庁内回覧">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">担当者 (ボールを持っている人)</label>
+            <input type="text" id="taskOwner" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="例: 山田主査">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">優先度</label>
+            <select id="taskPriority" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+              <option value="high">高 (最優先)</option>
+              <option value="medium" selected>中 (通常)</option>
+              <option value="low">低 (順次)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">開始予定日 <span class="text-rose-500">*</span></label>
+            <input type="date" id="taskStartDate" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">完了予定日 <span class="text-rose-500">*</span></label>
+            <input type="date" id="taskEndDate" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded border border-slate-200">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">状態</label>
+            <select id="taskStatus" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" onchange="window.app.handleTaskStatusChange(this.value)">
+              <option value="not_started">未着手</option>
+              <option value="in_progress">進行中</option>
+              <option value="review">確認・決裁中</option>
+              <option value="completed">完了</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 flex justify-between">
+              <span>進捗率: <span id="taskProgressVal" class="text-gov-700 font-bold">0%</span></span>
+            </label>
+            <input type="range" id="taskProgress" min="0" max="100" step="5" value="0" class="w-full" oninput="document.getElementById('taskProgressVal').innerText=this.value+'%'">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">作業内容・受入メモ</label>
+          <textarea id="taskDescription" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-gov-600" placeholder="作業の完了条件や注意点など"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('taskModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-gov-600 hover:bg-gov-500 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Milestone Modal -->
+  <div id="milestoneModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+      <div class="px-5 py-4 bg-amber-700 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm">重要マイルストーン (節目) の登録</h3>
+        <button onclick="window.app.closeModal('milestoneModal')" class="text-slate-300 hover:text-white">✕</button>
+      </div>
+      <form id="milestoneForm" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="msId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">マイルストーン名 <span class="text-rose-500">*</span></label>
+          <input type="text" id="msName" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600" placeholder="例: 設計確定・プロポーザル入札公示">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">達成目標日 <span class="text-rose-500">*</span></label>
+          <input type="date" id="msDate" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">状態</label>
+          <select id="msStatus" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600">
+            <option value="pending">未達成</option>
+            <option value="achieved">達成済み</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">判定基準・概要</label>
+          <textarea id="msDescription" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600" placeholder="何をもってこの節目を通過したと見なすか"></textarea>
+        </div>
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('milestoneModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Risk Modal -->
+  <div id="riskModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="px-5 py-4 bg-amber-700 text-white flex items-center justify-between">
+        <h3 id="riskModalTitle" class="font-bold text-sm">将来の懸念・リスクの登録</h3>
+        <button onclick="window.app.closeModal('riskModal')" class="text-amber-200 hover:text-white">✕</button>
+      </div>
+      <form id="riskForm" class="p-5 overflow-y-auto space-y-3 text-xs">
+        <input type="hidden" id="riskId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">懸念される事象 (何が起きそうか) <span class="text-rose-500">*</span></label>
+          <input type="text" id="riskTitle" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600" placeholder="例: 看板用特殊資材の世界的納期遅延による施工期日超過">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 bg-amber-50/60 p-3 rounded border border-amber-200">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 flex justify-between">
+              <span>発生確率 (1-5): <span id="riskProbVal" class="text-amber-800 font-bold">3</span></span>
+            </label>
+            <input type="range" id="riskProbability" min="1" max="5" value="3" class="w-full" oninput="document.getElementById('riskProbVal').innerText=this.value; window.app.updateRiskScoreCalc();">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 flex justify-between">
+              <span>影響度 (1-5): <span id="riskImpactVal" class="text-amber-800 font-bold">3</span></span>
+            </label>
+            <input type="range" id="riskImpact" min="1" max="5" value="3" class="w-full" oninput="document.getElementById('riskImpactVal').innerText=this.value; window.app.updateRiskScoreCalc();">
+          </div>
+          <div class="col-span-2 text-right text-slate-600 font-medium">
+            計算リスクスコア: <span id="riskScoreCalculated" class="text-base font-bold text-amber-900">9</span> / 25
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">予防策・事後対応策 (Response Strategy)</label>
+          <textarea id="riskResponse" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600" placeholder="例: 【予防】入札仕様書に代替国内資材の認容条項をあらかじめ明記しておく。"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">監視責任者</label>
+            <input type="text" id="riskOwner" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600" placeholder="例: 施設係 山田">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">状態</label>
+            <select id="riskStatus" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-600">
+              <option value="open">監視中 (Open)</option>
+              <option value="mitigated">軽減済 (対応完了)</option>
+              <option value="occurred">顕在化 (課題へ昇格)</option>
+              <option value="closed">終息・影響なし</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('riskModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. Issue Modal -->
+  <div id="issueModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="px-5 py-4 bg-rose-800 text-white flex items-center justify-between">
+        <h3 id="issueModalTitle" class="font-bold text-sm">発生中課題 (Issue) の登録</h3>
+        <button onclick="window.app.closeModal('issueModal')" class="text-rose-200 hover:text-white">✕</button>
+      </div>
+      <form id="issueForm" class="p-5 overflow-y-auto space-y-3 text-xs">
+        <input type="hidden" id="issueId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">発生している問題・障害 <span class="text-rose-500">*</span></label>
+          <input type="text" id="issueTitle" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600" placeholder="例: 柱の耐震補強ボルトと案内板の固定位置が干渉することが判明">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">深刻度</label>
+            <select id="issueSeverity" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600">
+              <option value="critical">緊急・事業停止レベル</option>
+              <option value="high" selected>高 (至急解決が必要)</option>
+              <option value="medium">中 (通常対応)</option>
+              <option value="low">低 (軽微)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">解決期限 <span class="text-rose-500">*</span></label>
+            <input type="date" id="issueDueDate" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">現在の対応者 (ボール保持者)</label>
+            <input type="text" id="issueOwner" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600" placeholder="例: 建築指導課 鈴木係長">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">状態</label>
+            <select id="issueStatus" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600">
+              <option value="open">対応中 (Open)</option>
+              <option value="pending">回答待ち</option>
+              <option value="resolved">解決済み (Resolved)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">解決策・実施した対処内容</label>
+          <textarea id="issueResolution" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-rose-600" placeholder="例: 設計業者と現地立会いを行い、取付金具を特注のL字アタッチメントに変更して干渉を回避する方針で合意。"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('issueModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-rose-700 hover:bg-rose-600 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Decision Modal -->
+  <div id="decisionModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div class="px-5 py-4 bg-indigo-900 text-white flex items-center justify-between">
+        <h3 id="decisionModalTitle" class="font-bold text-sm">決定事項・判断の記録</h3>
+        <button onclick="window.app.closeModal('decisionModal')" class="text-indigo-200 hover:text-white">✕</button>
+      </div>
+      <form id="decisionForm" class="p-5 overflow-y-auto space-y-3 text-xs">
+        <input type="hidden" id="decId">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">決定日 <span class="text-rose-500">*</span></label>
+            <input type="date" id="decDate" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">決定者 (誰が決めたか) <span class="text-rose-500">*</span></label>
+            <input type="text" id="decMaker" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600" placeholder="例: 庁舎管理課長決裁 / 部長承認">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">議題・テーマ <span class="text-rose-500">*</span></label>
+          <input type="text" id="decTopic" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600" placeholder="例: 多言語ピクトグラムの採用言語および色覚UD規格の選定">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">決定した内容 <span class="text-rose-500">*</span></label>
+          <textarea id="decDecision" rows="2" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600" placeholder="例: JIS規格のユニバーサルデザインを採用し、言語表記は日英中韓の4言語併記とすることを決定。"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">決定理由・検討した代替案</label>
+          <textarea id="decReason" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600" placeholder="例: 5言語案も検討したが文字サイズが小さくなり視認性が損なわれるため、観光客・定住外国人の統計上位4言語に絞り込み。"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">波及影響・他部署への連絡事項</label>
+          <input type="text" id="decImpact" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-600" placeholder="例: 広報広聴課の多言語パンフレットと用語統一を図る必要あり">
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('decisionModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 8. Deliverable Modal -->
+  <div id="deliverableModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+      <div class="px-5 py-4 bg-teal-800 text-white flex items-center justify-between">
+        <h3 id="deliverableModalTitle" class="font-bold text-sm">成果物・納品物の登録</h3>
+        <button onclick="window.app.closeModal('deliverableModal')" class="text-teal-200 hover:text-white">✕</button>
+      </div>
+      <form id="deliverableForm" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="delivId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">成果物名 <span class="text-rose-500">*</span></label>
+          <input type="text" id="delivName" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-teal-600" placeholder="例: 庁舎案内サイン施工完成物及び検査調書">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">完成・納品期日</label>
+            <input type="date" id="delivDueDate" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-teal-600">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">状態</label>
+            <select id="delivStatus" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-teal-600">
+              <option value="not_started">未作成</option>
+              <option value="drafting">作成・施工中</option>
+              <option value="review">検収・確認中</option>
+              <option value="accepted">検収完了 (受入済)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">受入条件・検収基準 (何を確認してOKとするか)</label>
+          <textarea id="delivAcceptance" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-teal-600" placeholder="例: 設計図書通りの取付強度があること、誤字脱字がないこと、点字表記の突起寸法が基準内であること。"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">作成責任者 / 納入事業者</label>
+          <input type="text" id="delivOwner" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-teal-600" placeholder="例: 株式会社○○工芸 / 施設係">
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="window.app.closeModal('deliverableModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded font-medium shadow">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 9. Snapshots & History Modal -->
+  <div id="snapshotsModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-xl rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span>🕒</span>
+          <h3 class="font-bold text-sm">過去の保存世代・スナップショット履歴</h3>
+        </div>
+        <button onclick="window.app.closeModal('snapshotsModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div>
+            <p class="font-bold text-slate-800">現在の状態を手動スナップショットとして保存</p>
+            <p class="text-[11px] text-slate-500">大きな仕様変更前や年度末の節目に記録を残せます</p>
+          </div>
+          <button onclick="window.app.createManualSnapshot()" class="px-3 py-1.5 bg-gov-700 hover:bg-gov-600 text-white font-medium rounded shadow">
+            今すぐ記録作成
+          </button>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-700 mb-2">保存されている世代一覧 (ブラウザ内IndexedDB)</h4>
+          <div id="snapshotsListContainer" class="space-y-2 max-h-60 overflow-y-auto">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="window.app.closeModal('snapshotsModal')" class="px-4 py-1.5 bg-slate-700 text-white rounded font-medium">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Settings & Privacy Modal -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+      <div class="px-5 py-4 bg-slate-800 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm">システム設定・データ保護方針</h3>
+        <button onclick="window.app.closeModal('settingsModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5 space-y-4 text-xs text-slate-700 leading-relaxed">
+        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-start space-x-2">
+          <span class="text-emerald-700 text-base">🛡️</span>
+          <div>
+            <p class="font-bold text-emerald-900">完全ローカル・プライバシー保証</p>
+            <p class="text-[11px] text-emerald-800 mt-0.5">
+              このアプリはバックエンドサーバーと通信しません。入力データはすべて利用中の端末（ブラウザのIndexedDB）内にのみ安全に保存されます。機密情報や行政内部の検討情報が外部へ送信されることは一切ありません。
+            </p>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <h4 class="font-bold text-slate-800 mb-1">バックアップについての重要なお願い</h4>
+          <p class="text-slate-600 text-[11px]">
+            ブラウザの履歴やキャッシュを一括消去した場合、端末のIndexedDBも削除される可能性があります。重要な業務情報は、画面上部の「<strong>JSON保存</strong>」ボタンから定期的にJSONファイル（例: <code>事業名_20260916.json</code>）としてPCまたは共有フォルダに保存してください。
+          </p>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <h4 class="font-bold text-slate-800 mb-1">ストレージ使用状況</h4>
+          <p class="text-slate-500 font-mono text-[11px]" id="storageUsageInfo">計算中...</p>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 flex justify-between items-center">
+          <span class="text-rose-600 font-medium">全データ初期化</span>
+          <button onclick="window.app.confirmClearAllData()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded font-medium">
+            端末のデータを消去
+          </button>
+        </div>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="window.app.closeModal('settingsModal')" class="px-4 py-1.5 bg-slate-800 text-white rounded font-medium">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Custom Confirm / Alert Dialog (No native alert/confirm) -->
+  <div id="confirmDialog" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white w-full max-w-sm rounded-xl shadow-2xl border border-slate-200 overflow-hidden p-5 text-center">
+      <div id="confirmIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3 text-xl">⚠️</div>
+      <h4 id="confirmTitle" class="font-bold text-base text-slate-800 mb-1">確認</h4>
+      <p id="confirmMessage" class="text-xs text-slate-600 mb-5 leading-relaxed">処理を実行しますか？</p>
+      <div class="flex justify-center space-x-3">
+        <button id="confirmBtnCancel" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold">キャンセル</button>
+        <button id="confirmBtnOk" class="px-4 py-1.5 bg-gov-600 hover:bg-gov-500 text-white rounded text-xs font-semibold shadow">実行する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for JSON import -->
+  <input type="file" id="jsonFileInput" accept=".json,application/json" class="hidden">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+<script>
+/**
+ * PM Tips Dictionary
+ * PMBOK用語と自治体実務での平易な日本語の橋渡しを行う解説データ群
+ */
+const PM_TIPS = {
+  projectOverview: {
+    title: "自治体実務におけるプロジェクト管理の考え方",
+    pmbokTerm: "Project Management Framework (プロジェクトマネジメント全体像)",
+    explanation: "通常の日常業務（ルーティン業務）と異なり、期限・予算・目的が定まった特定の事業を確実にやり遂げる手法です。",
+    practicalMeaning: "自治体では「要綱の制定」「新システム導入」「庁舎改修」「大規模イベント」など、年度をまたぐ事業や関係部署が多い事業に最適です。",
+    example: "「担当者の頭の中だけで進める」状態から「誰が見ても現在の進捗と課題が分かる」状態に可視化することが最大の目的です。"
+  },
+  projectCharter: {
+    title: "事業目的・計画書 (プロジェクト憲章)",
+    pmbokTerm: "Project Charter (プロジェクト憲章)",
+    explanation: "事業の存在意義、達成すべき目標、予算、担当者の権限を公に認める基本文書です。",
+    practicalMeaning: "自治体では「起案文書（伺い書）」や「基本方針策定書」に相当します。幹部や関係部署に事前に『この範囲でやります』と宣言しておくことで、後からの大幅な方針転換を防ぎます。",
+    example: "「庁舎窓口サイン刷新事業において、目的は来庁者の利便性向上、予算は480万円、担当者は仕様策定権限を持つ」といった骨子を定めます。"
+  },
+  background: {
+    title: "事業の背景",
+    pmbokTerm: "Business Case / Strategic Alignment (妥当性承認・戦略的適合性)",
+    explanation: "なぜ今この事業をやる必要があるのか、現状の課題や社会情勢の要請を説明します。",
+    practicalMeaning: "議会や住民アンケート、法令改正、老朽化など『事業に着手しなければならない正当な理由』を書きます。",
+    example: "「築30年の庁舎でサインの視認性が低下しており、市民アンケートで窓口がわかりにくいとの声が45%に達したため。」"
+  },
+  purpose: {
+    title: "事業の目的",
+    pmbokTerm: "Project Purpose / High-Level Objectives (プロジェクト目的)",
+    explanation: "事業が完了した結果、どのような良い状態が実現されるかというゴール像です。",
+    practicalMeaning: "「サインを新しくする（手段）」ではなく「初めての来庁者が迷わず1分以内に窓口に辿り着けるようにする（目的・価値）」を意識します。",
+    example: "「誰もが迷わず安心して手続きできるユニバーサルデザイン窓口の実現。」"
+  },
+  scope: {
+    title: "今回やること (スコープ)",
+    pmbokTerm: "Project Scope (プロジェクトスコープ)",
+    explanation: "この事業の中で責任を持って完了させる作業・対象の境界線です。",
+    practicalMeaning: "「何をやってもらえるのか」を関係部署に明確にし、期待値のズレをなくします。",
+    example: "「本庁舎1F〜3Fの天井案内板およびフロアマップの更新、多言語ピクトグラムの採用。」"
+  },
+  outOfScope: {
+    title: "今回やらないこと (スコープ外)",
+    pmbokTerm: "Out of Scope (プロジェクト対象外事項)",
+    explanation: "この事業ではあえて扱わない、または次年度以降に回す境界線です。",
+    practicalMeaning: "自治体実務で最も揉めやすい「ついでにあれもやってくれると思った」を事前に遮断するための防波堤です。",
+    example: "「別館・出張所のサイン更新は今回含まない」「窓口カウンター本体の改修は含まない」"
+  },
+  successCriteria: {
+    title: "成功基準",
+    pmbokTerm: "Success Criteria / Project Acceptance (成功基準)",
+    explanation: "何をクリアしたら「この事業は大成功だった」と言えるかの客観的指標です。",
+    practicalMeaning: "検査合格だけでなく、期日厳守、予算内執行、アンケート満足度などを設定します。",
+    example: "「1. 12月25日までに供用開始、2. 当初予算480万円以内、3. 市民アンケート満足度85%以上」"
+  },
+  constraints: {
+    title: "制約事項・前提条件",
+    pmbokTerm: "Constraints & Assumptions (制約事項と前提条件)",
+    explanation: "事業を進める上で自由に動かせない縛り（制約）と、確証はないが前提としている条件（前提）です。",
+    practicalMeaning: "【制約】開庁日の騒音工事禁止、年度末の予算執行期限。【前提】天井の耐荷重調査が済んでいること、など。",
+    example: "「制約: 平日昼間のドリル作業不可、土日夜間施工のみ」"
+  },
+  stakeholders: {
+    title: "関係者・ステークホルダー分析",
+    pmbokTerm: "Stakeholder Engagement & Power/Interest Grid (利害関係者管理)",
+    explanation: "この事業に影響を与える、または影響を受ける人や組織を漏れなく洗い出す手法です。",
+    practicalMeaning: "行政における「根回し」「事前協議」「合意形成」を論理的・計画的に進めるためのツールです。",
+    example: "影響力が強く関心も高い相手（主管課長や現場係長）には毎週密に相談し、影響力は強いが関心が薄い相手（財政課）には重要ポイントのみ簡潔に報告します。"
+  },
+  ganttChart: {
+    title: "工程表・ガントチャート",
+    pmbokTerm: "WBS (Work Breakdown Structure) & Schedule Network",
+    explanation: "大きな仕事を細かい「作業（タスク）」に分解し、時系列で並べたスケジュール表です。",
+    practicalMeaning: "「今誰が作業していて、次は何をすべきか」が一目で分かります。遅れが出たときにどこを調整すべきか判断できます。",
+    example: "タスク:「要件定義」→「仕様書作成」→「入札」→「施工」→「検査」"
+  },
+  riskAndIssue: {
+    title: "リスクと課題の違い",
+    pmbokTerm: "Risk Register vs. Issue Log (リスクと課題の厳密な分離)",
+    explanation: "【リスク】将来起きるかもしれない不確実なこと（予防・軽減策を打つ）。【課題】すでに起きてしまっている問題（今すぐ解決策を打つ）。",
+    practicalMeaning: "多くの人が両者を混同してしまいがちですが、分けることで「今火を消すべきこと」と「将来の火事に備えること」を冷静に整理できます。",
+    example: "リスク:「海外資材の納品が遅れるかもしれない」／課題:「現場で金具が柱に干渉してしまっている」"
+  },
+  decisionLog: {
+    title: "決定事項録 (Decision Log)",
+    pmbokTerm: "Decision Log (意思決定記録簿)",
+    explanation: "誰が、いつ、どのような理由でその方針を決めたのかを蓄積する公式記録です。",
+    practicalMeaning: "公務員は2〜3年で異動します。「前任者がなぜこの方針にしたのかわからない」という迷走を防ぎ、議会答弁や住民への説明責任（Accountability）を果たすための生命線です。",
+    example: "「令和8年10月5日：多言語は4言語に決定（理由: 視認性維持のため。決定者: 課長決裁）」"
+  },
+  deliverables: {
+    title: "成果物・納品物管理",
+    pmbokTerm: "Deliverables & Quality Inspection (成果物受入)",
+    explanation: "事業の対価として手元に残る最終的なモノや成果です。",
+    practicalMeaning: "工事完了物、検査調書、マニュアル、デザイン元データなど、業者から何を受け取り、どう検査するかを定義します。",
+    example: "「案内サイン看板本体（耐震検査済）、デザイン元データ（Illustrator形式）、保守点検要領書」"
+  },
+  projectClosure: {
+    title: "事業完了・引継報告",
+    pmbokTerm: "Project Closure & Lessons Learned (プロジェクト終結と教訓登録簿)",
+    explanation: "事業を公式に締めくくり、得られたノウハウや反省点を次世代へ引き継ぐ手続きです。",
+    practicalMeaning: "「終わったから終わり」にせず、「何をしくじったか」「次は何に気をつけるべきか」を残すことで、翌年度や他部署の同僚が同じ轍を踏まないようにします。",
+    example: "教訓:「障害当事者団体へのヒアリングは入札仕様書の確定前に終わらせておくべきだった」"
+  }
+};
+</script>
+<script>
+/**
+ * Storage Service (IndexedDB + Snapshots)
+ * サーバーレスで完全にブラウザ内に永続化
+ */
+class StorageService {
+  constructor() {
+    this.dbName = 'GovProjectManagerDB';
+    this.dbVersion = 1;
+    this.db = null;
+  }
+
+  async init() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('current_project')) {
+          db.createObjectStore('current_project', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('snapshots')) {
+          db.createObjectStore('snapshots', { keyPath: 'snapshotId' });
+        }
+      };
+      request.onsuccess = (e) => {
+        this.db = e.target.result;
+        resolve(this.db);
+      };
+      request.onerror = (e) => reject(e);
+    });
+  }
+
+  async saveCurrentProject(project) {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('current_project', 'readwrite');
+      const store = tx.objectStore('current_project');
+      const payload = {
+        id: 'active_project',
+        project: project,
+        savedAt: new Date().toISOString()
+      };
+      const req = store.put(payload);
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async loadCurrentProject() {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('current_project', 'readonly');
+      const store = tx.objectStore('current_project');
+      const req = store.get('active_project');
+      req.onsuccess = () => {
+        resolve(req.result ? req.result.project : null);
+      };
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async saveSnapshot(project, memo = '') {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('snapshots', 'readwrite');
+      const store = tx.objectStore('snapshots');
+      const snapshot = {
+        snapshotId: 'snap_' + Date.now(),
+        createdAt: new Date().toISOString(),
+        projectName: project.metadata.projectName || '名称未定',
+        memo: memo || '手動保存スナップショット',
+        projectData: JSON.parse(JSON.stringify(project))
+      };
+      const req = store.add(snapshot);
+      req.onsuccess = () => resolve(snapshot);
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async getSnapshots() {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('snapshots', 'readonly');
+      const store = tx.objectStore('snapshots');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const list = req.result || [];
+        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        resolve(list.slice(0, 30)); // limit 30 to prevent bloat
+      };
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async deleteSnapshot(snapshotId) {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('snapshots', 'readwrite');
+      const store = tx.objectStore('snapshots');
+      const req = store.delete(snapshotId);
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async clearAll() {
+    if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['current_project', 'snapshots'], 'readwrite');
+      tx.objectStore('current_project').clear();
+      tx.objectStore('snapshots').clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e);
+    });
+  }
+
+  async getStorageEstimate() {
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      const usedKB = Math.round((est.usage || 0) / 1024);
+      return `${usedKB} KB 使用中 (ブラウザ内制限内)`;
+    }
+    return '利用可能 (ローカルIndexedDB)';
+  }
+}
+</script>
+<script>
+/**
+ * Data Model Generators
+ */
+function createEmptyProject() {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: "1.0",
+    metadata: {
+      projectId: "proj_" + Math.random().toString(36).substr(2, 9),
+      projectName: "新規プロジェクト",
+      projectCode: "PRJ-" + new Date().getFullYear() + "-001",
+      organization: "",
+      department: "",
+      projectManager: "",
+      createdAt: now,
+      updatedAt: now,
+      exportedAt: null
+    },
+    charter: {
+      background: "",
+      purpose: "",
+      objectives: "",
+      scope: "",
+      outOfScope: "",
+      deliverables: "",
+      successCriteria: "",
+      assumptions: "",
+      constraints: "",
+      majorMilestones: "",
+      budget: "",
+      authority: "",
+      notes: ""
+    },
+    stakeholders: [],
+    tasks: [],
+    milestones: [],
+    risks: [],
+    issues: [],
+    decisions: [],
+    deliverables: [],
+    closure: {
+      completionDate: "",
+      overallStatus: "in_progress",
+      achievements: "",
+      unachievedObjectives: "",
+      issues: "",
+      lessonsLearned: "",
+      handover: "",
+      futureActions: "",
+      approval: "",
+      notes: ""
+    }
+  };
+}
+
+function createSampleProject() {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: "1.0",
+    metadata: {
+      projectId: "sample_gov_sign_renewal",
+      projectName: "本庁舎窓口案内表示・多言語サイン刷新事業",
+      projectCode: "R08-INFO-004",
+      organization: "希望市役所 (架空自治体)",
+      department: "総務部 庁舎管理課 施設担当",
+      projectManager: "主査 鈴木 健太",
+      createdAt: "2026-04-01T08:30:00.000Z",
+      updatedAt: now,
+      exportedAt: null
+    },
+    charter: {
+      background: "昭和62年竣工の本庁舎1階〜3階の窓口案内板は老朽化と度重なる課名変更シール貼付により視認性が著しく悪化している。外国人居住者や高齢・車椅子来庁者の急増に伴い、「窓口が分かりにくい」「総合案内に長蛇の列ができる」といった市民の声が年間200件を超えているため。",
+      purpose: "誰もが直感的に迷わず1分以内に目的地窓口へ辿り着けるユニバーサルデザイン・4言語対応の案内サイン体系を確立し、総合案内での誘導問い合わせ時間を半減させる。",
+      objectives: "1. 本庁舎1F〜3Fの案内板一新\n2. JISピクトグラム＋日英中韓4言語対応\n3. 点字案内板の適正配置",
+      scope: "・本庁舎1階〜3階の天井吊り下げ型案内板、壁面フロアマップの撤去および新設\n・ピクトグラムの選定およびサインデザインマニュアルの作成\n・総合案内前へのUD対応タッチパネル式案内サイネージ（試行1台）の調達",
+      outOfScope: "・市民会館・各支所・別館のサイン改修（次年度以降の別枠事業）\n・窓口カウンター内部の什器・システム機器の改修\n・庁舎敷地外の道路誘導標識",
+      deliverables: "・案内サイン施工完了物一式\n・多言語ピクトグラム設計データ集 (AI/PDF)\n・サイン維持管理マニュアル\n・完了検査調書",
+      successCriteria: "1. 令和8年12月25日までに施工完了・供用開始すること。\n2. 配当予算4,800,000円以内で執行すること。\n3. 市民・来庁者向けモニターアンケートで満足度90%以上を獲得すること。",
+      assumptions: "天井ボードの耐荷重が既存図面通りであり、大規模な構造補強なしで新設看板を吊り下げ可能であること。",
+      constraints: "平日開庁時間（8:30〜17:15）中の騒音・振動作業は厳禁。施工工事は閉庁日（土日祝・夜間）に限定して実施すること。",
+      majorMilestones: "仕様書確定、公募型プロポーザル実施、施工業者決定、サイン施工、完了検査",
+      budget: "4,800,000円 (当初予算確保済)",
+      authority: "仕様策定・現場打合せ・業者調整は主査決裁。契約変更・最終検収承認は課長決裁。",
+      notes: "次年度以降の支所改修のモデルケースとして実施する。"
+    },
+    stakeholders: [
+      {
+        id: "sh_1",
+        name: "高橋 誠 (庁舎管理課長)",
+        organization: "総務部 庁舎管理課",
+        role: "事業決裁者・総括責任者",
+        department: "庁舎管理課",
+        power: 5,
+        interest: 4,
+        attitude: "supportive",
+        currentEngagement: "supportive",
+        desiredEngagement: "supportive",
+        strategy: "月2回の課内定例で重要決定事項と予算執行状況を簡潔に報告。重要トラブルは即日報告。",
+        communicationMethod: "対面協議・起案書",
+        communicationFrequency: "隔週1回",
+        notes: "予算超過と議会からの指摘を最も警戒している。"
+      },
+      {
+        id: "sh_2",
+        name: "佐藤 美咲 (窓口サービス係長)",
+        organization: "市民生活部 窓口サービス課",
+        role: "現場ユーザー代表 (1F総合窓口)",
+        department: "窓口サービス課",
+        power: 4,
+        interest: 5,
+        attitude: "supportive",
+        currentEngagement: "supportive",
+        desiredEngagement: "leading",
+        strategy: "デザイン原案の段階で窓口スタッフ全員の導線意見を聴取し、不満が出ないよう共同検討する。",
+        communicationMethod: "現場立会い・庁内チャット",
+        communicationFrequency: "週1回",
+        notes: "住民票と戸籍の案内カラーを明確に色分けしてほしい強い要望あり。"
+      },
+      {
+        id: "sh_3",
+        name: "ジョン・スミス (国際交流推進員)",
+        organization: "企画政策部 国際交流課",
+        role: "多言語表記・外国人目線アドバイザー",
+        department: "国際交流課",
+        power: 2,
+        interest: 5,
+        attitude: "supportive",
+        currentEngagement: "supportive",
+        desiredEngagement: "supportive",
+        strategy: "英語・中国語・韓国語のスペルチェックおよびピクトグラムの直感性を確認してもらう。",
+        communicationMethod: "庁内メール・データ校正",
+        communicationFrequency: "校正時随時",
+        notes: "直訳ではなく外国人住民にとって自然な行政用語の選定に協力いただく。"
+      },
+      {
+        id: "sh_4",
+        name: "伊藤 義男 (市障害者福祉団体連絡会)",
+        organization: "外部当事者団体",
+        role: "当事者目線アドバイザー (視覚・肢体障害)",
+        department: "外部団体",
+        power: 3,
+        interest: 4,
+        attitude: "cautious",
+        currentEngagement: "neutral",
+        desiredEngagement: "supportive",
+        strategy: "過去の他事業で意見が反映されず不満を持たれた経緯あり。試作品段階で現地体験会を開催する。",
+        communicationMethod: "福祉課経由での対面ヒアリング",
+        communicationFrequency: "月1回",
+        notes: "点字の突起高さと車椅子目線（床上120cm）での視認性に特にこだわりがある。"
+      },
+      {
+        id: "sh_5",
+        name: "財政課 予算担当主幹",
+        organization: "総務部 財政課",
+        role: "予算配当・流用承認",
+        department: "財政課",
+        power: 5,
+        interest: 2,
+        attitude: "neutral",
+        currentEngagement: "neutral",
+        desiredEngagement: "neutral",
+        strategy: "予算枠内の厳格な執行を維持し、追加流用が発生しない限りは定期予算状況表のみ提出。",
+        communicationMethod: "財務会計システム通知",
+        communicationFrequency: "四半期1回",
+        notes: "年度末繰越は極力避けてほしい意向。"
+      }
+    ],
+    tasks: [
+      {
+        id: "task_1",
+        name: "現状庁舎サインの総点検・写真台帳作成",
+        description: "1F〜3Fの全案内板の位置、寸法、老朽度、配線状況を記録。",
+        owner: "山田 (施設係)",
+        startDate: "2026-09-01",
+        endDate: "2026-09-15",
+        progress: 100,
+        status: "completed",
+        priority: "medium",
+        dependencies: [],
+        stakeholderIds: ["sh_2"],
+        milestoneId: "",
+        notes: "写真台帳24枚作成完了。"
+      },
+      {
+        id: "task_2",
+        name: "障害者団体・国際交流課への要求ヒアリング",
+        description: "点字、車椅子導線、多言語表記のガイドライン整理。",
+        owner: "鈴木主査",
+        startDate: "2026-09-16",
+        endDate: "2026-09-30",
+        progress: 80,
+        status: "in_progress",
+        priority: "high",
+        dependencies: ["task_1"],
+        stakeholderIds: ["sh_3", "sh_4"],
+        milestoneId: "",
+        notes: "9/20に現地体験会を実施予定。"
+      },
+      {
+        id: "task_3",
+        name: "公募型プロポーザル仕様書・評価基準の策定",
+        description: "設計・施工一括発注のための仕様書作成および課長決裁。",
+        owner: "鈴木主査",
+        startDate: "2026-10-01",
+        endDate: "2026-10-20",
+        progress: 20,
+        status: "in_progress",
+        priority: "high",
+        dependencies: ["task_2"],
+        stakeholderIds: ["sh_1"],
+        milestoneId: "ms_1",
+        notes: "契約検査課との事前調整が必要。"
+      },
+      {
+        id: "task_4",
+        name: "入札公告および事業者選定審査会",
+        description: "提案書の審査、プレゼンテーション評価、優先交渉権者決定。",
+        owner: "選定委員会",
+        startDate: "2026-10-21",
+        endDate: "2026-11-10",
+        progress: 0,
+        status: "not_started",
+        priority: "high",
+        dependencies: ["task_3"],
+        stakeholderIds: ["sh_1", "sh_5"],
+        milestoneId: "ms_2",
+        notes: "審査員5名のスケジュール確保済み。"
+      },
+      {
+        id: "task_5",
+        name: "サイン詳細設計図面の作成・校正",
+        description: "文字サイズ、色覚UDテスト、4言語スペル最終校正。",
+        owner: "選定事業者 / 鈴木主査",
+        startDate: "2026-11-11",
+        endDate: "2026-11-28",
+        progress: 0,
+        status: "not_started",
+        priority: "medium",
+        dependencies: ["task_4"],
+        stakeholderIds: ["sh_2", "sh_3"],
+        milestoneId: "",
+        notes: "看板現寸大モックアップで現場確認を実施。"
+      },
+      {
+        id: "task_6",
+        name: "閉庁日夜間施工工事 (既存撤去・新設取付)",
+        description: "土曜・日曜夜間における吊り下げ工事および配線接続。",
+        owner: "施工事業者 / 山田立会",
+        startDate: "2026-12-05",
+        endDate: "2026-12-20",
+        progress: 0,
+        status: "not_started",
+        priority: "high",
+        dependencies: ["task_5"],
+        stakeholderIds: ["sh_1"],
+        milestoneId: "",
+        notes: "警備会社との事前の入退館連携を徹底。"
+      },
+      {
+        id: "task_7",
+        name: "完了検査および新サイン供用開始式",
+        description: "施工品質検査、調書作成、庁内への新サイン周知。",
+        owner: "鈴木主査 / 課長",
+        startDate: "2026-12-21",
+        endDate: "2026-12-25",
+        progress: 0,
+        status: "not_started",
+        priority: "medium",
+        dependencies: ["task_6"],
+        stakeholderIds: ["sh_1", "sh_2"],
+        milestoneId: "ms_3",
+        notes: "広報紙1月号への掲載写真撮影を同日実施。"
+      }
+    ],
+    milestones: [
+      {
+        id: "ms_1",
+        name: "発注仕様書の庁内決裁完了",
+        date: "2026-10-20",
+        status: "pending",
+        description: "契約検査課および部課長決裁の完了"
+      },
+      {
+        id: "ms_2",
+        name: "設計・施工事業者の契約締結",
+        date: "2026-11-10",
+        status: "pending",
+        description: "プロポーザル特定事業者の正式契約"
+      },
+      {
+        id: "ms_3",
+        name: "新サイン全箇所供用開始 (完了検査)",
+        date: "2026-12-25",
+        status: "pending",
+        description: "全フロアサインの引渡しと市民供用"
+      }
+    ],
+    risks: [
+      {
+        id: "risk_1",
+        title: "看板面のアクリル・アルミ特殊資材の納期遅延",
+        description: "国際物流の停滞により特注色のアクリル板納期が工期に間に合わない懸念。",
+        probability: 3,
+        impact: 4,
+        responseStrategy: "入札仕様書に「JIS規格同等品の国内即納資材による代替承認条項」を記載しておく。",
+        owner: "鈴木主査",
+        status: "open",
+        dueDate: "2026-10-20",
+        notes: "契約時に業者の資材確保状況を最優先で確認。"
+      },
+      {
+        id: "risk_2",
+        title: "夜間工事後の月曜朝における現場清掃不備・養生残り",
+        description: "開庁時間にゴミや足場が残り、市民の転倒事故や窓口業務遅延を招く懸念。",
+        probability: 2,
+        impact: 4,
+        responseStrategy: "月曜朝7:30に担当職員による現場完全復旧確認を義務付ける。",
+        owner: "山田 (施設係)",
+        status: "open",
+        dueDate: "2026-12-07",
+        notes: "施工計画書にチェックシートを義務化。"
+      }
+    ],
+    issues: [
+      {
+        id: "issue_1",
+        title: "1階中央柱の天井裏に耐震補強用鉄骨ブレースが近接していることが判明",
+        description: "当初予定していた看板吊り下げアンカー位置と鉄骨が干渉し、そのままでは固定できない。",
+        severity: "high",
+        owner: "建築課 構造担当 / 鈴木",
+        status: "open",
+        dueDate: "2026-09-25",
+        resolution: "建築課と現地立会いを実施し、サイン固定位置を30cm南側にオフセットするか、挟み込み金具に変更する設計変更を協議中。",
+        notes: "構造計算上、鉄骨本体への穴あけは厳禁。"
+      }
+    ],
+    decisions: [
+      {
+        id: "dec_1",
+        date: "2026-09-08",
+        topic: "多言語表記の対象言語とフォント規格の選定",
+        decision: "表記言語は「日本語、英語、中国語（簡体字）、韓国語」の4言語とし、フォントはJISユニバーサルデザインフォントを採用することを決定した。",
+        decisionMaker: "総務部長・庁舎管理課長決裁",
+        reason: "5言語（ベトナム語等追加）も検討したが文字が縮小し高齢者の視認性が低下するため、市内在住外国人の91%をカバーする4言語を採択。",
+        impact: "広報広聴課の庁内ピクトグラムガイドラインと整合を図る。",
+        relatedStakeholderIds: ["sh_1", "sh_3"],
+        relatedTaskIds: ["task_2"],
+        notes: "多言語コールセンターのQRコードを看板隅に付記することで他言語もカバーする。"
+      }
+    ],
+    deliverables: [
+      {
+        id: "deliv_1",
+        name: "天井吊下げ型案内サイン (1F〜3F 計18箇所)",
+        description: "アルミ成形・アクリル面板・UDフォント・4言語表記看板",
+        owner: "施工事業者",
+        dueDate: "2026-12-20",
+        status: "drafting",
+        acceptanceCriteria: "耐震取付強度試験合格、色ムラなし、誤字脱字なし、床上220cmクリアランスの確保",
+        notes: "落札業者確定後に製作図面提出を受ける。"
+      },
+      {
+        id: "deliv_2",
+        name: "サイン維持管理マニュアル及びIllustratorデータ集",
+        description: "課名変更時のシール作成手順および原版ベクターデータ一式",
+        owner: "設計事業者",
+        dueDate: "2026-12-25",
+        status: "not_started",
+        acceptanceCriteria: "アウトライン前後のAIデータ、仕様フォント明記、印刷指定カラー（DIC/Pantone）記載",
+        notes: "庁内サーバー共有フォルダへ格納すること。"
+      }
+    ],
+    closure: {
+      completionDate: "",
+      overallStatus: "in_progress",
+      achievements: "（現在事業進行中。完了後に記入）",
+      unachievedObjectives: "",
+      issues: "柱干渉の設計オフセット対応の完了確認が必要。",
+      lessonsLearned: "【教訓】天井裏の構造物干渉は、設計発注前（現状点検時）に点検口からスコープ等で入念に事前確認しておくべきであった。",
+      handover: "維持管理マニュアルは施設係の日常管理台帳へファイリング予定。",
+      futureActions: "令和9年度は東別館のサイン改修予算要求を検討。",
+      approval: "進行中",
+      notes: "次期担当者への引き継ぎフォルダ作成済。"
+    }
+  };
+}
+</script>
+<script>
+/**
+ * Main Application Controller (Local PM App)
+ */
+class ProjectApp {
+  constructor() {
+    this.storage = new StorageService();
+    this.project = createEmptyProject();
+    this.currentTab = 'overview';
+    this.ganttScale = 'day'; // day, week, month
+    this.saveTimeout = null;
+    this.isDirty = false;
+    this.activeEditingId = null;
+  }
+
+  async init() {
+    try {
+      await this.storage.init();
+      const saved = await this.storage.loadCurrentProject();
+      if (saved && saved.schemaVersion) {
+        this.project = saved;
+        this.showToast('前回のプロジェクトを復元しました', 'info');
+      } else {
+        // First time launch: load sample automatically for pleasant experience
+        this.project = createSampleProject();
+        await this.storage.saveCurrentProject(this.project);
+        this.showToast('自治体実務サンプルプロジェクトを読み込みました', 'success');
+      }
+    } catch (e) {
+      console.error('Storage Init Error', e);
+      this.project = createSampleProject();
+    }
+
+    this.bindEvents();
+    this.renderAll();
+    this.updateSaveStatus('saved');
+  }
+
+  /* ------------------- TAB ROUTING ------------------- */
+  switchTab(tabId) {
+    this.currentTab = tabId;
+    document.querySelectorAll('#mainTabNav .tab-btn').forEach(btn => {
+      const active = btn.getAttribute('data-tab') === tabId;
+      btn.className = active
+        ? 'tab-btn active px-3 py-1.5 font-medium rounded-md bg-gov-700 text-white whitespace-nowrap flex items-center space-x-1.5 shadow-sm'
+        : 'tab-btn px-3 py-1.5 font-medium rounded-md text-slate-300 hover:text-white hover:bg-slate-700 whitespace-nowrap flex items-center space-x-1.5';
+    });
+
+    document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+    const target = document.getElementById(`tab-${tabId}`);
+    if (target) target.classList.remove('hidden');
+
+    // Specific render updates on tab switch
+    if (tabId === 'overview') this.renderOverview();
+    if (tabId === 'tasks') this.renderGanttChart();
+    if (tabId === 'stakeholders') this.renderStakeholderMatrix();
+    if (tabId === 'risks') this.renderRiskMatrix();
+  }
+
+  /* ------------------- AUTO SAVE & STATE ------------------- */
+  triggerAutoSave() {
+    this.updateSaveStatus('saving');
+    this.isDirty = true;
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(async () => {
+      try {
+        this.project.metadata.updatedAt = new Date().toISOString();
+        await this.storage.saveCurrentProject(this.project);
+        this.updateSaveStatus('saved');
+        this.isDirty = false;
+        this.renderHeaderInfo();
+      } catch (err) {
+        console.error('Save failed', err);
+        this.updateSaveStatus('error');
+      }
+    }, 400); // 400ms debounce
+  }
+
+  updateSaveStatus(state) {
+    const el = document.getElementById('headerSaveStatus');
+    if (!el) return;
+    if (state === 'saved') {
+      el.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1"></span>保存済';
+      el.className = 'text-emerald-400 font-medium flex items-center';
+    } else if (state === 'saving') {
+      el.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block mr-1"></span>保存中...';
+      el.className = 'text-amber-400 font-medium flex items-center';
+    } else if (state === 'error') {
+      el.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 inline-block mr-1"></span>保存失敗';
+      el.className = 'text-rose-400 font-medium flex items-center';
+    }
+  }
+  /* ------------------- EVENT BINDINGS ------------------- */
+  bindEvents() {
+    // Tab Clicks
+    document.querySelectorAll('#mainTabNav .tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-tab');
+        this.switchTab(tab);
+      });
+    });
+
+    // Top Header Buttons
+    document.getElementById('btnSampleProject').addEventListener('click', () => {
+      this.confirmDialog('サンプルプロジェクトの読み込み', '現在の入力内容が自治体サンプルデータに置き換わります。よろしいですか？', async () => {
+        this.project = createSampleProject();
+        await this.storage.saveCurrentProject(this.project);
+        this.renderAll();
+        this.showToast('自治体サンプルデータを読み込みました', 'success');
+      });
+    });
+
+    document.getElementById('btnNewProject').addEventListener('click', () => {
+      this.confirmDialog('新規プロジェクトの作成', '白紙の新規プロジェクトを開始します。現在の未保存内容は失われます。', async () => {
+        this.project = createEmptyProject();
+        await this.storage.saveCurrentProject(this.project);
+        this.renderAll();
+        this.switchTab('charter');
+        this.showToast('白紙のプロジェクトを作成しました', 'info');
+      });
+    });
+
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+      document.getElementById('jsonFileInput').click();
+    });
+
+    document.getElementById('jsonFileInput').addEventListener('change', (e) => this.handleFileImport(e));
+
+    document.getElementById('btnExportJson').addEventListener('click', () => this.exportProjectJson());
+
+    document.getElementById('btnHistorySnapshots').addEventListener('click', () => this.openSnapshotsModal());
+
+    document.getElementById('btnSettings').addEventListener('click', () => this.openSettingsModal());
+
+    // Gantt Scale
+    document.getElementById('ganttScaleDay').addEventListener('click', () => this.setGanttScale('day'));
+    document.getElementById('ganttScaleWeek').addEventListener('click', () => this.setGanttScale('week'));
+    document.getElementById('ganttScaleMonth').addEventListener('click', () => this.setGanttScale('month'));
+
+    // Form Submits
+    document.getElementById('stakeholderForm').addEventListener('submit', (e) => this.handleStakeholderSubmit(e));
+    document.getElementById('taskForm').addEventListener('submit', (e) => this.handleTaskSubmit(e));
+    document.getElementById('milestoneForm').addEventListener('submit', (e) => this.handleMilestoneSubmit(e));
+    document.getElementById('riskForm').addEventListener('submit', (e) => this.handleRiskSubmit(e));
+    document.getElementById('issueForm').addEventListener('submit', (e) => this.handleIssueSubmit(e));
+    document.getElementById('decisionForm').addEventListener('submit', (e) => this.handleDecisionSubmit(e));
+    document.getElementById('deliverableForm').addEventListener('submit', (e) => this.handleDeliverableSubmit(e));
+
+    // Charter Auto-Save Listeners
+    const charterInputs = [
+      'charterProjectName', 'charterProjectCode', 'charterOrganization', 'charterDepartment',
+      'charterProjectManager', 'charterBudget', 'charterAuthority', 'charterBackground',
+      'charterPurpose', 'charterScope', 'charterOutOfScope', 'charterSuccessCriteria', 'charterConstraints'
+    ];
+    charterInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          this.syncCharterFromUI();
+          this.triggerAutoSave();
+        });
+      }
+    });
+
+    // Closure Auto-Save Listeners
+    const closureInputs = [
+      'closureCompletionDate', 'closureOverallStatus', 'closureApproval', 'closureAchievements',
+      'closureUnachieved', 'closureLessonsLearned', 'closureHandover', 'closureFutureActions'
+    ];
+    closureInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          this.syncClosureFromUI();
+          this.triggerAutoSave();
+        });
+      }
+    });
+  }
+
+  setGanttScale(scale) {
+    this.ganttScale = scale;
+    ['Day', 'Week', 'Month'].forEach(s => {
+      const btn = document.getElementById('ganttScale' + s);
+      if (s.toLowerCase() === scale) {
+        btn.className = 'px-2.5 py-1.5 bg-gov-600 text-white font-medium';
+      } else {
+        btn.className = 'px-2.5 py-1.5 bg-white text-slate-700 hover:bg-slate-50 font-medium';
+      }
+    });
+    this.renderGanttChart();
+  }
+
+  syncCharterFromUI() {
+    this.project.metadata.projectName = document.getElementById('charterProjectName').value || '未設定のプロジェクト';
+    this.project.metadata.projectCode = document.getElementById('charterProjectCode').value || '';
+    this.project.metadata.organization = document.getElementById('charterOrganization').value || '';
+    this.project.metadata.department = document.getElementById('charterDepartment').value || '';
+    this.project.metadata.projectManager = document.getElementById('charterProjectManager').value || '';
+
+    this.project.charter.budget = document.getElementById('charterBudget').value || '';
+    this.project.charter.authority = document.getElementById('charterAuthority').value || '';
+    this.project.charter.background = document.getElementById('charterBackground').value || '';
+    this.project.charter.purpose = document.getElementById('charterPurpose').value || '';
+    this.project.charter.scope = document.getElementById('charterScope').value || '';
+    this.project.charter.outOfScope = document.getElementById('charterOutOfScope').value || '';
+    this.project.charter.successCriteria = document.getElementById('charterSuccessCriteria').value || '';
+    this.project.charter.constraints = document.getElementById('charterConstraints').value || '';
+
+    this.renderHeaderInfo();
+  }
+
+  syncClosureFromUI() {
+    this.project.closure.completionDate = document.getElementById('closureCompletionDate').value || '';
+    this.project.closure.overallStatus = document.getElementById('closureOverallStatus').value || 'in_progress';
+    this.project.closure.approval = document.getElementById('closureApproval').value || '';
+    this.project.closure.achievements = document.getElementById('closureAchievements').value || '';
+    this.project.closure.unachievedObjectives = document.getElementById('closureUnachieved').value || '';
+    this.project.closure.lessonsLearned = document.getElementById('closureLessonsLearned').value || '';
+    this.project.closure.handover = document.getElementById('closureHandover').value || '';
+    this.project.closure.futureActions = document.getElementById('closureFutureActions').value || '';
+  }
+  /* ------------------- FULL RENDER ROUTINE ------------------- */
+  renderAll() {
+    this.renderHeaderInfo();
+    this.renderCharterUI();
+    this.renderOverview();
+    this.renderStakeholdersUI();
+    this.renderTasksUI();
+    this.renderRisksAndIssuesUI();
+    this.renderDecisionsUI();
+    this.renderDeliverablesUI();
+    this.renderClosureUI();
+  }
+
+  renderHeaderInfo() {
+    const meta = this.project.metadata;
+    document.getElementById('headerProjectName').innerText = meta.projectName || '未設定のプロジェクト';
+    const codeEl = document.getElementById('headerProjectCodeBadge');
+    if (meta.projectCode) {
+      codeEl.innerText = meta.projectCode;
+      codeEl.classList.remove('hidden');
+    } else {
+      codeEl.classList.add('hidden');
+    }
+    const orgDeptText = [meta.organization, meta.department, meta.projectManager ? `PM:${meta.projectManager}` : '']
+      .filter(Boolean).join(' / ') || '自治体実務支援 / 自律構造化PM';
+    document.getElementById('headerOrgDept').innerText = orgDeptText;
+  }
+
+  renderCharterUI() {
+    const c = this.project.charter;
+    const m = this.project.metadata;
+    document.getElementById('charterProjectName').value = m.projectName || '';
+    document.getElementById('charterProjectCode').value = m.projectCode || '';
+    document.getElementById('charterOrganization').value = m.organization || '';
+    document.getElementById('charterDepartment').value = m.department || '';
+    document.getElementById('charterProjectManager').value = m.projectManager || '';
+    document.getElementById('charterBudget').value = c.budget || '';
+    document.getElementById('charterAuthority').value = c.authority || '';
+    document.getElementById('charterBackground').value = c.background || '';
+    document.getElementById('charterPurpose').value = c.purpose || '';
+    document.getElementById('charterScope').value = c.scope || '';
+    document.getElementById('charterOutOfScope').value = c.outOfScope || '';
+    document.getElementById('charterSuccessCriteria').value = c.successCriteria || '';
+    document.getElementById('charterConstraints').value = c.constraints || '';
+  }
+
+  renderClosureUI() {
+    const cl = this.project.closure;
+    document.getElementById('closureCompletionDate').value = cl.completionDate || '';
+    document.getElementById('closureOverallStatus').value = cl.overallStatus || 'in_progress';
+    document.getElementById('closureApproval').value = cl.approval || '';
+    document.getElementById('closureAchievements').value = cl.achievements || '';
+    document.getElementById('closureUnachieved').value = cl.unachievedObjectives || '';
+    document.getElementById('closureLessonsLearned').value = cl.lessonsLearned || '';
+    document.getElementById('closureHandover').value = cl.handover || '';
+    document.getElementById('closureFutureActions').value = cl.futureActions || '';
+  }
+
+  /* ------------------- OVERVIEW DASHBOARD ------------------- */
+  renderOverview() {
+    const tasks = this.project.tasks;
+    const totalTasks = tasks.length;
+    let avgProgress = 0;
+    if (totalTasks > 0) {
+      const sum = tasks.reduce((acc, t) => acc + (Number(t.progress) || 0), 0);
+      avgProgress = Math.round(sum / totalTasks);
+    }
+    const completedTasks = tasks.filter(t => t.status === 'completed' || Number(t.progress) === 100).length;
+    const pendingTasks = totalTasks - completedTasks;
+
+    document.getElementById('kpiProgress').innerText = `${avgProgress}%`;
+    document.getElementById('kpiProgressCircle').innerText = `${avgProgress}%`;
+    document.getElementById('kpiTasksPending').innerText = pendingTasks;
+    document.getElementById('kpiTasksTotal').innerText = totalTasks;
+
+    // Direct attention to urgent risks & issues
+    const openRisks = this.project.risks.filter(r => r.status === 'open');
+    const highRisks = openRisks.filter(r => (r.probability * r.impact) >= 12);
+    const openIssues = this.project.issues.filter(i => i.status === 'open');
+
+    document.getElementById('kpiRisksOpen').innerText = openRisks.length;
+    document.getElementById('kpiIssuesOpen').innerText = openIssues.length;
+    document.getElementById('kpiRisksHigh').innerText = `高リスク: ${highRisks.length}件`;
+
+    // Stakeholders & Engagement Gaps
+    const shList = this.project.stakeholders;
+    const gaps = shList.filter(s => s.currentEngagement !== s.desiredEngagement);
+    document.getElementById('kpiStakeholders').innerText = shList.length;
+    document.getElementById('kpiDecisions').innerText = this.project.decisions.length;
+    document.getElementById('kpiEngagementGap').innerText = `要対応ギャップ: ${gaps.length}名`;
+
+    // Overview Card details
+    document.getElementById('ovProjectTitleDisplay').innerText = this.project.metadata.projectName || '事業名未設定';
+    document.getElementById('ovDept').innerText = this.project.metadata.department || '未設定';
+    document.getElementById('ovManager').innerText = this.project.metadata.projectManager || '未設定';
+    document.getElementById('ovBudget').innerText = this.project.charter.budget || '未定';
+    document.getElementById('ovPurpose').innerText = this.project.charter.purpose || '(事業目的が未入力です。「事業目的・計画」タブで入力してください)';
+    document.getElementById('ovUpdatedAt').innerText = new Date(this.project.metadata.updatedAt).toLocaleDateString('ja-JP');
+
+    // Date range
+    if (tasks.length > 0) {
+      const sortedStarts = [...tasks].map(t => t.startDate).filter(Boolean).sort();
+      const sortedEnds = [...tasks].map(t => t.endDate).filter(Boolean).sort();
+      if (sortedStarts.length && sortedEnds.length) {
+        document.getElementById('ovDateRange').innerText = `${sortedStarts[0]} 〜 ${sortedEnds[sortedEnds.length - 1]}`;
+      }
+    } else {
+      document.getElementById('ovDateRange').innerText = '未定';
+    }
+
+    // Milestones List in Overview
+    const msContainer = document.getElementById('ovMilestonesList');
+    if (this.project.milestones.length === 0) {
+      msContainer.innerHTML = '<p class="text-slate-400 py-3 text-center">マイルストーンが未登録です</p>';
+    } else {
+      msContainer.innerHTML = this.project.milestones.map(ms => `
+        <div class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
+          <div class="flex items-center space-x-2 truncate">
+            <span class="w-2.5 h-2.5 bg-amber-500 rotate-45 flex-shrink-0"></span>
+            <span class="font-medium text-slate-800 truncate">${escapeHtml(ms.name)}</span>
+          </div>
+          <div class="text-right flex-shrink-0 ml-2">
+            <span class="font-mono text-slate-500 block text-[10px]">${ms.date}</span>
+            <span class="px-1.5 py-0.2 text-[9px] rounded ${ms.status === 'achieved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}">
+              ${ms.status === 'achieved' ? '達成済' : '未達成'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Urgent Issues in Overview
+    const riskContainer = document.getElementById('ovUrgentRisksList');
+    const combinedAttention = [
+      ...openIssues.map(i => ({ type: 'issue', title: i.title, due: i.dueDate, sev: i.severity })),
+      ...highRisks.map(r => ({ type: 'risk', title: r.title, due: r.dueDate, score: r.probability * r.impact }))
+    ].slice(0, 4);
+
+    if (combinedAttention.length === 0) {
+      riskContainer.innerHTML = '<p class="text-slate-400 py-2 text-center">特段の緊急懸念・課題はありません</p>';
+    } else {
+      riskContainer.innerHTML = combinedAttention.map(item => `
+        <div class="p-2 rounded border ${item.type === 'issue' ? 'border-rose-200 bg-rose-50/50' : 'border-amber-200 bg-amber-50/50'}">
+          <div class="flex items-center justify-between">
+            <span class="font-bold truncate ${item.type === 'issue' ? 'text-rose-900' : 'text-amber-900'}">${escapeHtml(item.title)}</span>
+            <span class="text-[10px] font-mono">${item.due || '期日未定'}</span>
+          </div>
+          <span class="text-[10px] text-slate-500">${item.type === 'issue' ? `課題 (深刻度: ${item.sev})` : `高リスク (スコア: ${item.score})`}</span>
+        </div>
+      `).join('');
+    }
+
+    // Recent Decisions in Overview
+    const decContainer = document.getElementById('ovRecentDecisionsList');
+    const recentDecs = [...this.project.decisions].reverse().slice(0, 3);
+    if (recentDecs.length === 0) {
+      decContainer.innerHTML = '<p class="text-slate-400 py-2 text-center">決定事項の記録はありません</p>';
+    } else {
+      decContainer.innerHTML = recentDecs.map(d => `
+        <div class="p-2 rounded border border-indigo-100 bg-indigo-50/30">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-bold text-indigo-950 truncate">${escapeHtml(d.topic)}</span>
+            <span class="font-mono text-slate-400 text-[10px]">${d.date}</span>
+          </div>
+          <p class="text-[10px] text-slate-600 line-clamp-2 mt-0.5">${escapeHtml(d.decision)}</p>
+        </div>
+      `).join('');
+    }
+
+    // Key Stakeholders in Overview
+    const keyShContainer = document.getElementById('ovKeyStakeholdersList');
+    const keyShs = this.project.stakeholders.filter(s => Number(s.power) >= 4).slice(0, 3);
+    if (keyShs.length === 0) {
+      keyShContainer.innerHTML = '<p class="text-slate-400 py-2 text-center">影響力上位の関係者はいません</p>';
+    } else {
+      keyShContainer.innerHTML = keyShs.map(s => `
+        <div class="p-2 rounded border border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-slate-800">${escapeHtml(s.name)}</div>
+            <div class="text-[10px] text-slate-500">${escapeHtml(s.organization)}</div>
+          </div>
+          <div class="text-right">
+            <span class="px-1.5 py-0.5 text-[9px] rounded font-bold ${s.power >= 4 && s.interest >= 4 ? 'bg-gov-100 text-gov-800' : 'bg-slate-200 text-slate-700'}">
+              P:${s.power} / I:${s.interest}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+  /* ------------------- STAKEHOLDERS & MATRIX ------------------- */
+  renderStakeholdersUI() {
+    const list = this.project.stakeholders;
+    document.getElementById('stakeholderCountBadge').innerText = `${list.length}名`;
+
+    const tbody = document.getElementById('stakeholderTableBody');
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">関係者がまだ登録されていません。「＋関係者を追加」から登録してください。</td></tr>`;
+    } else {
+      tbody.innerHTML = list.map(sh => {
+        const gap = sh.currentEngagement !== sh.desiredEngagement;
+        const attitudeBadge = {
+          supportive: '<span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">支持</span>',
+          neutral: '<span class="text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded font-medium">中立</span>',
+          cautious: '<span class="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium">慎重</span>',
+          resistant: '<span class="text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium">反対</span>'
+        }[sh.attitude] || '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="window.app.editStakeholder('${sh.id}')">
+            <td class="p-2">
+              <div class="font-bold text-slate-800">${escapeHtml(sh.name)}</div>
+              <div class="text-[10px] text-slate-400">${escapeHtml(sh.organization || '')}</div>
+            </td>
+            <td class="p-2 text-slate-600">${escapeHtml(sh.role || '-')}</td>
+            <td class="p-2">
+              <span class="font-mono font-bold text-gov-700">P:${sh.power}</span> / 
+              <span class="font-mono font-bold text-slate-600">I:${sh.interest}</span>
+            </td>
+            <td class="p-2">
+              <div class="flex items-center space-x-1">
+                ${attitudeBadge}
+                ${gap ? '<span class="text-rose-600 font-bold ml-1 text-[10px]" title="関与度にギャップがあります">⚠️ ギャップ</span>' : ''}
+              </div>
+            </td>
+            <td class="p-2 text-right space-x-1" onclick="event.stopPropagation()">
+              <button onclick="window.app.editStakeholder('${sh.id}')" class="p-1 text-slate-500 hover:text-gov-600" title="編集">✏️</button>
+              <button onclick="window.app.deleteStakeholder('${sh.id}')" class="p-1 text-slate-500 hover:text-rose-600" title="削除">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    this.renderStakeholderMatrix();
+  }
+
+  renderStakeholderMatrix() {
+    const group = document.getElementById('stakeholderPointsGroup');
+    if (!group) return;
+    group.innerHTML = '';
+
+    const list = this.project.stakeholders;
+    // Map Power (1-5) and Interest (1-5) to SVG coordinates (20 to 480)
+    // Interest -> X (1=40, 5=460)
+    // Power -> Y (1=460, 5=40) [inverted since high power is top]
+    list.forEach(sh => {
+      const p = Math.max(1, Math.min(5, Number(sh.power) || 3));
+      const i = Math.max(1, Math.min(5, Number(sh.interest) || 3));
+
+      // Calculate base coords with minor jitter to prevent overlapping
+      const baseX = 30 + ((i - 1) / 4) * 440;
+      const baseY = 470 - ((p - 1) / 4) * 440;
+      // deterministic small offset based on id
+      const hash = sh.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const offsetX = (hash % 16) - 8;
+      const offsetY = ((hash * 3) % 16) - 8;
+      const cx = Math.max(40, Math.min(460, baseX + offsetX));
+      const cy = Math.max(40, Math.min(460, baseY + offsetY));
+
+      let fillColor = '#3b82f6';
+      if (sh.attitude === 'supportive') fillColor = '#10b981';
+      if (sh.attitude === 'cautious') fillColor = '#f59e0b';
+      if (sh.attitude === 'resistant') fillColor = '#ef4444';
+
+      const isGap = sh.currentEngagement !== sh.desiredEngagement;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'cursor-pointer group');
+      g.onclick = () => this.editStakeholder(sh.id);
+
+      // Warning circle if gap exists
+      if (isGap) {
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', cx);
+        ring.setAttribute('cy', cy);
+        ring.setAttribute('r', '14');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#ef4444');
+        ring.setAttribute('stroke-width', '2');
+        ring.setAttribute('stroke-dasharray', '2,2');
+        g.appendChild(ring);
+      }
+
+      // Main point
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('r', '8');
+      circle.setAttribute('fill', fillColor);
+      circle.setAttribute('stroke', '#ffffff');
+      circle.setAttribute('stroke-width', '2');
+      circle.setAttribute('class', 'shadow');
+      g.appendChild(circle);
+
+      // Label text
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', cx + 11);
+      text.setAttribute('y', cy + 4);
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-weight', 'bold');
+      text.setAttribute('fill', '#1e293b');
+      text.textContent = sh.name.split(' ')[0]; // first name or part
+      g.appendChild(text);
+
+      group.appendChild(g);
+    });
+  }
+  /* ------------------- TASKS & GANTT CHART ------------------- */
+  renderTasksUI() {
+    const tasks = this.project.tasks;
+    document.getElementById('taskCountBadge').innerText = `${tasks.length}件`;
+
+    const tbody = document.getElementById('taskTableBody');
+    if (tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">作業タスクが登録されていません。「＋タスク追加」から登録してください。</td></tr>`;
+    } else {
+      tbody.innerHTML = tasks.map(t => {
+        const statusBadge = {
+          not_started: '<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px]">未着手</span>',
+          in_progress: '<span class="bg-gov-100 text-gov-800 px-2 py-0.5 rounded text-[10px] font-medium">進行中</span>',
+          review: '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-medium">確認中</span>',
+          completed: '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-medium">完了</span>'
+        }[t.status] || '';
+
+        const prioBadge = {
+          high: '<span class="text-rose-600 font-bold text-[10px]">高</span>',
+          medium: '<span class="text-slate-600 text-[10px]">中</span>',
+          low: '<span class="text-slate-400 text-[10px]">低</span>'
+        }[t.priority] || '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="window.app.editTask('${t.id}')">
+            <td class="p-2">${statusBadge}</td>
+            <td class="p-2 font-medium text-slate-800">${escapeHtml(t.name)}</td>
+            <td class="p-2 text-slate-600">${escapeHtml(t.owner || '-')}</td>
+            <td class="p-2 font-mono text-[11px] text-slate-500">${t.startDate || '-'} 〜 ${t.endDate || '-'}</td>
+            <td class="p-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div class="bg-gov-600 h-2 rounded-full" style="width: ${t.progress}%"></div>
+                </div>
+                <span class="font-mono text-[10px]">${t.progress}%</span>
+              </div>
+            </td>
+            <td class="p-2">${prioBadge}</td>
+            <td class="p-2 text-right space-x-1" onclick="event.stopPropagation()">
+              <button onclick="window.app.editTask('${t.id}')" class="p-1 text-slate-500 hover:text-gov-600" title="編集">✏️</button>
+              <button onclick="window.app.deleteTask('${t.id}')" class="p-1 text-slate-500 hover:text-rose-600" title="削除">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    this.renderGanttChart();
+  }
+
+  renderGanttChart() {
+    const container = document.getElementById('ganttChartContainer');
+    if (!container) return;
+
+    const tasks = this.project.tasks;
+    const milestones = this.project.milestones;
+
+    if (tasks.length === 0 && milestones.length === 0) {
+      container.innerHTML = `<div class="py-16 text-center text-slate-400 text-xs">タスクまたはマイルストーンを登録すると、ここに自動的に工程表が描画されます。</div>`;
+      return;
+    }
+
+    // Determine min and max date
+    let dates = [];
+    tasks.forEach(t => {
+      if (t.startDate) dates.push(new Date(t.startDate));
+      if (t.endDate) dates.push(new Date(t.endDate));
+    });
+    milestones.forEach(m => {
+      if (m.date) dates.push(new Date(m.date));
+    });
+    dates.push(new Date()); // include today
+
+    dates.sort((a, b) => a - b);
+    let minDate = new Date(dates[0]);
+    let maxDate = new Date(dates[dates.length - 1]);
+
+    // Add padding to range
+    minDate.setDate(minDate.getDate() - 3);
+    maxDate.setDate(maxDate.getDate() + 7);
+
+    const totalDays = Math.max(14, Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+    
+    // Scale column width
+    let dayWidth = 32; // px per day in 'day' scale
+    if (this.ganttScale === 'week') dayWidth = 16;
+    if (this.ganttScale === 'month') dayWidth = 8;
+
+    const chartWidth = Math.max(900, totalDays * dayWidth);
+    container.style.width = chartWidth + 'px';
+
+    document.getElementById('ganttDateRangeInfo').innerText = 
+      `${minDate.toISOString().slice(0, 10)} 〜 ${maxDate.toISOString().slice(0, 10)} (${totalDays}日間)`;
+
+    // Render Timeline Header
+    let headerHtml = `<div class="flex border-b border-slate-200 bg-slate-100 text-[10px] font-mono sticky top-0 z-10">`;
+    headerHtml += `<div class="w-64 flex-shrink-0 p-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-100 sticky left-0 z-20">タスク / マイルストーン</div>`;
+    headerHtml += `<div class="flex-1 flex">`;
+
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(minDate);
+      d.setDate(d.getDate() + i);
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isFirst = d.getDate() === 1;
+      const dayNum = d.getDate();
+
+      let label = dayNum;
+      if (this.ganttScale === 'week' && d.getDay() !== 1) label = '';
+      if (this.ganttScale === 'month' && !isFirst) label = '';
+
+      headerHtml += `
+        <div style="width: ${dayWidth}px;" class="flex-shrink-0 text-center py-1 border-r border-slate-200 ${isWeekend ? 'bg-slate-200/60 text-rose-500' : 'text-slate-600'}">
+          ${isFirst ? `<div class="text-[9px] font-bold text-gov-800">${d.getMonth() + 1}月</div>` : ''}
+          <div>${label}</div>
+        </div>
+      `;
+    }
+    headerHtml += `</div></div>`;
+
+    // Today Line X calculation
+    const today = new Date();
+    const todayDiffDays = (today - minDate) / (1000 * 60 * 60 * 24);
+    const todayX = todayDiffDays >= 0 && todayDiffDays <= totalDays ? (256 + todayDiffDays * dayWidth) : -1;
+
+    // Render Rows
+    let rowsHtml = `<div class="relative divide-y divide-slate-100">`;
+
+    // Tasks rows
+    tasks.forEach(t => {
+      let barHtml = '';
+      if (t.startDate && t.endDate) {
+        const startDiff = (new Date(t.startDate) - minDate) / (1000 * 60 * 60 * 24);
+        const duration = Math.max(1, (new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24) + 1);
+        const left = Math.max(0, startDiff * dayWidth);
+        const width = Math.max(8, duration * dayWidth);
+
+        barHtml = `
+          <div style="left: ${left}px; width: ${width}px;" 
+               class="absolute top-2 h-6 bg-gov-600 rounded shadow-sm flex items-center px-2 text-[10px] text-white font-medium truncate cursor-pointer hover:bg-gov-500 transition group"
+               onclick="window.app.editTask('${t.id}')">
+            <!-- Progress bar inside -->
+            <div class="absolute left-0 top-0 bottom-0 bg-gov-800/40 rounded-l" style="width: ${t.progress}%"></div>
+            <span class="relative z-10 truncate">${escapeHtml(t.name)} (${t.progress}%)</span>
+          </div>
+        `;
+      }
+
+      rowsHtml += `
+        <div class="flex h-10 items-center hover:bg-slate-50 transition">
+          <div class="w-64 flex-shrink-0 px-3 py-1 border-r border-slate-200 bg-white sticky left-0 z-10 truncate flex items-center justify-between text-xs">
+            <span class="truncate font-medium text-slate-800" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span>
+            <span class="text-[10px] text-slate-400 font-mono flex-shrink-0 ml-1">${t.progress}%</span>
+          </div>
+          <div class="flex-1 relative h-full">
+            ${barHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    // Milestones rows
+    milestones.forEach(m => {
+      let iconHtml = '';
+      if (m.date) {
+        const diff = (new Date(m.date) - minDate) / (1000 * 60 * 60 * 24);
+        const left = Math.max(0, diff * dayWidth - 8);
+
+        iconHtml = `
+          <div style="left: ${left}px;" 
+               class="absolute top-2 w-6 h-6 flex items-center justify-center cursor-pointer group"
+               title="${escapeHtml(m.name)} (${m.date})"
+               onclick="window.app.editMilestone('${m.id}')">
+            <div class="w-4 h-4 bg-amber-500 rotate-45 border-2 border-white shadow"></div>
+            <span class="absolute left-6 text-[10px] font-bold text-amber-900 bg-amber-50 px-1 py-0.5 rounded border border-amber-200 whitespace-nowrap hidden group-hover:block z-30">
+              ${escapeHtml(m.name)} (${m.date})
+            </span>
+          </div>
+        `;
+      }
+
+      rowsHtml += `
+        <div class="flex h-10 items-center bg-amber-50/20 hover:bg-amber-50/40 transition">
+          <div class="w-64 flex-shrink-0 px-3 py-1 border-r border-amber-200 bg-amber-50/50 sticky left-0 z-10 truncate flex items-center justify-between text-xs">
+            <span class="truncate font-bold text-amber-900 flex items-center">
+              <span class="w-2 h-2 bg-amber-500 rotate-45 mr-1.5 flex-shrink-0"></span>${escapeHtml(m.name)}
+            </span>
+            <span class="text-[10px] font-mono text-amber-700">${m.date}</span>
+          </div>
+          <div class="flex-1 relative h-full">
+            ${iconHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    rowsHtml += `</div>`;
+
+    // Today Line
+    let todayLineHtml = '';
+    if (todayX >= 256) {
+      todayLineHtml = `
+        <div style="left: ${todayX}px;" class="absolute top-0 bottom-0 w-0.5 bg-rose-500 z-20 pointer-events-none">
+          <div class="bg-rose-600 text-white text-[9px] px-1 py-0.2 rounded absolute -top-4 -left-4 font-bold shadow">Today</div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = headerHtml + rowsHtml + todayLineHtml;
+  }
+  /* ------------------- RISKS & ISSUES ------------------- */
+  renderRisksAndIssuesUI() {
+    const risks = this.project.risks;
+    const issues = this.project.issues;
+
+    // Render Risk List
+    const rContainer = document.getElementById('riskListContainer');
+    if (risks.length === 0) {
+      rContainer.innerHTML = '<p class="text-slate-400 py-6 text-center text-xs">懸念・リスクは未登録です</p>';
+    } else {
+      rContainer.innerHTML = risks.map(r => {
+        const score = (r.probability || 1) * (r.impact || 1);
+        let scoreBg = 'bg-emerald-100 text-emerald-800';
+        if (score >= 8) scoreBg = 'bg-amber-100 text-amber-800';
+        if (score >= 15) scoreBg = 'bg-rose-100 text-rose-800';
+
+        return `
+          <div class="p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition cursor-pointer" onclick="window.app.editRisk('${r.id}')">
+            <div class="flex items-start justify-between">
+              <span class="font-bold text-slate-800 text-xs">${escapeHtml(r.title)}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-bold font-mono ${scoreBg}">スコア: ${score}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${escapeHtml(r.description || r.responseStrategy || '')}</p>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-2">
+              <span>担当: ${escapeHtml(r.owner || '未定')}</span>
+              <span>状態: ${r.status}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render 5x5 Risk Matrix SVG
+    this.renderRiskMatrix();
+
+    // Render Issue List
+    const iContainer = document.getElementById('issueListContainer');
+    if (issues.length === 0) {
+      iContainer.innerHTML = '<p class="text-slate-400 py-6 text-center text-xs">現在発生している課題はありません</p>';
+    } else {
+      iContainer.innerHTML = issues.map(iss => {
+        const sevClass = {
+          critical: 'border-l-4 border-l-rose-600 bg-rose-50/40',
+          high: 'border-l-4 border-l-amber-600 bg-amber-50/40',
+          medium: 'border-l-4 border-l-slate-400 bg-slate-50',
+          low: 'border-l-4 border-l-slate-200 bg-white'
+        }[iss.severity] || 'bg-white';
+
+        return `
+          <div class="p-3 rounded-lg border border-slate-200 ${sevClass} hover:shadow-sm transition cursor-pointer" onclick="window.app.editIssue('${iss.id}')">
+            <div class="flex items-start justify-between">
+              <span class="font-bold text-slate-900 text-xs">${escapeHtml(iss.title)}</span>
+              <span class="text-[10px] font-mono text-slate-500">期限: ${iss.dueDate || '-'}</span>
+            </div>
+            ${iss.resolution ? `<p class="text-[11px] text-slate-700 mt-1 bg-white/80 p-1.5 rounded border border-slate-100"><span class="font-semibold text-gov-700">対応策:</span> ${escapeHtml(iss.resolution)}</p>` : ''}
+            <div class="flex items-center justify-between text-[10px] text-slate-500 mt-2">
+              <span>担当: ${escapeHtml(iss.owner || '未定')}</span>
+              <span class="font-bold ${iss.status === 'resolved' ? 'text-emerald-600' : 'text-rose-600'}">
+                ${iss.status === 'resolved' ? '解決済' : '対応中 (Open)'}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  renderRiskMatrix() {
+    const svg = document.getElementById('riskMatrixSvg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    // 5x5 grid cells
+    const cellW = 40;
+    const cellH = 24;
+    const startX = 35;
+    const startY = 15;
+
+    for (let prob = 1; prob <= 5; prob++) {
+      for (let imp = 1; imp <= 5; imp++) {
+        const x = startX + (imp - 1) * cellW;
+        const y = startY + (5 - prob) * cellH; // prob 5 is top
+        const score = prob * imp;
+
+        let fill = '#dcfce7'; // green
+        if (score >= 8) fill = '#fef3c7'; // yellow
+        if (score >= 15) fill = '#fee2e2'; // red
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', cellW - 2);
+        rect.setAttribute('height', cellH - 2);
+        rect.setAttribute('fill', fill);
+        rect.setAttribute('rx', '2');
+        rect.setAttribute('class', 'matrix-cell');
+        svg.appendChild(rect);
+      }
+    }
+
+    // Axis text
+    const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xLabel.setAttribute('x', startX + (5 * cellW) / 2);
+    xLabel.setAttribute('y', startY + 5 * cellH + 14);
+    xLabel.setAttribute('text-anchor', 'middle');
+    xLabel.setAttribute('font-size', '9');
+    xLabel.setAttribute('fill', '#64748b');
+    xLabel.textContent = '影響度 (Impact 1 → 5)';
+    svg.appendChild(xLabel);
+
+    const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yLabel.setAttribute('x', '10');
+    yLabel.setAttribute('y', startY + (5 * cellH) / 2);
+    yLabel.setAttribute('text-anchor', 'middle');
+    yLabel.setAttribute('transform', `rotate(-90 10, ${startY + (5 * cellH) / 2})`);
+    yLabel.setAttribute('font-size', '9');
+    yLabel.setAttribute('fill', '#64748b');
+    yLabel.textContent = '発生確率 (Prob 1 → 5)';
+    svg.appendChild(yLabel);
+
+    // Plot risk dots
+    this.project.risks.forEach(r => {
+      const imp = Math.max(1, Math.min(5, Number(r.impact) || 3));
+      const prob = Math.max(1, Math.min(5, Number(r.probability) || 3));
+      const cx = startX + (imp - 1) * cellW + cellW / 2 - 1;
+      const cy = startY + (5 - prob) * cellH + cellH / 2 - 1;
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', '#ef4444');
+      circle.setAttribute('stroke', '#ffffff');
+      circle.setAttribute('stroke-width', '1.5');
+      circle.setAttribute('class', 'cursor-pointer');
+      circle.onclick = () => this.editRisk(r.id);
+
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = `${r.title} (Score: ${prob * imp})`;
+      circle.appendChild(title);
+
+      svg.appendChild(circle);
+    });
+  }
+  /* ------------------- DECISIONS & DELIVERABLES ------------------- */
+  renderDecisionsUI() {
+    const list = this.project.decisions;
+    document.getElementById('decisionCountBadge').innerText = `${list.length}件`;
+    const container = document.getElementById('decisionTimelineContainer');
+
+    if (list.length === 0) {
+      container.innerHTML = '<p class="text-slate-400 py-8 text-center text-xs">決定事項の記録はまだありません。「＋決定事項を記録」から追加してください。</p>';
+      return;
+    }
+
+    container.innerHTML = list.map((d, index) => `
+      <div class="relative pl-6 pb-6 border-l-2 border-indigo-200 last:border-l-0 last:pb-0">
+        <!-- Dot -->
+        <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-600 border-2 border-white shadow"></div>
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:bg-slate-100/60 transition cursor-pointer" onclick="window.app.editDecision('${d.id}')">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+            <span class="font-bold text-slate-800 text-sm">${escapeHtml(d.topic)}</span>
+            <div class="flex items-center space-x-2">
+              <span class="font-mono text-xs text-indigo-700 font-bold">${d.date}</span>
+              <span class="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded font-medium">${escapeHtml(d.decisionMaker)}</span>
+            </div>
+          </div>
+          <div class="bg-white p-2.5 rounded-lg border border-slate-200 mt-2 text-xs text-slate-700 leading-relaxed font-medium">
+            ${escapeHtml(d.decision)}
+          </div>
+          ${d.reason ? `<p class="text-[11px] text-slate-500 mt-2"><span class="font-semibold text-slate-600">決定理由:</span> ${escapeHtml(d.reason)}</p>` : ''}
+          ${d.impact ? `<p class="text-[11px] text-slate-500 mt-1"><span class="font-semibold text-slate-600">波及影響:</span> ${escapeHtml(d.impact)}</p>` : ''}
+          <div class="flex justify-end mt-2 space-x-2" onclick="event.stopPropagation()">
+            <button onclick="window.app.editDecision('${d.id}')" class="text-slate-500 hover:text-gov-600 text-xs">編集</button>
+            <button onclick="window.app.deleteDecision('${d.id}')" class="text-slate-500 hover:text-rose-600 text-xs">削除</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderDeliverablesUI() {
+    const list = this.project.deliverables;
+    const container = document.getElementById('deliverablesGridContainer');
+
+    if (list.length === 0) {
+      container.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 text-xs">成果物が未登録です。「＋成果物を追加」から登録してください。</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(deliv => {
+      const statusClass = {
+        not_started: 'bg-slate-100 text-slate-700',
+        drafting: 'bg-teal-100 text-teal-800 font-medium',
+        review: 'bg-amber-100 text-amber-800 font-medium',
+        accepted: 'bg-emerald-100 text-emerald-800 font-bold'
+      }[deliv.status] || 'bg-slate-100';
+
+      const statusText = {
+        not_started: '未作成',
+        drafting: '作成・施工中',
+        review: '検収確認中',
+        accepted: '検収完了 (受入済)'
+      }[deliv.status] || deliv.status;
+
+      return `
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-teal-300 transition cursor-pointer" onclick="window.app.editDeliverable('${deliv.id}')">
+          <div>
+            <div class="flex items-start justify-between">
+              <span class="font-bold text-slate-800 text-xs line-clamp-1">${escapeHtml(deliv.name)}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded ${statusClass}">${statusText}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${escapeHtml(deliv.description || '概要未入力')}</p>
+            ${deliv.acceptanceCriteria ? `
+              <div class="mt-2.5 p-2 bg-teal-50/40 rounded border border-teal-100 text-[10px] text-teal-900">
+                <span class="font-bold block">受入条件:</span>
+                <span class="line-clamp-2">${escapeHtml(deliv.acceptanceCriteria)}</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400" onclick="event.stopPropagation()">
+            <span>期日: ${deliv.dueDate || '未定'}</span>
+            <div class="space-x-1">
+              <button onclick="window.app.editDeliverable('${deliv.id}')" class="hover:text-teal-700">編集</button>
+              <button onclick="window.app.deleteDeliverable('${deliv.id}')" class="hover:text-rose-600">削除</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  /* ------------------- MODAL OPEN & FORM SUBMITS ------------------- */
+  openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+  }
+
+  closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+    this.activeEditingId = null;
+  }
+
+  // Stakeholder CRUD
+  openStakeholderModal(sh = null) {
+    document.getElementById('stakeholderForm').reset();
+    if (sh) {
+      document.getElementById('stakeholderModalTitle').innerText = '関係者の編集';
+      document.getElementById('shId').value = sh.id;
+      document.getElementById('shName').value = sh.name;
+      document.getElementById('shOrg').value = sh.organization || '';
+      document.getElementById('shRole').value = sh.role || '';
+      document.getElementById('shAttitude').value = sh.attitude || 'supportive';
+      document.getElementById('shPower').value = sh.power || 3;
+      document.getElementById('shPowerVal').innerText = sh.power || 3;
+      document.getElementById('shInterest').value = sh.interest || 3;
+      document.getElementById('shInterestVal').innerText = sh.interest || 3;
+      document.getElementById('shCurrentEngagement').value = sh.currentEngagement || 'neutral';
+      document.getElementById('shDesiredEngagement').value = sh.desiredEngagement || 'supportive';
+      document.getElementById('shStrategy').value = sh.strategy || '';
+      document.getElementById('shCommunicationMethod').value = sh.communicationMethod || '';
+      document.getElementById('shCommunicationFrequency').value = sh.communicationFrequency || '';
+      document.getElementById('shNotes').value = sh.notes || '';
+    } else {
+      document.getElementById('stakeholderModalTitle').innerText = '関係者の追加';
+      document.getElementById('shId').value = '';
+      document.getElementById('shPowerVal').innerText = '3';
+      document.getElementById('shInterestVal').innerText = '3';
+    }
+    this.openModal('stakeholderModal');
+  }
+
+  editStakeholder(id) {
+    const sh = this.project.stakeholders.find(s => s.id === id);
+    if (sh) this.openStakeholderModal(sh);
+  }
+
+  deleteStakeholder(id) {
+    this.confirmDialog('関係者の削除', 'この関係者を削除しますか？', () => {
+      this.project.stakeholders = this.project.stakeholders.filter(s => s.id !== id);
+      this.renderStakeholdersUI();
+      this.renderOverview();
+      this.triggerAutoSave();
+    });
+  }
+
+  handleStakeholderSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('shId').value || ('sh_' + Date.now());
+    const data = {
+      id,
+      name: document.getElementById('shName').value.trim(),
+      organization: document.getElementById('shOrg').value.trim(),
+      role: document.getElementById('shRole').value.trim(),
+      attitude: document.getElementById('shAttitude').value,
+      power: Number(document.getElementById('shPower').value),
+      interest: Number(document.getElementById('shInterest').value),
+      currentEngagement: document.getElementById('shCurrentEngagement').value,
+      desiredEngagement: document.getElementById('shDesiredEngagement').value,
+      strategy: document.getElementById('shStrategy').value.trim(),
+      communicationMethod: document.getElementById('shCommunicationMethod').value.trim(),
+      communicationFrequency: document.getElementById('shCommunicationFrequency').value.trim(),
+      notes: document.getElementById('shNotes').value.trim()
+    };
+
+    const idx = this.project.stakeholders.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      this.project.stakeholders[idx] = data;
+    } else {
+      this.project.stakeholders.push(data);
+    }
+
+    this.closeModal('stakeholderModal');
+    this.renderStakeholdersUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('関係者情報を保存しました', 'success');
+  }
+
+  // Task CRUD
+  openTaskModal(t = null) {
+    document.getElementById('taskForm').reset();
+    if (t) {
+      document.getElementById('taskModalTitle').innerText = 'タスクの編集';
+      document.getElementById('taskId').value = t.id;
+      document.getElementById('taskName').value = t.name;
+      document.getElementById('taskOwner').value = t.owner || '';
+      document.getElementById('taskPriority').value = t.priority || 'medium';
+      document.getElementById('taskStartDate').value = t.startDate || '';
+      document.getElementById('taskEndDate').value = t.endDate || '';
+      document.getElementById('taskStatus').value = t.status || 'not_started';
+      document.getElementById('taskProgress').value = t.progress || 0;
+      document.getElementById('taskProgressVal').innerText = (t.progress || 0) + '%';
+      document.getElementById('taskDescription').value = t.description || '';
+    } else {
+      document.getElementById('taskModalTitle').innerText = 'タスクの登録';
+      document.getElementById('taskId').value = '';
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById('taskStartDate').value = today;
+      document.getElementById('taskEndDate').value = today;
+      document.getElementById('taskProgressVal').innerText = '0%';
+    }
+    this.openModal('taskModal');
+  }
+
+  editTask(id) {
+    const t = this.project.tasks.find(x => x.id === id);
+    if (t) this.openTaskModal(t);
+  }
+
+  deleteTask(id) {
+    this.confirmDialog('タスクの削除', 'このタスクを削除しますか？', () => {
+      this.project.tasks = this.project.tasks.filter(x => x.id !== id);
+      this.renderTasksUI();
+      this.renderOverview();
+      this.triggerAutoSave();
+    });
+  }
+
+  handleTaskStatusChange(status) {
+    if (status === 'completed') {
+      document.getElementById('taskProgress').value = 100;
+      document.getElementById('taskProgressVal').innerText = '100%';
+    } else if (status === 'not_started') {
+      document.getElementById('taskProgress').value = 0;
+      document.getElementById('taskProgressVal').innerText = '0%';
+    }
+  }
+
+  handleTaskSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('taskId').value || ('task_' + Date.now());
+    const data = {
+      id,
+      name: document.getElementById('taskName').value.trim(),
+      owner: document.getElementById('taskOwner').value.trim(),
+      priority: document.getElementById('taskPriority').value,
+      startDate: document.getElementById('taskStartDate').value,
+      endDate: document.getElementById('taskEndDate').value,
+      status: document.getElementById('taskStatus').value,
+      progress: Number(document.getElementById('taskProgress').value),
+      description: document.getElementById('taskDescription').value.trim()
+    };
+
+    const idx = this.project.tasks.findIndex(t => t.id === id);
+    if (idx >= 0) {
+      this.project.tasks[idx] = data;
+    } else {
+      this.project.tasks.push(data);
+    }
+
+    this.closeModal('taskModal');
+    this.renderTasksUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('タスクを保存しました', 'success');
+  }
+
+  // Milestone CRUD
+  openMilestoneModal(ms = null) {
+    document.getElementById('milestoneForm').reset();
+    if (ms) {
+      document.getElementById('msId').value = ms.id;
+      document.getElementById('msName').value = ms.name;
+      document.getElementById('msDate').value = ms.date || '';
+      document.getElementById('msStatus').value = ms.status || 'pending';
+      document.getElementById('msDescription').value = ms.description || '';
+    } else {
+      document.getElementById('msId').value = '';
+      document.getElementById('msDate').value = new Date().toISOString().slice(0, 10);
+    }
+    this.openModal('milestoneModal');
+  }
+
+  editMilestone(id) {
+    const ms = this.project.milestones.find(m => m.id === id);
+    if (ms) this.openMilestoneModal(ms);
+  }
+
+  handleMilestoneSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('msId').value || ('ms_' + Date.now());
+    const data = {
+      id,
+      name: document.getElementById('msName').value.trim(),
+      date: document.getElementById('msDate').value,
+      status: document.getElementById('msStatus').value,
+      description: document.getElementById('msDescription').value.trim()
+    };
+
+    const idx = this.project.milestones.findIndex(m => m.id === id);
+    if (idx >= 0) {
+      this.project.milestones[idx] = data;
+    } else {
+      this.project.milestones.push(data);
+    }
+
+    this.closeModal('milestoneModal');
+    this.renderTasksUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('マイルストーンを保存しました', 'success');
+  }
+  // Risk CRUD
+  openRiskModal(r = null) {
+    document.getElementById('riskForm').reset();
+    if (r) {
+      document.getElementById('riskModalTitle').innerText = '懸念・リスクの編集';
+      document.getElementById('riskId').value = r.id;
+      document.getElementById('riskTitle').value = r.title;
+      document.getElementById('riskProbability').value = r.probability || 3;
+      document.getElementById('riskImpact').value = r.impact || 3;
+      document.getElementById('riskProbVal').innerText = r.probability || 3;
+      document.getElementById('riskImpactVal').innerText = r.impact || 3;
+      document.getElementById('riskResponse').value = r.responseStrategy || '';
+      document.getElementById('riskOwner').value = r.owner || '';
+      document.getElementById('riskStatus').value = r.status || 'open';
+    } else {
+      document.getElementById('riskModalTitle').innerText = '懸念・リスクの登録';
+      document.getElementById('riskId').value = '';
+      document.getElementById('riskProbVal').innerText = '3';
+      document.getElementById('riskImpactVal').innerText = '3';
+    }
+    this.updateRiskScoreCalc();
+    this.openModal('riskModal');
+  }
+
+  editRisk(id) {
+    const r = this.project.risks.find(x => x.id === id);
+    if (r) this.openRiskModal(r);
+  }
+
+  updateRiskScoreCalc() {
+    const p = Number(document.getElementById('riskProbability').value) || 1;
+    const i = Number(document.getElementById('riskImpact').value) || 1;
+    document.getElementById('riskScoreCalculated').innerText = p * i;
+  }
+
+  handleRiskSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('riskId').value || ('risk_' + Date.now());
+    const data = {
+      id,
+      title: document.getElementById('riskTitle').value.trim(),
+      probability: Number(document.getElementById('riskProbability').value),
+      impact: Number(document.getElementById('riskImpact').value),
+      responseStrategy: document.getElementById('riskResponse').value.trim(),
+      owner: document.getElementById('riskOwner').value.trim(),
+      status: document.getElementById('riskStatus').value
+    };
+
+    const idx = this.project.risks.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      this.project.risks[idx] = data;
+    } else {
+      this.project.risks.push(data);
+    }
+
+    this.closeModal('riskModal');
+    this.renderRisksAndIssuesUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('懸念・リスクを保存しました', 'success');
+  }
+
+  // Issue CRUD
+  openIssueModal(iss = null) {
+    document.getElementById('issueForm').reset();
+    if (iss) {
+      document.getElementById('issueModalTitle').innerText = '発生中課題の編集';
+      document.getElementById('issueId').value = iss.id;
+      document.getElementById('issueTitle').value = iss.title;
+      document.getElementById('issueSeverity').value = iss.severity || 'high';
+      document.getElementById('issueDueDate').value = iss.dueDate || '';
+      document.getElementById('issueOwner').value = iss.owner || '';
+      document.getElementById('issueStatus').value = iss.status || 'open';
+      document.getElementById('issueResolution').value = iss.resolution || '';
+    } else {
+      document.getElementById('issueModalTitle').innerText = '発生中課題の登録';
+      document.getElementById('issueId').value = '';
+      document.getElementById('issueDueDate').value = new Date().toISOString().slice(0, 10);
+    }
+    this.openModal('issueModal');
+  }
+
+  editIssue(id) {
+    const iss = this.project.issues.find(x => x.id === id);
+    if (iss) this.openIssueModal(iss);
+  }
+
+  handleIssueSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('issueId').value || ('issue_' + Date.now());
+    const data = {
+      id,
+      title: document.getElementById('issueTitle').value.trim(),
+      severity: document.getElementById('issueSeverity').value,
+      dueDate: document.getElementById('issueDueDate').value,
+      owner: document.getElementById('issueOwner').value.trim(),
+      status: document.getElementById('issueStatus').value,
+      resolution: document.getElementById('issueResolution').value.trim()
+    };
+
+    const idx = this.project.issues.findIndex(i => i.id === id);
+    if (idx >= 0) {
+      this.project.issues[idx] = data;
+    } else {
+      this.project.issues.push(data);
+    }
+
+    this.closeModal('issueModal');
+    this.renderRisksAndIssuesUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('発生課題を保存しました', 'success');
+  }
+
+  // Decision CRUD
+  openDecisionModal(d = null) {
+    document.getElementById('decisionForm').reset();
+    if (d) {
+      document.getElementById('decisionModalTitle').innerText = '決定事項の編集';
+      document.getElementById('decId').value = d.id;
+      document.getElementById('decDate').value = d.date || '';
+      document.getElementById('decMaker').value = d.decisionMaker || '';
+      document.getElementById('decTopic').value = d.topic || '';
+      document.getElementById('decDecision').value = d.decision || '';
+      document.getElementById('decReason').value = d.reason || '';
+      document.getElementById('decImpact').value = d.impact || '';
+    } else {
+      document.getElementById('decisionModalTitle').innerText = '決定事項の記録';
+      document.getElementById('decId').value = '';
+      document.getElementById('decDate').value = new Date().toISOString().slice(0, 10);
+    }
+    this.openModal('decisionModal');
+  }
+
+  editDecision(id) {
+    const d = this.project.decisions.find(x => x.id === id);
+    if (d) this.openDecisionModal(d);
+  }
+
+  deleteDecision(id) {
+    this.confirmDialog('決定記録の削除', 'この決定記録を削除しますか？', () => {
+      this.project.decisions = this.project.decisions.filter(x => x.id !== id);
+      this.renderDecisionsUI();
+      this.renderOverview();
+      this.triggerAutoSave();
+    });
+  }
+
+  handleDecisionSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('decId').value || ('dec_' + Date.now());
+    const data = {
+      id,
+      date: document.getElementById('decDate').value,
+      decisionMaker: document.getElementById('decMaker').value.trim(),
+      topic: document.getElementById('decTopic').value.trim(),
+      decision: document.getElementById('decDecision').value.trim(),
+      reason: document.getElementById('decReason').value.trim(),
+      impact: document.getElementById('decImpact').value.trim()
+    };
+
+    const idx = this.project.decisions.findIndex(d => d.id === id);
+    if (idx >= 0) {
+      this.project.decisions[idx] = data;
+    } else {
+      this.project.decisions.push(data);
+    }
+
+    this.closeModal('decisionModal');
+    this.renderDecisionsUI();
+    this.renderOverview();
+    this.triggerAutoSave();
+    this.showToast('決定事項を記録しました', 'success');
+  }
+
+  // Deliverable CRUD
+  openDeliverableModal(deliv = null) {
+    document.getElementById('deliverableForm').reset();
+    if (deliv) {
+      document.getElementById('deliverableModalTitle').innerText = '成果物の編集';
+      document.getElementById('delivId').value = deliv.id;
+      document.getElementById('delivName').value = deliv.name;
+      document.getElementById('delivDueDate').value = deliv.dueDate || '';
+      document.getElementById('delivStatus').value = deliv.status || 'not_started';
+      document.getElementById('delivAcceptance').value = deliv.acceptanceCriteria || '';
+      document.getElementById('delivOwner').value = deliv.owner || '';
+    } else {
+      document.getElementById('deliverableModalTitle').innerText = '成果物の追加';
+      document.getElementById('delivId').value = '';
+    }
+    this.openModal('deliverableModal');
+  }
+
+  editDeliverable(id) {
+    const d = this.project.deliverables.find(x => x.id === id);
+    if (d) this.openDeliverableModal(d);
+  }
+
+  deleteDeliverable(id) {
+    this.confirmDialog('成果物の削除', 'この成果物レコードを削除しますか？', () => {
+      this.project.deliverables = this.project.deliverables.filter(x => x.id !== id);
+      this.renderDeliverablesUI();
+      this.triggerAutoSave();
+    });
+  }
+
+  handleDeliverableSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('delivId').value || ('deliv_' + Date.now());
+    const data = {
+      id,
+      name: document.getElementById('delivName').value.trim(),
+      dueDate: document.getElementById('delivDueDate').value,
+      status: document.getElementById('delivStatus').value,
+      acceptanceCriteria: document.getElementById('delivAcceptance').value.trim(),
+      owner: document.getElementById('delivOwner').value.trim()
+    };
+
+    const idx = this.project.deliverables.findIndex(d => d.id === id);
+    if (idx >= 0) {
+      this.project.deliverables[idx] = data;
+    } else {
+      this.project.deliverables.push(data);
+    }
+
+    this.closeModal('deliverableModal');
+    this.renderDeliverablesUI();
+    this.triggerAutoSave();
+    this.showToast('成果物を保存しました', 'success');
+  }
+  /* ------------------- JSON EXPORT & IMPORT ------------------- */
+  exportProjectJson() {
+    this.project.metadata.exportedAt = new Date().toISOString();
+    const cleanName = (this.project.metadata.projectName || 'プロジェクト')
+      .replace(/[\\/:*?"<>| ]/g, '_');
+    const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `${cleanName}_${ymd}.json`;
+
+    const jsonStr = JSON.stringify(this.project, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Auto-create snapshot upon export for generation tracking
+    this.storage.saveSnapshot(this.project, `JSONエクスポート世代: ${filename}`);
+    this.showToast(`「${filename}」を書き出しました`, 'success');
+  }
+
+  async handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let imported;
+      try {
+        imported = JSON.parse(text);
+      } catch (err) {
+        throw new Error('選択されたファイルは正しいJSON形式ではありません。');
+      }
+
+      // Schema verification
+      if (!imported || typeof imported !== 'object') {
+        throw new Error('JSONデータが不正です。');
+      }
+      if (!imported.schemaVersion) {
+        throw new Error('未対応または破損したプロジェクトファイルです (schemaVersionが見つかりません)。');
+      }
+      if (!imported.metadata || !imported.charter) {
+        throw new Error('必須のプロジェクト要素 (metadata, charter) が不足しています。');
+      }
+
+      this.confirmDialog('プロジェクトの上書きインポート', `ファイル「${file.name}」を読み込みます。現在の作業データは置き換えられますがよろしいですか？`, async () => {
+        this.project = imported;
+        await this.storage.saveCurrentProject(this.project);
+        await this.storage.saveSnapshot(this.project, `JSONインポート世代: ${file.name}`);
+        this.renderAll();
+        this.switchTab('overview');
+        this.showToast('プロジェクトファイルを読み込みました', 'success');
+      });
+
+    } catch (err) {
+      this.confirmDialog('ファイル読み込みエラー', err.message, null, false);
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  /* ------------------- SNAPSHOTS & GENERATIONS ------------------- */
+  async openSnapshotsModal() {
+    await this.renderSnapshotsList();
+    this.openModal('snapshotsModal');
+  }
+
+  async renderSnapshotsList() {
+    const list = await this.storage.getSnapshots();
+    const container = document.getElementById('snapshotsListContainer');
+    if (list.length === 0) {
+      container.innerHTML = '<p class="text-slate-400 py-4 text-center">保存世代はまだありません</p>';
+      return;
+    }
+
+    container.innerHTML = list.map(snap => `
+      <div class="p-3 bg-white border border-slate-200 rounded-lg flex items-center justify-between hover:bg-slate-50 transition">
+        <div>
+          <div class="font-bold text-slate-800">${escapeHtml(snap.memo || snap.projectName)}</div>
+          <div class="text-[10px] text-slate-400 font-mono">${new Date(snap.createdAt).toLocaleString('ja-JP')}</div>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="window.app.restoreSnapshot('${snap.snapshotId}')" class="px-2.5 py-1 bg-gov-600 hover:bg-gov-500 text-white rounded text-[11px] font-medium shadow-sm">
+            この状態を復元
+          </button>
+          <button onclick="window.app.deleteSnapshot('${snap.snapshotId}')" class="p-1 text-slate-400 hover:text-rose-600">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async createManualSnapshot() {
+    const name = prompt('保存世代のメモ（例: 第2回検討会前版）を入力してください:', '手動保存スナップショット');
+    if (name === null) return;
+    await this.storage.saveSnapshot(this.project, name.trim());
+    await this.renderSnapshotsList();
+    this.showToast('現在の状態を保存世代として記録しました', 'success');
+  }
+
+  async restoreSnapshot(snapshotId) {
+    const list = await this.storage.getSnapshots();
+    const target = list.find(s => s.snapshotId === snapshotId);
+    if (!target) return;
+
+    this.confirmDialog('保存世代の復元', `「${target.memo}」(${new Date(target.createdAt).toLocaleString('ja-JP')}) の状態を復元しますか？`, async () => {
+      this.project = target.projectData;
+      await this.storage.saveCurrentProject(this.project);
+      this.renderAll();
+      this.closeModal('snapshotsModal');
+      this.showToast('指定した世代のプロジェクトを復元しました', 'success');
+    });
+  }
+
+  async deleteSnapshot(snapshotId) {
+    await this.storage.deleteSnapshot(snapshotId);
+    await this.renderSnapshotsList();
+    this.showToast('世代記録を削除しました', 'info');
+  }
+
+  /* ------------------- SETTINGS & PRIVACY ------------------- */
+  async openSettingsModal() {
+    const usage = await this.storage.getStorageEstimate();
+    document.getElementById('storageUsageInfo').innerText = usage;
+    this.openModal('settingsModal');
+  }
+
+  confirmClearAllData() {
+    this.confirmDialog('全データの完全消去', 'ブラウザ内に保存されたプロジェクトとすべての世代履歴を完全に削除します。元に戻すことはできません。よろしいですか？', async () => {
+      await this.storage.clearAll();
+      this.project = createEmptyProject();
+      this.renderAll();
+      this.closeModal('settingsModal');
+      this.showToast('端末のデータを初期化しました', 'info');
+    });
+  }
+
+  /* ------------------- TIPS SYSTEM ------------------- */
+  openQuickTips(key) {
+    const data = PM_TIPS[key] || {
+      title: "プロジェクトマネジメントのヒント",
+      pmbokTerm: "Project Management Standard",
+      explanation: "業務の可視化と合意形成を支援する指針です。",
+      practicalMeaning: "後からの手戻りを防ぐために記録を残します。",
+      example: "普通の言葉で整理していくことが成功への近道です。"
+    };
+
+    document.getElementById('tipsModalTitle').innerText = data.title;
+    document.getElementById('tipsModalBody').innerHTML = `
+      <div class="bg-gov-50 p-3 rounded-lg border border-gov-200">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-gov-700 block">PMBOK正式用語 / 専門概念</span>
+        <h4 class="font-bold text-gov-900 text-sm mt-0.5">${escapeHtml(data.pmbokTerm)}</h4>
+      </div>
+
+      <div>
+        <h5 class="font-bold text-slate-800 text-xs mb-1">【やさしい解説】</h5>
+        <p class="text-slate-600 leading-relaxed">${escapeHtml(data.explanation)}</p>
+      </div>
+
+      <div class="bg-amber-50/70 p-3 rounded-lg border border-amber-200">
+        <h5 class="font-bold text-amber-950 text-xs mb-1">【自治体実務での考え方・活用法】</h5>
+        <p class="text-amber-900 leading-relaxed">${escapeHtml(data.practicalMeaning)}</p>
+      </div>
+
+      <div>
+        <h5 class="font-bold text-slate-800 text-xs mb-1">【具体的な記入例】</h5>
+        <p class="bg-slate-100 p-2.5 rounded border border-slate-200 font-mono text-[11px] text-slate-700">${escapeHtml(data.example)}</p>
+      </div>
+    `;
+    this.openModal('tipsModal');
+  }
+
+  openItemTips(itemKey) {
+    this.openQuickTips(itemKey);
+  }
+
+  /* ------------------- DIALOGS & TOASTS ------------------- */
+  confirmDialog(title, message, onOk = null, showCancel = true) {
+    const modal = document.getElementById('confirmDialog');
+    document.getElementById('confirmTitle').innerText = title;
+    document.getElementById('confirmMessage').innerText = message;
+    const btnCancel = document.getElementById('confirmBtnCancel');
+    const btnOk = document.getElementById('confirmBtnOk');
+
+    btnCancel.style.display = showCancel ? 'inline-block' : 'none';
+
+    btnCancel.onclick = () => modal.classList.add('hidden');
+    btnOk.onclick = () => {
+      modal.classList.add('hidden');
+      if (typeof onOk === 'function') onOk();
+    };
+
+    modal.classList.remove('hidden');
+  }
+
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    const bgClass = {
+      success: 'bg-emerald-800 text-white border-emerald-700',
+      info: 'bg-slate-900 text-white border-slate-800',
+      warning: 'bg-amber-700 text-white border-amber-600',
+      error: 'bg-rose-700 text-white border-rose-600'
+    }[type] || 'bg-slate-900 text-white';
+
+    toast.className = `${bgClass} pointer-events-auto px-4 py-2.5 rounded-lg shadow-lg border text-xs flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0`;
+    toast.innerHTML = `<span>●</span><span>${escapeHtml(message)}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.remove('translate-y-2', 'opacity-0');
+    }, 10);
+
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'translate-y-2');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+}
+
+// Utility HTML escape
+function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str ?? '');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Global initialization
+window.onload = function() {
+  window.app = new ProjectApp();
+  window.app.init();
+};
+</script>
+</body>
+</html>

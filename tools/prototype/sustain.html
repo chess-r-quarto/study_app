@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サステナブル経営戦略 総合評価シート | Sustainable Strategy Evaluator</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            // Lichess Dark Palette
+            licDarkBg: '#161512',
+            licDarkCard: '#262421',
+            licDarkCardHover: '#302e2b',
+            licDarkBorder: '#363431',
+            licDarkBorderStrong: '#484541',
+            licDarkText: '#c4c3be',
+            licDarkMuted: '#8a8882',
+            licDarkAccent: '#629924',
+            licDarkAccentHover: '#75b32c',
+
+            // Lichess Light Palette
+            licLightBg: '#edebe9',
+            licLightCard: '#ffffff',
+            licLightCardHover: '#f7f6f5',
+            licLightBorder: '#d8d6d2',
+            licLightBorderStrong: '#bab7b0',
+            licLightText: '#2d2b28',
+            licLightMuted: '#6e6a64',
+            licLightAccent: '#52801e',
+            licLightAccentHover: '#629924',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: #161512;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #363431;
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #484541;
+    }
+    ::-webkit-scrollbar-track {
+      background: #edebe9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #bab7b0;
+      border-radius: 4px;
+    }
+
+    /* Print & A4 Formatting Rules */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm 12mm 10mm;
+      }
+      body {
+        background-color: #ffffff !important;
+        color: #111111 !important;
+        font-size: 9.5pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .a4-page {
+        page-break-after: always;
+        break-after: page;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .a4-page:last-child {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+      .print-card {
+        border: 1px solid #777777 !important;
+        background-color: #ffffff !important;
+        color: #111111 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .print-accent-header {
+        background-color: #f0f0f0 !important;
+        color: #000000 !important;
+        border-bottom: 1px solid #777777 !important;
+      }
+    }
+    .print-only {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-licLightBg text-licLightText dark:bg-licDarkBg dark:text-licDarkText min-h-screen flex flex-col selection:bg-licDarkAccent selection:text-white">
+
+  <!-- Toast Notification Bar -->
+  <div id="toast" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-120%] opacity-0 pointer-events-none px-4 py-3 rounded border text-sm font-medium shadow-lg max-w-md"></div>
+
+  <!-- Custom Confirmation Modal (No window.confirm or alert) -->
+  <div id="custom-modal" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-6 max-w-md w-full shadow-2xl space-y-4">
+      <h3 id="modal-title" class="text-base font-bold">確認</h3>
+      <p id="modal-desc" class="text-sm text-licLightMuted dark:text-licDarkMuted leading-relaxed"></p>
+      <div class="flex justify-end space-x-3 pt-2">
+        <button id="modal-cancel-btn" class="px-4 py-2 text-xs font-semibold rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover transition-colors">キャンセル</button>
+        <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-semibold rounded bg-licLightAccent dark:bg-licDarkAccent text-white hover:opacity-90 transition-opacity">実行</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="no-print sticky top-0 z-40 bg-licLightCard/95 dark:bg-licDarkCard/95 backdrop-blur border-b border-licLightBorder dark:border-licDarkBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Branding -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded bg-licLightAccent dark:bg-licDarkAccent text-white flex items-center justify-center font-bold text-sm tracking-wider">
+          OU
+        </div>
+        <div>
+          <h1 class="text-base font-bold leading-tight">サステナブル経営戦略 総合評価シート</h1>
+          <p class="text-xs text-licLightMuted dark:text-licDarkMuted">The Open University & Explorer Labs 実践フレームワーク体系</p>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <button id="theme-toggle-btn" class="px-3 py-1.5 rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover flex items-center space-x-1.5 transition-colors" title="テーマ切り替え">
+          <svg class="w-3.5 h-3.5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <svg class="w-3.5 h-3.5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <span id="theme-label">ダーク表示</span>
+        </button>
+
+        <button id="sample-btn" class="px-3 py-1.5 rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover transition-colors font-medium">
+          サンプル読込
+        </button>
+
+        <button id="export-json-btn" class="px-3 py-1.5 rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover transition-colors font-medium">
+          JSON書出
+        </button>
+
+        <label class="px-3 py-1.5 rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover transition-colors font-medium cursor-pointer">
+          JSON読込
+          <input type="file" id="import-json-file" accept=".json" class="hidden">
+        </label>
+
+        <button id="print-btn" class="px-3 py-1.5 rounded bg-licLightAccent dark:bg-licDarkAccent text-white hover:opacity-90 font-medium transition-opacity flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>A4印刷 / PDF保存</span>
+        </button>
+
+        <button id="reset-btn" class="px-2.5 py-1.5 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors" title="全データを初期化">
+          リセット
+        </button>
+      </div>
+    </div>
+
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto space-x-1 border-t border-licLightBorder dark:border-licDarkBorder py-1.5 scrollbar-thin">
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 active-tab" data-tab="tab-overview">
+        <span>01. コンセプト & SDGs</span>
+      </button>
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 text-licLightMuted dark:text-licDarkMuted hover:text-licLightText dark:hover:text-licDarkText" data-tab="tab-4p-ambition">
+        <span>02. 4Pモデル & 野心マトリックス</span>
+      </button>
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 text-licLightMuted dark:text-licDarkMuted hover:text-licLightText dark:hover:text-licDarkText" data-tab="tab-system">
+        <span>03. システム思考 & HMW</span>
+      </button>
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 text-licLightMuted dark:text-licDarkMuted hover:text-licLightText dark:hover:text-licDarkText" data-tab="tab-vps">
+        <span>04. 4P価値提案 & KPI</span>
+      </button>
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 text-licLightMuted dark:text-licDarkMuted hover:text-licLightText dark:hover:text-licDarkText" data-tab="tab-tlbmc">
+        <span>05. 三層ビジネスモデル (TLBMC)</span>
+      </button>
+      <button class="tab-btn px-3 py-2 rounded text-xs font-semibold whitespace-nowrap transition-colors flex items-center space-x-1.5 text-licLightMuted dark:text-licDarkMuted hover:text-licLightText dark:hover:text-licDarkText" data-tab="tab-summary">
+        <span>06. A4総合レポート出力</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+    <section id="tab-overview" class="tab-content block space-y-6">
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">コース1 / タスク1: サステナビリティ・コンセプトカード</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">人類が直面する壮大な課題（Grand Challenges）とSDGs目標を起点に、解決すべき課題領域を定義します。</p>
+          </div>
+          <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-licLightBorder dark:bg-licDarkBorder text-licLightMuted dark:text-licDarkMuted">TASK_01_CONCEPT</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold mb-1">事業 / コンセプト名 (Team & Concept Name)</label>
+              <input type="text" id="concept-name" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: LoopPack - 循環型リユース資材プラットフォーム">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold mb-1">対象組織 / 推進主体 (Organisation)</label>
+              <input type="text" id="concept-org" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: サステナブル・パッケージング共創コンソーシアム">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold mb-1">直面する壮大な課題 (Grand Challenge)</label>
+              <textarea id="concept-challenge" rows="3" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: プラスチック包装の大量破棄による海洋生態系破壊およびリニア型経済（採掘-製造-破棄）における資源枯渇危機"></textarea>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold mb-1">主要ステークホルダー (Key Stakeholders)</label>
+              <input type="text" id="concept-stakeholders" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 日用品メーカー, 物流企業, 小売事業者, 自治体, 一般消費者, 回収清掃業者">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold mb-1">解決策のコア概要 (Solution Overview)</label>
+              <textarea id="concept-solution" rows="3" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: RFIDタグを組み込んだ耐久型バイオベース輸送用コンテナと、業界横断型のデポジット・返却・洗浄トラッキングエコシステム"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold mb-1">実現可能性・チームの信頼性 (Credibility & Capability)</label>
+              <input type="text" id="concept-credibility" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 共同創業者のサプライチェーン15年実績と大学材料工学研究室との特許共同出願">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-licLightBorder dark:border-licDarkBorder">
+          <label class="block text-xs font-semibold mb-2">連携する国連SDGs目標 (SDGs Opportunity Mapping - 複数選択可)</label>
+          <div id="sdgs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
+            <!-- Dynamically injected via JS -->
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-licLightBorder dark:border-licDarkBorder grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold mb-1">アクションの要請 / 資金・資源調達 (Call to Action / Ask)</label>
+            <input type="text" id="concept-ask" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: パイロット実証実験（3社合同）の実施に向けたシード資金 3,000万円および自治体特区承認">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">想定投資回収・成果創出期間 (Horizon / Timeline)</label>
+            <input type="text" id="concept-timeline" class="w-full text-xs px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 実証期間 12ヶ月、全国拡大フェーズ 36ヶ月">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-4p-ambition" class="tab-content hidden space-y-6">
+      <!-- 4P Sustainable Innovation Model Priority Principle -->
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">持続可能なイノベーション 4Pモデル</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">検証の優先順位原則: People（社会的望ましさ） -> Planet（環境の必要性） -> Profit（経済的実行可能性） -> Progress（技術的実現可能性）</p>
+          </div>
+          <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-licLightBorder dark:bg-licDarkBorder text-licLightMuted dark:text-licDarkMuted">MODEL_4P</span>
+        </div>
+
+        <!-- 4P Priority Flow Visualizer -->
+        <div class="p-3 mb-5 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder">
+          <div class="flex flex-col md:flex-row items-center justify-between gap-2 text-xs">
+            <div class="p-3 rounded border border-amber-600/40 bg-amber-500/10 flex-1 w-full text-center">
+              <span class="font-mono-code font-bold text-amber-700 dark:text-amber-400 block mb-1">PHASE 1: PEOPLE</span>
+              <p class="font-semibold text-xs">社会的望ましさ (Social Desirability)</p>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-1">顧客・地域・従業員が本当に望んでいるか？</p>
+            </div>
+            <div class="text-licLightMuted dark:text-licDarkMuted font-bold">-></div>
+            <div class="p-3 rounded border border-emerald-600/40 bg-emerald-500/10 flex-1 w-full text-center">
+              <span class="font-mono-code font-bold text-emerald-700 dark:text-emerald-400 block mb-1">PHASE 2: PLANET</span>
+              <p class="font-semibold text-xs">環境の必要性 (Environmental Necessity)</p>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-1">生態系や地球資源の循環に資するか？</p>
+            </div>
+            <div class="text-licLightMuted dark:text-licDarkMuted font-bold">-></div>
+            <div class="p-3 rounded border border-blue-600/40 bg-blue-500/10 flex-1 w-full text-center">
+              <span class="font-mono-code font-bold text-blue-700 dark:text-blue-400 block mb-1">PHASE 3: PROFIT</span>
+              <p class="font-semibold text-xs">経済的実行可能性 (Economic Viability)</p>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-1">持続的に利益を生み、回収できるか？</p>
+            </div>
+            <div class="text-licLightMuted dark:text-licDarkMuted font-bold">-></div>
+            <div class="p-3 rounded border border-purple-600/40 bg-purple-500/10 flex-1 w-full text-center">
+              <span class="font-mono-code font-bold text-purple-700 dark:text-purple-400 block mb-1">PHASE 4: PROGRESS</span>
+              <p class="font-semibold text-xs">技術的実現可能性 (Technological Feasibility)</p>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-1">新技術やインフラを実装可能か？</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block font-semibold mb-1">People（社会的望ましさ）の検証方針</label>
+            <textarea id="val-people" rows="2" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 配送業者・店舗スタッフの返却オペレーション負荷を調査し、利便性を損なわない回収動線を設計。"></textarea>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Planet（環境の必要性）の検証方針</label>
+            <textarea id="val-planet" rows="2" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 容器の平均回転数50回以上でバージンプラスチック比CO2排出削減率78%を担保するLCAシミュレーション。"></textarea>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Profit（経済的実行可能性）の検証方針</label>
+            <textarea id="val-profit" rows="2" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: パッケージ従量課金＋デポジット管理費により、ユーザー企業の包装調達単価を従来の使い捨てと同等以下に抑制。"></textarea>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Progress（技術的実現可能性）の検証方針</label>
+            <textarea id="val-progress" rows="2" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 長距離パッシブRFIDリーダーとクラウド分散台帳を統合し、全自動で紛失率2%未満を達成する。"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">イノベーション野心マトリックス (Innovation Ambition Matrix)</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">縦軸: ビジネスモデル適合度（既存 vs 新規） / 横軸: 技術コンピテンシー（既存 vs 新規）から野心の立ち位置を選択します。</p>
+          </div>
+          <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-licLightBorder dark:bg-licDarkBorder text-licLightMuted dark:text-licDarkMuted">MATRIX_2x2</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Interactive 2x2 Quadrants -->
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div id="quad-disruptive" class="matrix-quad p-4 rounded border border-licLightBorder dark:border-licDarkBorder cursor-pointer transition-all hover:border-licLightAccent dark:hover:border-licDarkAccent" data-quad="破壊的 (Disruptive)">
+              <div class="flex items-center justify-between font-bold mb-1">
+                <span>破壊的 (Disruptive)</span>
+                <span class="quad-check hidden text-licLightAccent dark:text-licDarkAccent font-mono-code">[SELECTED]</span>
+              </div>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted">新ビジネスモデル x 既存技術</p>
+              <p class="text-[11px] mt-2">実証済みの技術を用いて、市場の商慣習や課金形態を根本的に変革する。</p>
+            </div>
+
+            <div id="quad-architectural" class="matrix-quad p-4 rounded border border-licLightBorder dark:border-licDarkBorder cursor-pointer transition-all hover:border-licLightAccent dark:hover:border-licDarkAccent" data-quad="建築的 (Architectural)">
+              <div class="flex items-center justify-between font-bold mb-1">
+                <span>建築的 (Architectural)</span>
+                <span class="quad-check hidden text-licLightAccent dark:text-licDarkAccent font-mono-code">[SELECTED]</span>
+              </div>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted">新ビジネスモデル x 新技術</p>
+              <p class="text-[11px] mt-2">先端研究開発と完全な新システムを融合し、新たな産業構造を創造する。</p>
+            </div>
+
+            <div id="quad-incremental" class="matrix-quad p-4 rounded border border-licLightBorder dark:border-licDarkBorder cursor-pointer transition-all hover:border-licLightAccent dark:hover:border-licDarkAccent" data-quad="漸進的 (Incremental)">
+              <div class="flex items-center justify-between font-bold mb-1">
+                <span>漸進的 (Incremental)</span>
+                <span class="quad-check hidden text-licLightAccent dark:text-licDarkAccent font-mono-code">[SELECTED]</span>
+              </div>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted">既存ビジネスモデル x 既存技術</p>
+              <p class="text-[11px] mt-2">現行製品・プロセスの効率化や資源消費削減の改善を積み重ねる。</p>
+            </div>
+
+            <div id="quad-radical" class="matrix-quad p-4 rounded border border-licLightBorder dark:border-licDarkBorder cursor-pointer transition-all hover:border-licLightAccent dark:hover:border-licDarkAccent" data-quad="急進的 (Radical)">
+              <div class="flex items-center justify-between font-bold mb-1">
+                <span>急進的 (Radical)</span>
+                <span class="quad-check hidden text-licLightAccent dark:text-licDarkAccent font-mono-code">[SELECTED]</span>
+              </div>
+              <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted">既存ビジネスモデル x 新技術</p>
+              <p class="text-[11px] mt-2">現行の取引関係を維持しつつ、革新的な材料・省エネ技術等を導入する。</p>
+            </div>
+          </div>
+
+          <!-- Quadrant details form -->
+          <div class="space-y-3 text-xs flex flex-col justify-between">
+            <div>
+              <label class="block font-semibold mb-1">選択されたイノベーション種別 (Selected Ambition Type)</label>
+              <input type="text" id="ambition-type" readonly class="w-full px-3 py-2 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder font-mono-code font-bold text-licLightAccent dark:text-licDarkAccent" value="破壊的 (Disruptive)">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">戦略的選定理由 (Rationale & Resource Allocation)</label>
+              <textarea id="ambition-rationale" rows="4" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 容器材料そのものは既存の堅牢ポリプロピレンを活用し技術リスクを抑えつつ、従量定額課金と回収エコシステムという新ビジネスモデルで市場を開拓するため。"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-system" class="tab-content hidden space-y-6">
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">コース2 / タスク2: システム思考・因果関係マップとレバレッジポイント</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">ステークホルダー（関係者）とノード（測定可能な要因）を区別し、正負の因果関係[+] / [-]と介入点（レバレッジポイント）を特定します。</p>
+          </div>
+          <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-licLightBorder dark:bg-licDarkBorder text-licLightMuted dark:text-licDarkMuted">SYSTEM_DYNAMICS</span>
+        </div>
+
+        <!-- Node & Stakeholder Distinction Guide -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder text-xs mb-4">
+          <div>
+            <span class="font-bold text-blue-600 dark:text-blue-400 font-mono-code">[STAKEHOLDER]</span> ステークホルダー
+            <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-0.5">意思決定に関わる個人または組織（例: 自治体、消費市場、物流業者）。</p>
+          </div>
+          <div>
+            <span class="font-bold text-amber-600 dark:text-amber-400 font-mono-code">[NODE_VARIABLE]</span> システムノード（変数）
+            <p class="text-[11px] text-licLightMuted dark:text-licDarkMuted mt-0.5">時間経過で増減・測定可能な要因（例: 廃棄処分費用、容器回収率、環境意識水準）。</p>
+          </div>
+        </div>
+
+        <!-- Causal Relationship Table -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider">因果関係ループ & レバレッジポイント一覧</h3>
+            <button id="add-causal-row-btn" class="px-2.5 py-1 text-xs rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover flex items-center space-x-1 transition-colors">
+              <span>+ 行を追加</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-licLightBorder dark:border-licDarkBorder rounded">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-licLightBg dark:bg-licDarkBg border-b border-licLightBorder dark:border-licDarkBorder font-semibold">
+                  <th class="p-2.5 w-1/4">原因ノード (Cause Node)</th>
+                  <th class="p-2.5 w-16 text-center">極性</th>
+                  <th class="p-2.5 w-1/4">結果ノード (Effect Node)</th>
+                  <th class="p-2.5 w-24 text-center">レバレッジ点?</th>
+                  <th class="p-2.5">因果関係の背景・介入メカニズム</th>
+                  <th class="p-2.5 w-12 text-center">削除</th>
+                </tr>
+              </thead>
+              <tbody id="causal-tbody" class="divide-y divide-licLightBorder dark:divide-licDarkBorder">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-5 border-t border-licLightBorder dark:border-licDarkBorder space-y-4">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider mb-1">「How Might We? (HMW: どうすれば〜できるか？)」ステートメント作成</h3>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">特定したレバレッジポイントを元に、定型フォーマットに落とし込みます: <span class="font-mono-code font-bold">どうすれば [達成したい行動] + [影響を与えたい対象] によって [理想的な成果] を実現できるだろうか？</span></p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold mb-1">1. 達成したい行動 (Action)</label>
+              <input type="text" id="hmw-action" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 回収インセンティブと集荷ネットワークを最適化し">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">2. 影響を与えたい対象 (Target Node)</label>
+              <input type="text" id="hmw-target" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 都市部一般消費者の返却行動">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">3. 理想的な成果 (Ideal Outcome)</label>
+              <input type="text" id="hmw-outcome" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 容器回収率95%以上とサプライチェーン全体のプラゴミ半減">
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder">
+            <label class="block text-[11px] font-mono-code font-bold text-licLightMuted dark:text-licDarkMuted mb-1">統合HMW問い文 (AUTO-GENERATED HMW STATEMENT)</label>
+            <p id="hmw-final-preview" class="text-xs sm:text-sm font-semibold leading-relaxed text-licLightAccent dark:text-licDarkAccent font-mono-code">
+              どうすれば、[回収インセンティブと集荷ネットワークを最適化し] + [都市部一般消費者の返却行動] によって、[容器回収率95%以上とサプライチェーン全体のプラゴミ半減] を実現できるだろうか？
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-vps" class="tab-content hidden space-y-6">
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">コース4 / タスク1: 4P持続可能価値提案キャンバス & 初期検証KPI</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">130+の価値タイプを4P（人・地球・利益・進歩）に割り当て、初期段階の検証KPIを設定します。</p>
+          </div>
+          <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-licLightBorder dark:bg-licDarkBorder text-licLightMuted dark:text-licDarkMuted">VALUE_CANVAS</span>
+        </div>
+
+        <!-- 4P Value Quadrants -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <!-- People -->
+          <div class="p-4 rounded border border-licLightBorder dark:border-licDarkBorder space-y-3 bg-licLightBg/40 dark:bg-licDarkBg/40">
+            <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-2">
+              <span class="font-bold text-amber-700 dark:text-amber-400 font-mono-code">PEOPLE（社会的望ましさの価値）</span>
+              <span class="text-[11px] text-licLightMuted dark:text-licDarkMuted">社会・ステークホルダー</span>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">提供する中核的価値タイプ (1〜3項目)</label>
+              <input type="text" id="vps-people-value" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 廃棄ストレスの軽減、環境配慮のステータス、コミュニティ信頼">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">初期検証KPI (社会的望ましさ)</label>
+              <input type="text" id="vps-people-kpi" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: パイロット参加意向率 80%以上、ユーザー継続利用率 90%">
+            </div>
+          </div>
+
+          <!-- Planet -->
+          <div class="p-4 rounded border border-licLightBorder dark:border-licDarkBorder space-y-3 bg-licLightBg/40 dark:bg-licDarkBg/40">
+            <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-2">
+              <span class="font-bold text-emerald-700 dark:text-emerald-400 font-mono-code">PLANET（環境の必要性の価値）</span>
+              <span class="text-[11px] text-licLightMuted dark:text-licDarkMuted">生態系・環境循環</span>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">提供する中核的価値タイプ (1〜3項目)</label>
+              <input type="text" id="vps-planet-value" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 資源循環性、バージンプラゼロ化、カーボンフットプリント削減">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">初期検証KPI (環境の必要性)</label>
+              <input type="text" id="vps-planet-kpi" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 1年間の容器循環率 95%、CO2総排出量削減 120トン/年">
+            </div>
+          </div>
+
+          <!-- Profit -->
+          <div class="p-4 rounded border border-licLightBorder dark:border-licDarkBorder space-y-3 bg-licLightBg/40 dark:bg-licDarkBg/40">
+            <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-2">
+              <span class="font-bold text-blue-700 dark:text-blue-400 font-mono-code">PROFIT（経済的実行可能性の価値）</span>
+              <span class="text-[11px] text-licLightMuted dark:text-licDarkMuted">収益・事業持続性</span>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">提供する中核的価値タイプ (1〜3項目)</label>
+              <input type="text" id="vps-profit-value" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 調達コストの削減、安定在庫供給、新規サステナブル顧客獲得">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">初期検証KPI (経済的実行可能性)</label>
+              <input type="text" id="vps-profit-kpi" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 1社あたり包装コスト 18%削減、デポジット回収損耗率 2%未満">
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div class="p-4 rounded border border-licLightBorder dark:border-licDarkBorder space-y-3 bg-licLightBg/40 dark:bg-licDarkBg/40">
+            <div class="flex items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-2">
+              <span class="font-bold text-purple-700 dark:text-purple-400 font-mono-code">PROGRESS（技術的実現可能性の価値）</span>
+              <span class="text-[11px] text-licLightMuted dark:text-licDarkMuted">イネーブリング技術・拡張性</span>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">提供する中核的価値タイプ (1〜3項目)</label>
+              <input type="text" id="vps-progress-value" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: 追跡透明性、標準化API連携、洗浄耐性マテリアル技術">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">初期検証KPI (技術的実現可能性)</label>
+              <input type="text" id="vps-progress-kpi" class="w-full px-3 py-2 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none" placeholder="例: RFIDスキャン読取精度 99.8%、100回洗浄後の耐久性保持">
+            </div>
+          </div>
+        </div>
+
+        <!-- Elevator Pitch / Value Proposition Statement Generator -->
+        <div class="mt-6 pt-5 border-t border-licLightBorder dark:border-licDarkBorder space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider">バリュー・プロポジション・ステートメント (Value Proposition Statement)</h3>
+              <p class="text-xs text-licLightMuted dark:text-licDarkMuted">主要ステークホルダーにコンセプトの真価を簡潔に説明するエレベーターピッチ。</p>
+            </div>
+            <button id="vps-generate-btn" class="px-3 py-1 text-xs rounded border border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover transition-colors font-medium">
+              自動生成を再適用
+            </button>
+          </div>
+
+          <textarea id="vps-statement" rows="3" class="w-full text-xs sm:text-sm px-3 py-2 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder focus:border-licLightAccent dark:focus:border-licDarkAccent focus:outline-none leading-relaxed font-mono-code"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-tlbmc" class="tab-content hidden space-y-6">
+      <div class="bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-licLightBorder dark:border-licDarkBorder pb-3 mb-4 gap-3">
+          <div>
+            <h2 class="text-base font-bold tracking-tight">コース4 / タスク2: 三層構造ビジネスモデル・キャンバス (TLBMC)</h2>
+            <p class="text-xs text-licLightMuted dark:text-licDarkMuted">Joyce & Paquin (2016) モデルに基づく経済・環境ライフサイクル・社会ステークホルダーの3層分析。</p>
+          </div>
+          <!-- Layer Switcher -->
+          <div class="flex rounded border border-licLightBorder dark:border-licDarkBorder p-0.5 bg-licLightBg dark:bg-licDarkBg text-xs">
+            <button class="tlbmc-subtab-btn px-2.5 py-1 rounded font-semibold transition-colors active-subtab" data-layer="layer-economic">1. 経済 (Economic)</button>
+            <button class="tlbmc-subtab-btn px-2.5 py-1 rounded font-semibold transition-colors text-licLightMuted dark:text-licDarkMuted" data-layer="layer-environmental">2. 環境 (Environmental)</button>
+            <button class="tlbmc-subtab-btn px-2.5 py-1 rounded font-semibold transition-colors text-licLightMuted dark:text-licDarkMuted" data-layer="layer-social">3. 社会 (Social)</button>
+          </div>
+        </div>
+
+        <!-- LAYER 1: Economic Business Model Canvas -->
+        <div id="layer-economic" class="tlbmc-layer-panel block space-y-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            <span class="text-xs font-bold uppercase tracking-wider">経済的BMC (Economic Standard BMC: 9 Blocks)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 text-xs">
+            <!-- Row 1: Key Partners -->
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">主要パートナー (Partners)</label>
+              <textarea id="tlbmc-eco-partners" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 容器製造メーカー、配送各社、洗浄プラント"></textarea>
+            </div>
+
+            <!-- Row 1: Key Activities & Resources (Col 2) -->
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">主要活動 (Activities)</label>
+                <textarea id="tlbmc-eco-activities" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: デポジット管理、容器回収洗浄、在庫差配"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">主要資源 (Resources)</label>
+                <textarea id="tlbmc-eco-resources" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 耐久容器ストック、RFID追跡システム"></textarea>
+              </div>
+            </div>
+
+            <!-- Row 1: Value Proposition (Col 3) -->
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder bg-blue-500/5 flex flex-col justify-between">
+              <label class="font-bold block mb-1 text-blue-600 dark:text-blue-400">価値提案 (Value Proposition)</label>
+              <textarea id="tlbmc-eco-vp" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 包装廃棄コストゼロ化と環境ブランディングの同時達成"></textarea>
+            </div>
+
+            <!-- Row 1: Customer Relationships & Channels (Col 4) -->
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">顧客との関係 (Relationships)</label>
+                <textarea id="tlbmc-eco-rel" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: SLA長期契約、APIデータ共有"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">チャネル (Channels)</label>
+                <textarea id="tlbmc-eco-chan" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: B2B直接商談、EC連携プラットフォーム"></textarea>
+              </div>
+            </div>
+
+            <!-- Row 1: Customer Segments (Col 5) -->
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">顧客セグメント (Segments)</label>
+              <textarea id="tlbmc-eco-seg" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 大手日用品メーカー、持続可能性重視のD2Cブランド"></textarea>
+            </div>
+          </div>
+
+          <!-- Bottom: Cost Structure & Revenue Streams -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs pt-1">
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1">コスト構造 (Cost Structure)</label>
+              <textarea id="tlbmc-eco-costs" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 容器製造イニシャル費、洗浄・検査オペレーション費、物流回収費"></textarea>
+            </div>
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1">収益の流れ (Revenue Streams)</label>
+              <textarea id="tlbmc-eco-rev" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 容器利用従量サブスクリプション、データインサイト提供料、紛失補償金"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="layer-environmental" class="tlbmc-layer-panel hidden space-y-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-xs font-bold uppercase tracking-wider">環境ライフサイクルBMC (Environmental Life Cycle Canvas: 9 Blocks)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 text-xs">
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">サプライ & アウトソーシング (Supplies & Outsourcing)</label>
+              <textarea id="tlbmc-env-supplies" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 認証バイオプラスチック原料調達、太陽光電力稼働の洗浄工場"></textarea>
+            </div>
+
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">生産 (Production)</label>
+                <textarea id="tlbmc-env-prod" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 射出成形時の端材100%再利用、低エネルギー金型"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">原材料 (Materials)</label>
+                <textarea id="tlbmc-env-materials" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 高耐久PP、食品安全リサイクル材、生分解性パッキン"></textarea>
+              </div>
+            </div>
+
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder bg-emerald-500/5 flex flex-col justify-between">
+              <label class="font-bold block mb-1 text-emerald-600 dark:text-emerald-400">機能的価値 (Functional Value)</label>
+              <textarea id="tlbmc-env-func" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 100回以上の再利用サイクルによる輸送耐性と衛生保証"></textarea>
+            </div>
+
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">使用段階 (Use Phase)</label>
+                <textarea id="tlbmc-env-use" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 破損ゼロのスタッキング設計、洗浄時の節水機構"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">流通・配送 (Distribution)</label>
+                <textarea id="tlbmc-env-dist" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: EVトラック共同配送、折りたたみによる空輸容積70%削減"></textarea>
+              </div>
+            </div>
+
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">寿命終了・廃棄 (End of Life)</label>
+              <textarea id="tlbmc-env-eol" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 寿命を迎えた容器の完全マテリアルリサイクル（次世代容器へ再粉砕）"></textarea>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs pt-1">
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1 text-red-600 dark:text-red-400">環境負荷・影響 (Environmental Impacts)</label>
+              <textarea id="tlbmc-env-impacts" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 回収・洗浄オペレーションに伴う水消費、初期成型エネルギー"></textarea>
+            </div>
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1 text-emerald-600 dark:text-emerald-400">環境便益 (Environmental Benefits)</label>
+              <textarea id="tlbmc-env-benefits" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 年間450トンの使い捨てプラ削減、Scope 3 CO2排出量 62%削減"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="layer-social" class="tlbmc-layer-panel hidden space-y-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="text-xs font-bold uppercase tracking-wider">社会ステークホルダーBMC (Social Stakeholder Canvas: 9 Blocks)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 text-xs">
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">地域コミュニティ (Local Communities)</label>
+              <textarea id="tlbmc-soc-comm" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 洗浄拠点での地域雇用創出、美化活動を通じた地域連携"></textarea>
+            </div>
+
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">ガバナンス (Governance)</label>
+                <textarea id="tlbmc-soc-gov" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 透明性高いLCA情報開示、第三者監査委員会"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">従業員 (Employees)</label>
+                <textarea id="tlbmc-soc-emp" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 安全衛生基準遵守、サーキュラーエコノミー研修"></textarea>
+              </div>
+            </div>
+
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder bg-amber-500/5 flex flex-col justify-between">
+              <label class="font-bold block mb-1 text-amber-600 dark:text-amber-400">社会的価値 (Social Value)</label>
+              <textarea id="tlbmc-soc-val" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 「ごみを生まない生活様式」への行動変容と連帯感の醸成"></textarea>
+            </div>
+
+            <div class="space-y-2.5 flex flex-col">
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">社会文化 (Societal Culture)</label>
+                <textarea id="tlbmc-soc-cult" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 使い捨てからリユースを誇る意識への規範シフト"></textarea>
+              </div>
+              <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex-1">
+                <label class="font-bold block mb-1">普及規模 (Scale of Outreach)</label>
+                <textarea id="tlbmc-soc-scale" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 首都圏主要5都市から全国150万世帯への波及"></textarea>
+              </div>
+            </div>
+
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder flex flex-col justify-between">
+              <label class="font-bold block mb-1">エンドユーザー (End User)</label>
+              <textarea id="tlbmc-soc-user" rows="4" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 日常生活の中で無理なく環境貢献できる共感型消費者"></textarea>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs pt-1">
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1 text-red-600 dark:text-red-400">社会的負の影響 (Social Impacts)</label>
+              <textarea id="tlbmc-soc-impacts" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 従来の使い捨て包装メーカーでの段階的事業転換負担"></textarea>
+            </div>
+            <div class="p-3 rounded border border-licLightBorder dark:border-licDarkBorder">
+              <label class="font-bold block mb-1 text-amber-600 dark:text-amber-400">社会的便益 (Social Benefits)</label>
+              <textarea id="tlbmc-soc-benefits" rows="2" class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs focus:outline-none resize-none" placeholder="例: 地域循環型モデルによる雇用拡大、消費者の環境意識向上"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-summary" class="tab-content hidden space-y-6">
+      <div class="no-print bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-bold">A4形式 総合戦略サマリー出力プレビュー</h2>
+          <p class="text-xs text-licLightMuted dark:text-licDarkMuted">入力された全フレームワーク（コンセプト、4P優先検証、システムHMW、4P価値・KPI、三層BMC）を統合して表示しています。</p>
+        </div>
+        <button onclick="window.print()" class="px-4 py-2 rounded bg-licLightAccent dark:bg-licDarkAccent text-white hover:opacity-90 text-xs font-semibold flex items-center space-x-1.5 transition-opacity">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>A4印刷 / PDF保存を実行</span>
+        </button>
+      </div>
+
+      <!-- Printable Document Container -->
+      <div id="print-container" class="space-y-6">
+        <!-- PAGE 1: Overview, 4P Priority, Ambition Matrix, & System Dynamics -->
+        <div class="a4-page print-card bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-6 sm:p-8 space-y-6 text-xs">
+          <!-- Document Header -->
+          <div class="border-b-2 border-licLightBorderStrong dark:border-licDarkBorderStrong pb-4 flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-mono-code uppercase tracking-wider text-licLightMuted dark:text-licDarkMuted">THE OPEN UNIVERSITY / EXPLORER LABS FRAMEWORK</span>
+              <h1 id="sum-concept-name" class="text-lg sm:text-xl font-bold mt-0.5">事業コンセプト名称</h1>
+              <p id="sum-concept-org" class="text-xs text-licLightMuted dark:text-licDarkMuted">推進組織 / コンソーシアム名</p>
+            </div>
+            <div class="text-right font-mono-code text-[11px] text-licLightMuted dark:text-licDarkMuted">
+              <div>REPORT_TYPE: SUSTAINABLE_EVAL</div>
+              <div id="sum-date">2026-09-23</div>
+            </div>
+          </div>
+
+          <!-- Section 1: Concept & Grand Challenge -->
+          <div class="space-y-2">
+            <h2 class="font-bold text-xs uppercase tracking-wider border-b border-licLightBorder dark:border-licDarkBorder pb-1">1. コンセプト定義 & 壮大な課題 (Grand Challenges)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span class="font-semibold block text-[11px] text-licLightMuted dark:text-licDarkMuted">直面する壮大な課題:</span>
+                <p id="sum-challenge" class="leading-relaxed mt-0.5 whitespace-pre-wrap"></p>
+              </div>
+              <div>
+                <span class="font-semibold block text-[11px] text-licLightMuted dark:text-licDarkMuted">ソリューション概要 & 信頼性:</span>
+                <p id="sum-solution" class="leading-relaxed mt-0.5 whitespace-pre-wrap"></p>
+                <p id="sum-credibility" class="mt-1 text-[11px] text-licLightMuted dark:text-licDarkMuted"></p>
+              </div>
+            </div>
+            <div class="pt-2">
+              <span class="font-semibold block text-[11px] text-licLightMuted dark:text-licDarkMuted mb-1">連携SDGs目標:</span>
+              <div id="sum-sdgs-badges" class="flex flex-wrap gap-1.5 font-mono-code text-[10px]"></div>
+            </div>
+          </div>
+
+          <!-- Section 2: 4P Priority Validation & Ambition Matrix -->
+          <div class="space-y-2 pt-2 border-t border-licLightBorder dark:border-licDarkBorder">
+            <h2 class="font-bold text-xs uppercase tracking-wider border-b border-licLightBorder dark:border-licDarkBorder pb-1">2. 4P検証優先原則 & イノベーション野心</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-[11px]">
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-amber-700 dark:text-amber-400">1. PEOPLE (望ましさ)</span>
+                <p id="sum-val-people" class="mt-1 whitespace-pre-wrap text-[10.5px]"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-emerald-700 dark:text-emerald-400">2. PLANET (必要性)</span>
+                <p id="sum-val-planet" class="mt-1 whitespace-pre-wrap text-[10.5px]"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-blue-700 dark:text-blue-400">3. PROFIT (実行可能性)</span>
+                <p id="sum-val-profit" class="mt-1 whitespace-pre-wrap text-[10.5px]"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-purple-700 dark:text-purple-400">4. PROGRESS (実現性)</span>
+                <p id="sum-val-progress" class="mt-1 whitespace-pre-wrap text-[10.5px]"></p>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder mt-2 flex flex-col sm:flex-row justify-between gap-2">
+              <div>
+                <span class="font-bold font-mono-code">野心タイプ: </span>
+                <span id="sum-ambition-type" class="font-bold text-licLightAccent dark:text-licDarkAccent"></span>
+              </div>
+              <div class="flex-1 sm:ml-4">
+                <span class="font-semibold text-licLightMuted dark:text-licDarkMuted">選定理由: </span>
+                <span id="sum-ambition-rationale"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: System Dynamics & HMW Statement -->
+          <div class="space-y-2 pt-2 border-t border-licLightBorder dark:border-licDarkBorder">
+            <h2 class="font-bold text-xs uppercase tracking-wider border-b border-licLightBorder dark:border-licDarkBorder pb-1">3. システム思考・レバレッジポイント & HMW課題文</h2>
+            <div class="p-3 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder">
+              <span class="font-mono-code text-[10px] font-bold block text-licLightMuted dark:text-licDarkMuted mb-0.5">FORMULATED HMW QUESTION:</span>
+              <p id="sum-hmw" class="font-semibold font-mono-code text-xs leading-relaxed text-licLightAccent dark:text-licDarkAccent"></p>
+            </div>
+
+            <div class="overflow-x-auto mt-2">
+              <table class="w-full text-left text-[11px] border-collapse border border-licLightBorder dark:border-licDarkBorder">
+                <thead class="bg-licLightBg dark:bg-licDarkBg">
+                  <tr class="border-b border-licLightBorder dark:border-licDarkBorder font-semibold">
+                    <th class="p-1.5">原因ノード</th>
+                    <th class="p-1.5 text-center">極性</th>
+                    <th class="p-1.5">結果ノード</th>
+                    <th class="p-1.5 text-center">レバレッジ点</th>
+                    <th class="p-1.5">介入メカニズム</th>
+                  </tr>
+                </thead>
+                <tbody id="sum-causal-tbody" class="divide-y divide-licLightBorder dark:divide-licDarkBorder"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="a4-page print-card bg-licLightCard dark:bg-licDarkCard border border-licLightBorder dark:border-licDarkBorder rounded p-6 sm:p-8 space-y-6 text-xs">
+          <!-- Section 4: 4P Value Proposition Canvas & Early KPIs -->
+          <div class="space-y-3">
+            <div class="border-b-2 border-licLightBorderStrong dark:border-licDarkBorderStrong pb-2 flex items-center justify-between">
+              <h2 class="font-bold text-xs uppercase tracking-wider">4. 4P価値提案キャンバス & 初期検証KPI</h2>
+              <span class="text-[10px] font-mono-code text-licLightMuted dark:text-licDarkMuted">VALUE_PROPOSITION_CANVAS</span>
+            </div>
+
+            <div class="p-3 rounded bg-licLightBg dark:bg-licDarkBg border border-licLightBorder dark:border-licDarkBorder font-mono-code">
+              <span class="text-[10px] font-bold block text-licLightMuted dark:text-licDarkMuted mb-0.5">ELEVATOR PITCH / VALUE STATEMENT:</span>
+              <p id="sum-vps-statement" class="text-xs leading-relaxed"></p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10.5px]">
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-amber-700 dark:text-amber-400">PEOPLE VALUE & KPI</span>
+                <p class="font-semibold mt-1" id="sum-vps-people-val"></p>
+                <p class="text-licLightMuted dark:text-licDarkMuted mt-0.5" id="sum-vps-people-kpi"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-emerald-700 dark:text-emerald-400">PLANET VALUE & KPI</span>
+                <p class="font-semibold mt-1" id="sum-vps-planet-val"></p>
+                <p class="text-licLightMuted dark:text-licDarkMuted mt-0.5" id="sum-vps-planet-kpi"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-blue-700 dark:text-blue-400">PROFIT VALUE & KPI</span>
+                <p class="font-semibold mt-1" id="sum-vps-profit-val"></p>
+                <p class="text-licLightMuted dark:text-licDarkMuted mt-0.5" id="sum-vps-profit-kpi"></p>
+              </div>
+              <div class="p-2 rounded border border-licLightBorder dark:border-licDarkBorder">
+                <span class="font-bold block font-mono-code text-purple-700 dark:text-purple-400">PROGRESS VALUE & KPI</span>
+                <p class="font-semibold mt-1" id="sum-vps-progress-val"></p>
+                <p class="text-licLightMuted dark:text-licDarkMuted mt-0.5" id="sum-vps-progress-kpi"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Tri-Layer Business Model Canvas Summary Tables -->
+          <div class="space-y-4 pt-2 border-t border-licLightBorder dark:border-licDarkBorder">
+            <div class="border-b border-licLightBorder dark:border-licDarkBorder pb-1 flex items-center justify-between">
+              <h2 class="font-bold text-xs uppercase tracking-wider">5. 三層構造ビジネスモデル・キャンバス (TLBMC) 統合俯瞰</h2>
+              <span class="text-[10px] font-mono-code text-licLightMuted dark:text-licDarkMuted">ECONOMIC / ENVIRONMENTAL / SOCIAL</span>
+            </div>
+
+            <!-- Economic BMC Grid -->
+            <div class="border border-licLightBorder dark:border-licDarkBorder rounded p-2.5 space-y-1.5">
+              <div class="font-bold text-[11px] text-blue-600 dark:text-blue-400 flex items-center space-x-1">
+                <span>[層 1: 経済的BMC]</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-[10px]">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">パートナー:</span><span id="sum-tlbmc-eco-partners"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">活動/資源:</span><span id="sum-tlbmc-eco-act-res"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-blue-600 dark:text-blue-400">価値提案:</span><span id="sum-tlbmc-eco-vp"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">関係/チャネル:</span><span id="sum-tlbmc-eco-rel-chan"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">セグメント:</span><span id="sum-tlbmc-eco-seg"></span></div>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 text-[10px] pt-0.5">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">コスト構造:</span><span id="sum-tlbmc-eco-costs"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">収益の流れ:</span><span id="sum-tlbmc-eco-rev"></span></div>
+              </div>
+            </div>
+
+            <!-- Environmental Lifecycle BMC Grid -->
+            <div class="border border-licLightBorder dark:border-licDarkBorder rounded p-2.5 space-y-1.5">
+              <div class="font-bold text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                <span>[層 2: 環境ライフサイクルBMC]</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-[10px]">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">サプライ調達:</span><span id="sum-tlbmc-env-supplies"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">生産/原材料:</span><span id="sum-tlbmc-env-prod-mat"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-emerald-600 dark:text-emerald-400">機能的価値:</span><span id="sum-tlbmc-env-func"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">使用/流通:</span><span id="sum-tlbmc-env-use-dist"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">寿命終了:</span><span id="sum-tlbmc-env-eol"></span></div>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 text-[10px] pt-0.5">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-red-500">環境負荷:</span><span id="sum-tlbmc-env-impacts"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-emerald-500">環境便益:</span><span id="sum-tlbmc-env-benefits"></span></div>
+              </div>
+            </div>
+
+            <!-- Social Stakeholder BMC Grid -->
+            <div class="border border-licLightBorder dark:border-licDarkBorder rounded p-2.5 space-y-1.5">
+              <div class="font-bold text-[11px] text-amber-600 dark:text-amber-400 flex items-center space-x-1">
+                <span>[層 3: 社会ステークホルダーBMC]</span>
+              </div>
+              <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-[10px]">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">地域社会:</span><span id="sum-tlbmc-soc-comm"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">統治/従業員:</span><span id="sum-tlbmc-soc-gov-emp"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-amber-600 dark:text-amber-400">社会的価値:</span><span id="sum-tlbmc-soc-val"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">文化/普及規模:</span><span id="sum-tlbmc-soc-cult-scale"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block">エンドユーザー:</span><span id="sum-tlbmc-soc-user"></span></div>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 text-[10px] pt-0.5">
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-red-500">社会的負の影響:</span><span id="sum-tlbmc-soc-impacts"></span></div>
+                <div class="p-1.5 rounded bg-licLightBg dark:bg-licDarkBg"><span class="font-semibold block text-amber-500">社会的便益:</span><span id="sum-tlbmc-soc-benefits"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer / Pitch Call to Action -->
+          <div class="pt-3 border-t border-licLightBorder dark:border-licDarkBorder flex flex-col sm:flex-row items-center justify-between text-[11px] text-licLightMuted dark:text-licDarkMuted gap-2">
+            <div>
+              <span class="font-bold text-licLightText dark:text-licDarkText">要求事項 (Ask): </span>
+              <span id="sum-ask"></span>
+            </div>
+            <div>
+              <span class="font-bold text-licLightText dark:text-licDarkText">タイムライン: </span>
+              <span id="sum-timeline"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="no-print mt-auto border-t border-licLightBorder dark:border-licDarkBorder py-4 bg-licLightCard dark:bg-licDarkCard text-center text-xs text-licLightMuted dark:text-licDarkMuted">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>The Open University / Explorer Labs - Sustainable Business Strategy Evaluation Environment</p>
+      <p class="font-mono-code text-[11px]">System Status: Ready | Lichess-Inspired UI</p>
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * Sustainable Strategy Evaluation Application
+     * Compliant with The Open University & Explorer Labs frameworks.
+     */
+
+    // SDG Metadata definition (17 Goals, No Emojis)
+    const SDGS_DATA = [
+      { id: 1, name: "貧困をなくそう" },
+      { id: 2, name: "飢餓をゼロに" },
+      { id: 3, name: "すべての人に健康と福祉を" },
+      { id: 4, name: "質の高い教育をみんなに" },
+      { id: 5, name: "ジェンダー平等を実現しよう" },
+      { id: 6, name: "安全な水とトイレを世界中に" },
+      { id: 7, name: "エネルギーをみんなにそしてクリーンに" },
+      { id: 8, name: "働きがいも経済成長も" },
+      { id: 9, name: "産業と技術革新の基盤をつくろう" },
+      { id: 10, name: "人や国の不平等をなくそう" },
+      { id: 11, name: "住み続けられるまちづくりを" },
+      { id: 12, name: "つくる責任 つかう責任" },
+      { id: 13, name: "気候変動に具体的な対策を" },
+      { id: 14, name: "海の豊かさを守ろう" },
+      { id: 15, name: "陸の豊かさも守ろう" },
+      { id: 16, name: "平和と公正をすべての人に" },
+      { id: 17, name: "パートナーシップで目標を達成しよう" }
+    ];
+
+    // Default Sample Data: Circular Packaging Platform (LoopLogix)
+    const SAMPLE_STATE = {
+      concept: {
+        name: "LoopPack - 循環型リユース資材プラットフォーム",
+        org: "持続可能包装推進コンソーシアム",
+        challenge: "EC・小売の急拡大に伴う使い捨てプラスチック資材の大量破棄と、リニア型サプライチェーン（採掘-製造-使い捨て）によるCO2排出および海洋汚染の加速。",
+        stakeholders: "日用品メーカー、EC通販事業者、配送物流会社、資材回収拠点、一般消費者、地方自治体",
+        solution: "高耐久バイオプラスチック製標準化コンテナとRFID分散管理システムを組み合わせ、業界横断型でシェア・回収・洗浄・再流通を行うクローズドループ・インフラ。",
+        credibility: "大手物流企業との12ヶ月共同PoC完了済（破損率0.8%維持）および東京大学材料工学研究室との共同特許出願中。",
+        sdgs: [9, 11, 12, 13, 17],
+        ask: "首都圏300店舗・10万人規模の実証拡大に向けたシード調達 4,500万円および自治体モデル事業採択",
+        timeline: "PoCフェーズ 9ヶ月、商用化 18ヶ月、全国展開 36ヶ月"
+      },
+      fourP: {
+        people: "返却の手間を最小化するためコンビニ受取・街頭ロッカー返却に対応し、デポジット還元で日常の生活習慣へ定着させる。",
+        planet: "容器の想定回転数50回以上により、1回あたりのGHG排出量を使い捨て段ボール比で74%削減する。",
+        profit: "利用企業は初期包装資材費を30%削減、デポジット管理費と容器利用料の従量課金でユニットエコノミクス黒字化を担保。",
+        progress: "長距離パッシブRFIDとAPI群を統合し、全自動で所在・洗浄履歴・耐用回数を追跡できる管理基盤を構築。"
+      },
+      ambition: {
+        type: "破壊的 (Disruptive)",
+        rationale: "実証済みのRFIDおよび成形技術（既存技術）を活用しつつ、資材を『購入・廃棄』から『従量利用・回収シェア』へとビジネスモデルを根本的に転換するため。"
+      },
+      system: {
+        causalRows: [
+          {
+            cause: "デポジット還元率の水準",
+            polarity: "[+]",
+            effect: "消費者の容器返却率",
+            isLeverage: true,
+            note: "還元インセンティブの適正化が返却の自発的行動を劇的に高める最重要介入ポイント。"
+          },
+          {
+            cause: "消費者の容器返却率",
+            polarity: "[+]",
+            effect: "再流通コンテナの回転効率",
+            isLeverage: false,
+            note: "返却率が高まることで洗浄・補修サイクルが短縮し、必要総在庫数を抑制できる。"
+          },
+          {
+            cause: "再流通コンテナの回転効率",
+            polarity: "[-]",
+            effect: "使い捨てプラ包装の総破棄量",
+            isLeverage: true,
+            note: "循環サイクルが高速化するほど、サプライチェーン全体のバージン資材需要が急減する。"
+          },
+          {
+            cause: "使い捨てプラ包装の総破棄量",
+            polarity: "[-]",
+            effect: "自治体の廃棄物処理コスト",
+            isLeverage: false,
+            note: "焼却・埋立負担の低減が地域財政と脱炭素目標達成に寄与する。"
+          }
+        ],
+        hmw: {
+          action: "デポジット還元インセンティブと街頭回収ネットワークを最適化し",
+          target: "都市部消費者の返却行動",
+          outcome: "容器回収率95%以上を達成し、使い捨て包装破棄ゼロの循環型配送を実現する"
+        }
+      },
+      vps: {
+        peopleValue: "廃棄ストレスの解消、環境貢献への即時リワード、生活のシンプル化",
+        peopleKpi: "サービス継続利用率 88%以上、回収NPS +42",
+        planetValue: "プラスチック消費半減、製品ライフサイクルCO2削減、資源の閉ループ維持",
+        planetKpi: "年間バージンプラ削減量 320トン、資材循環率 95%以上",
+        profitValue: "包装調達コストの安定化、ESG評価の向上による企業ブランド価値向上",
+        profitKpi: "顧客企業の包装コスト 22%削減、チャーンレート 1.5%未満",
+        progressValue: "所在追跡の完全透明化、サプライチェーンAPI標準化、洗浄耐久マテリアル",
+        progressKpi: "RFID自動読取精度 99.9%、コンテナ耐用洗浄回数 100回達成",
+        statement: "LoopPackは、配送資材の大量破棄に悩む小売・EC事業者と環境配慮を志向する消費者に対し、高耐久バイオコンテナとRFID循環インフラを提供することで、包装コストを22%削減しながら使い捨てプラ包装を95%削減し、誰もが無理なく循環経済に参加できる持続可能な配送標準を実現します。"
+      },
+      tlbmc: {
+        economic: {
+          partners: "大手宅配便各社、バイオプラ成形メーカー、主要コンビニチェーン",
+          activities: "コンテナ在庫管理、回収・洗浄拠点オペレーション、追跡クラウド保守",
+          resources: "共有コンテナ資産、独自RFIDトラッキング台帳、洗浄特許設備",
+          vp: "調達コストと廃棄物処理負担を同時に削減する次世代リユース包装インフラ",
+          rel: "B2B企業向けSLA管理、API自動発注連携、月次排出削減レポート提供",
+          chan: "大手ECモールへのシステム組込、流通企業への直接提案",
+          seg: "持続可能性を重視する日用品・アパレルEC企業、食品宅配事業者",
+          costs: "コンテナ初期製造費、洗浄・配送運行コスト、システム開発費",
+          rev: "容器1回あたりの利用従量課金、デポジット運用マージン、データAPI利用料"
+        },
+        environmental: {
+          supplies: "認証バイオベース樹脂サプライヤー、再エネ100%稼働の契約洗浄工場",
+          prod: "射出成形端材の完全リペレット化と低温度金型による省エネ生産",
+          materials: "食品安全基準適合の高耐久複合PP、植物由来バインダー",
+          func: "破損せず内容物を守り、100回以上の再利用を可能にする耐衝撃・防水性能",
+          use: "利用企業の既存自動梱包ラインへのそのまま投入可能なスタッキング設計",
+          dist: "返却コンテナの平坦折りたたみ構造による返送時積載容積75%圧縮",
+          eol: "100回使用後のマテリアルリサイクル保証（粉砕して二次製品部材へ）",
+          impacts: "初期製造時の樹脂エネルギー消費、回収時の個別輸送CO2排出",
+          benefits: "使い捨て段ボール・緩衝材の年間400トン削減、Scope3排出量62%削減"
+        },
+        social: {
+          comm: "洗浄センターにおける地域雇用の創出とシルバー人材センター連携",
+          gov: "マテリアルフローおよびLCAの第三者検証と年次インパクトレポートの開示",
+          emp: "梱包・運搬作業員の身体的負荷軽減（軽量設計と持ち手最適化）",
+          val: "消費者が日常の買い物を通じて自然に脱炭素に参加できる安心感と誇り",
+          cult: "「使い捨てが当たり前」から「大切に巡らせる」文化への社会的価値観シフト",
+          scale: "首都圏からスタートし、全国47都道府県の配送拠点への段階的展開",
+          user: "環境配慮に関心がありつつも過度な不便を望まない都市部消費者",
+          impacts: "既存の使い捨て段ボール製造事業者における需要減少と業態転換課題",
+          benefits: "ごみ集積所の混雑緩和、地域サーキュラーエコノミーのモデル形成"
+        }
+      }
+    };
+
+    // Active state clone
+    let appState = JSON.parse(JSON.stringify(SAMPLE_STATE));
+
+    /** Show lichess-styled toast notification */
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `fixed top-4 right-4 z-50 transform transition-all duration-300 px-4 py-3 rounded border text-xs font-semibold shadow-xl max-w-md ${
+        type === 'success'
+          ? 'bg-licLightAccent dark:bg-licDarkAccent text-white border-transparent'
+          : type === 'error'
+          ? 'bg-red-700 text-white border-transparent'
+          : 'bg-licLightCard dark:bg-licDarkCard text-licLightText dark:text-licDarkText border-licLightBorder dark:border-licDarkBorder'
+      }`;
+      toast.style.opacity = '1';
+      toast.style.pointerEvents = 'auto';
+      toast.style.transform = 'translateY(0)';
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.pointerEvents = 'none';
+        toast.style.transform = 'translateY(-120%)';
+      }, 3200);
+    }
+
+    /** Custom modal without alert/confirm */
+    function openModal({ title, desc, onConfirm }) {
+      const modal = document.getElementById('custom-modal');
+      const titleEl = document.getElementById('modal-title');
+      const descEl = document.getElementById('modal-desc');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      cancelBtn.onclick = cleanup;
+      confirmBtn.onclick = () => {
+        cleanup();
+        if (onConfirm) onConfirm();
+      };
+    }
+
+    function initTheme() {
+      const html = document.documentElement;
+      const themeBtn = document.getElementById('theme-toggle-btn');
+      const themeLabel = document.getElementById('theme-label');
+
+      // Check system or saved preference
+      const savedTheme = localStorage.getItem('theme_pref');
+      if (savedTheme === 'light') {
+        html.classList.remove('dark');
+        themeLabel.textContent = 'ダーク表示';
+      } else {
+        html.classList.add('dark');
+        themeLabel.textContent = 'ライト表示';
+      }
+
+      themeBtn.addEventListener('click', () => {
+        const isDark = html.classList.toggle('dark');
+        localStorage.setItem('theme_pref', isDark ? 'dark' : 'light');
+        themeLabel.textContent = isDark ? 'ライト表示' : 'ダーク表示';
+        showToast(isDark ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました');
+      });
+    }
+
+    function initTabs() {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+
+          tabBtns.forEach(b => {
+            b.classList.remove('active-tab', 'bg-licLightBg', 'dark:bg-licDarkBg', 'text-licLightText', 'dark:text-licDarkText');
+            b.classList.add('text-licLightMuted', 'dark:text-licDarkMuted');
+          });
+
+          btn.classList.add('active-tab', 'bg-licLightBg', 'dark:bg-licDarkBg', 'text-licLightText', 'dark:text-licDarkText');
+          btn.classList.remove('text-licLightMuted', 'dark:text-licDarkMuted');
+
+          tabContents.forEach(content => {
+            if (content.id === target) {
+              content.classList.remove('hidden');
+              content.classList.add('block');
+            } else {
+              content.classList.add('hidden');
+              content.classList.remove('block');
+            }
+          });
+
+          if (target === 'tab-summary') {
+            updateSummaryView();
+          }
+        });
+      });
+
+      // Subtabs for TLBMC
+      const subtabBtns = document.querySelectorAll('.tlbmc-subtab-btn');
+      const layerPanels = document.querySelectorAll('.tlbmc-layer-panel');
+
+      subtabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const layer = btn.getAttribute('data-layer');
+          subtabBtns.forEach(b => {
+            b.classList.remove('active-subtab', 'bg-licLightCard', 'dark:bg-licDarkCard', 'text-licLightText', 'dark:text-licDarkText');
+            b.classList.add('text-licLightMuted', 'dark:text-licDarkMuted');
+          });
+          btn.classList.add('active-subtab', 'bg-licLightCard', 'dark:bg-licDarkCard', 'text-licLightText', 'dark:text-licDarkText');
+          btn.classList.remove('text-licLightMuted', 'dark:text-licDarkMuted');
+
+          layerPanels.forEach(panel => {
+            if (panel.id === layer) {
+              panel.classList.remove('hidden');
+              panel.classList.add('block');
+            } else {
+              panel.classList.add('hidden');
+              panel.classList.remove('block');
+            }
+          });
+        });
+      });
+    }
+
+    function renderSdgsGrid() {
+      const grid = document.getElementById('sdgs-grid');
+      grid.innerHTML = '';
+
+      SDGS_DATA.forEach(sdg => {
+        const isChecked = appState.concept.sdgs.includes(sdg.id);
+        const item = document.createElement('label');
+        item.className = `p-2 rounded border cursor-pointer transition-all flex items-start space-x-2 select-none ${
+          isChecked
+            ? 'border-licLightAccent dark:border-licDarkAccent bg-licLightAccent/10 dark:bg-licDarkAccent/10 text-licLightText dark:text-licDarkText'
+            : 'border-licLightBorder dark:border-licDarkBorder hover:bg-licLightCardHover dark:hover:bg-licDarkCardHover text-licLightMuted dark:text-licDarkMuted'
+        }`;
+
+        item.innerHTML = `
+          <input type="checkbox" value="${sdg.id}" ${isChecked ? 'checked' : ''} class="mt-0.5 rounded text-licLightAccent dark:text-licDarkAccent focus:ring-0">
+          <span class="text-[11px] leading-tight">
+            <span class="font-mono-code font-bold">G${sdg.id}</span>. ${sdg.name}
+          </span>
+        `;
+
+        const checkbox = item.querySelector('input');
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            if (!appState.concept.sdgs.includes(sdg.id)) {
+              appState.concept.sdgs.push(sdg.id);
+            }
+          } else {
+            appState.concept.sdgs = appState.concept.sdgs.filter(id => id !== sdg.id);
+          }
+          renderSdgsGrid();
+          saveLocal();
+        });
+
+        grid.appendChild(item);
+      });
+    }
+
+    function initAmbitionMatrix() {
+      const quads = document.querySelectorAll('.matrix-quad');
+      const ambitionTypeInput = document.getElementById('ambition-type');
+
+      quads.forEach(quad => {
+        quad.addEventListener('click', () => {
+          const selectedType = quad.getAttribute('data-quad');
+          appState.ambition.type = selectedType;
+          ambitionTypeInput.value = selectedType;
+          updateMatrixUI();
+          saveLocal();
+        });
+      });
+    }
+
+    function updateMatrixUI() {
+      const quads = document.querySelectorAll('.matrix-quad');
+      quads.forEach(quad => {
+        const type = quad.getAttribute('data-quad');
+        const check = quad.querySelector('.quad-check');
+        if (type === appState.ambition.type) {
+          quad.classList.add('border-licLightAccent', 'dark:border-licDarkAccent', 'bg-licLightAccent/10', 'dark:bg-licDarkAccent/10');
+          check.classList.remove('hidden');
+        } else {
+          quad.classList.remove('border-licLightAccent', 'dark:border-licDarkAccent', 'bg-licLightAccent/10', 'dark:bg-licDarkAccent/10');
+          check.classList.add('hidden');
+        }
+      });
+      document.getElementById('ambition-type').value = appState.ambition.type;
+    }
+
+    function renderCausalTable() {
+      const tbody = document.getElementById('causal-tbody');
+      tbody.innerHTML = '';
+
+      appState.system.causalRows.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-licLightBorder dark:border-licDarkBorder';
+
+        tr.innerHTML = `
+          <td class="p-2">
+            <input type="text" value="${escapeHtml(row.cause)}" data-idx="${idx}" data-field="cause" class="w-full px-2 py-1 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder text-xs focus:outline-none">
+          </td>
+          <td class="p-2 text-center">
+            <button class="polarity-btn font-mono-code font-bold px-2 py-1 rounded border border-licLightBorder dark:border-licDarkBorder text-xs ${row.polarity === '[+]' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}" data-idx="${idx}">
+              ${row.polarity}
+            </button>
+          </td>
+          <td class="p-2">
+            <input type="text" value="${escapeHtml(row.effect)}" data-idx="${idx}" data-field="effect" class="w-full px-2 py-1 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder text-xs focus:outline-none">
+          </td>
+          <td class="p-2 text-center">
+            <input type="checkbox" ${row.isLeverage ? 'checked' : ''} data-idx="${idx}" data-field="isLeverage" class="rounded text-licLightAccent dark:text-licDarkAccent focus:ring-0">
+          </td>
+          <td class="p-2">
+            <input type="text" value="${escapeHtml(row.note || '')}" data-idx="${idx}" data-field="note" class="w-full px-2 py-1 rounded bg-transparent border border-licLightBorder dark:border-licDarkBorder text-xs focus:outline-none" placeholder="介入メカニズムのメモ">
+          </td>
+          <td class="p-2 text-center">
+            <button class="delete-causal-btn text-red-500 hover:text-red-700 font-mono-code text-xs px-1.5 py-0.5" data-idx="${idx}" title="削除">[X]</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      // Attach row event listeners
+      tbody.querySelectorAll('input[type="text"]').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = e.target.getAttribute('data-idx');
+          const field = e.target.getAttribute('data-field');
+          appState.system.causalRows[idx][field] = e.target.value;
+          saveLocal();
+        });
+      });
+
+      tbody.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const idx = e.target.getAttribute('data-idx');
+          appState.system.causalRows[idx].isLeverage = e.target.checked;
+          saveLocal();
+        });
+      });
+
+      tbody.querySelectorAll('.polarity-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = e.currentTarget.getAttribute('data-idx');
+          const cur = appState.system.causalRows[idx].polarity;
+          appState.system.causalRows[idx].polarity = cur === '[+]' ? '[-]' : '[+]';
+          renderCausalTable();
+          saveLocal();
+        });
+      });
+
+      tbody.querySelectorAll('.delete-causal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          appState.system.causalRows.splice(idx, 1);
+          renderCausalTable();
+          saveLocal();
+        });
+      });
+    }
+
+    function updateHmwStatement() {
+      const action = document.getElementById('hmw-action').value.trim();
+      const target = document.getElementById('hmw-target').value.trim();
+      const outcome = document.getElementById('hmw-outcome').value.trim();
+
+      appState.system.hmw.action = action;
+      appState.system.hmw.target = target;
+      appState.system.hmw.outcome = outcome;
+
+      const previewEl = document.getElementById('hmw-final-preview');
+      previewEl.textContent = `どうすれば、[${action || '達成したい行動'}] + [${target || '影響を与えたい対象'}] によって、[${outcome || '理想的な成果'}] を実現できるだろうか？`;
+      saveLocal();
+    }
+
+    function generateValuePropositionStatement() {
+      const cName = appState.concept.name || '当コンセプト';
+      const cProblem = appState.concept.challenge ? appState.concept.challenge.split('。')[0] : '課題';
+      const cSol = appState.concept.solution ? appState.concept.solution.split('。')[0] : 'ソリューション';
+      const pVal = appState.vps.planetValue || '環境循環価値';
+      const ecoVal = appState.vps.profitValue || '事業性改善';
+
+      const generated = `${cName}は、${cProblem}に対し、${cSol}を提供することで、${pVal}と${ecoVal}を同時に実現し、持続可能なシステム変革をもたらします。`;
+      document.getElementById('vps-statement').value = generated;
+      appState.vps.statement = generated;
+      saveLocal();
+      showToast('バリュー・プロポジション文を生成しました', 'success');
+    }
+
+    function bindInputs() {
+      // Concept
+      bindField('concept-name', ['concept', 'name']);
+      bindField('concept-org', ['concept', 'org']);
+      bindField('concept-challenge', ['concept', 'challenge']);
+      bindField('concept-stakeholders', ['concept', 'stakeholders']);
+      bindField('concept-solution', ['concept', 'solution']);
+      bindField('concept-credibility', ['concept', 'credibility']);
+      bindField('concept-ask', ['concept', 'ask']);
+      bindField('concept-timeline', ['concept', 'timeline']);
+
+      // 4P
+      bindField('val-people', ['fourP', 'people']);
+      bindField('val-planet', ['fourP', 'planet']);
+      bindField('val-profit', ['fourP', 'profit']);
+      bindField('val-progress', ['fourP', 'progress']);
+
+      // Ambition
+      bindField('ambition-rationale', ['ambition', 'rationale']);
+
+      // HMW
+      ['hmw-action', 'hmw-target', 'hmw-outcome'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateHmwStatement);
+      });
+
+      // VPS & KPIs
+      bindField('vps-people-value', ['vps', 'peopleValue']);
+      bindField('vps-people-kpi', ['vps', 'peopleKpi']);
+      bindField('vps-planet-value', ['vps', 'planetValue']);
+      bindField('vps-planet-kpi', ['vps', 'planetKpi']);
+      bindField('vps-profit-value', ['vps', 'profitValue']);
+      bindField('vps-profit-kpi', ['vps', 'profitKpi']);
+      bindField('vps-progress-value', ['vps', 'progressValue']);
+      bindField('vps-progress-kpi', ['vps', 'progressKpi']);
+      bindField('vps-statement', ['vps', 'statement']);
+
+      // TLBMC Economic
+      bindField('tlbmc-eco-partners', ['tlbmc', 'economic', 'partners']);
+      bindField('tlbmc-eco-activities', ['tlbmc', 'economic', 'activities']);
+      bindField('tlbmc-eco-resources', ['tlbmc', 'economic', 'resources']);
+      bindField('tlbmc-eco-vp', ['tlbmc', 'economic', 'vp']);
+      bindField('tlbmc-eco-rel', ['tlbmc', 'economic', 'rel']);
+      bindField('tlbmc-eco-chan', ['tlbmc', 'economic', 'chan']);
+      bindField('tlbmc-eco-seg', ['tlbmc', 'economic', 'seg']);
+      bindField('tlbmc-eco-costs', ['tlbmc', 'economic', 'costs']);
+      bindField('tlbmc-eco-rev', ['tlbmc', 'economic', 'rev']);
+
+      // TLBMC Environmental
+      bindField('tlbmc-env-supplies', ['tlbmc', 'environmental', 'supplies']);
+      bindField('tlbmc-env-prod', ['tlbmc', 'environmental', 'prod']);
+      bindField('tlbmc-env-materials', ['tlbmc', 'environmental', 'materials']);
+      bindField('tlbmc-env-func', ['tlbmc', 'environmental', 'func']);
+      bindField('tlbmc-env-use', ['tlbmc', 'environmental', 'use']);
+      bindField('tlbmc-env-dist', ['tlbmc', 'environmental', 'dist']);
+      bindField('tlbmc-env-eol', ['tlbmc', 'environmental', 'eol']);
+      bindField('tlbmc-env-impacts', ['tlbmc', 'environmental', 'impacts']);
+      bindField('tlbmc-env-benefits', ['tlbmc', 'environmental', 'benefits']);
+
+      // TLBMC Social
+      bindField('tlbmc-soc-comm', ['tlbmc', 'social', 'comm']);
+      bindField('tlbmc-soc-gov', ['tlbmc', 'social', 'gov']);
+      bindField('tlbmc-soc-emp', ['tlbmc', 'social', 'emp']);
+      bindField('tlbmc-soc-val', ['tlbmc', 'social', 'val']);
+      bindField('tlbmc-soc-cult', ['tlbmc', 'social', 'cult']);
+      bindField('tlbmc-soc-scale', ['tlbmc', 'social', 'scale']);
+      bindField('tlbmc-soc-user', ['tlbmc', 'social', 'user']);
+      bindField('tlbmc-soc-impacts', ['tlbmc', 'social', 'impacts']);
+      bindField('tlbmc-soc-benefits', ['tlbmc', 'social', 'benefits']);
+
+      // Add causal row button
+      document.getElementById('add-causal-row-btn').addEventListener('click', () => {
+        appState.system.causalRows.push({
+          cause: "新しいノード変数",
+          polarity: "[+]",
+          effect: "影響を受けるノード",
+          isLeverage: false,
+          note: "因果関係のメモ"
+        });
+        renderCausalTable();
+        saveLocal();
+      });
+
+      // VPS Statement button
+      document.getElementById('vps-generate-btn').addEventListener('click', generateValuePropositionStatement);
+    }
+
+    function bindField(elementId, pathArray) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+
+      el.addEventListener('input', () => {
+        let current = appState;
+        for (let i = 0; i < pathArray.length - 1; i++) {
+          current = current[pathArray[i]];
+        }
+        current[pathArray[pathArray.length - 1]] = el.value;
+        saveLocal();
+      });
+    }
+
+    function populateUIFromState() {
+      // Concept
+      setVal('concept-name', appState.concept.name);
+      setVal('concept-org', appState.concept.org);
+      setVal('concept-challenge', appState.concept.challenge);
+      setVal('concept-stakeholders', appState.concept.stakeholders);
+      setVal('concept-solution', appState.concept.solution);
+      setVal('concept-credibility', appState.concept.credibility);
+      setVal('concept-ask', appState.concept.ask);
+      setVal('concept-timeline', appState.concept.timeline);
+
+      // 4P
+      setVal('val-people', appState.fourP.people);
+      setVal('val-planet', appState.fourP.planet);
+      setVal('val-profit', appState.fourP.profit);
+      setVal('val-progress', appState.fourP.progress);
+
+      // Ambition
+      updateMatrixUI();
+      setVal('ambition-rationale', appState.ambition.rationale);
+
+      // System
+      renderCausalTable();
+      setVal('hmw-action', appState.system.hmw.action);
+      setVal('hmw-target', appState.system.hmw.target);
+      setVal('hmw-outcome', appState.system.hmw.outcome);
+      updateHmwStatement();
+
+      // VPS & KPI
+      setVal('vps-people-value', appState.vps.peopleValue);
+      setVal('vps-people-kpi', appState.vps.peopleKpi);
+      setVal('vps-planet-value', appState.vps.planetValue);
+      setVal('vps-planet-kpi', appState.vps.planetKpi);
+      setVal('vps-profit-value', appState.vps.profitValue);
+      setVal('vps-profit-kpi', appState.vps.profitKpi);
+      setVal('vps-progress-value', appState.vps.progressValue);
+      setVal('vps-progress-kpi', appState.vps.progressKpi);
+      setVal('vps-statement', appState.vps.statement);
+
+      // TLBMC Economic
+      setVal('tlbmc-eco-partners', appState.tlbmc.economic.partners);
+      setVal('tlbmc-eco-activities', appState.tlbmc.economic.activities);
+      setVal('tlbmc-eco-resources', appState.tlbmc.economic.resources);
+      setVal('tlbmc-eco-vp', appState.tlbmc.economic.vp);
+      setVal('tlbmc-eco-rel', appState.tlbmc.economic.rel);
+      setVal('tlbmc-eco-chan', appState.tlbmc.economic.chan);
+      setVal('tlbmc-eco-seg', appState.tlbmc.economic.seg);
+      setVal('tlbmc-eco-costs', appState.tlbmc.economic.costs);
+      setVal('tlbmc-eco-rev', appState.tlbmc.economic.rev);
+
+      // TLBMC Environmental
+      setVal('tlbmc-env-supplies', appState.tlbmc.environmental.supplies);
+      setVal('tlbmc-env-prod', appState.tlbmc.environmental.prod);
+      setVal('tlbmc-env-materials', appState.tlbmc.environmental.materials);
+      setVal('tlbmc-env-func', appState.tlbmc.environmental.func);
+      setVal('tlbmc-env-use', appState.tlbmc.environmental.use);
+      setVal('tlbmc-env-dist', appState.tlbmc.environmental.dist);
+      setVal('tlbmc-env-eol', appState.tlbmc.environmental.eol);
+      setVal('tlbmc-env-impacts', appState.tlbmc.environmental.impacts);
+      setVal('tlbmc-env-benefits', appState.tlbmc.environmental.benefits);
+
+      // TLBMC Social
+      setVal('tlbmc-soc-comm', appState.tlbmc.social.comm);
+      setVal('tlbmc-soc-gov', appState.tlbmc.social.gov);
+      setVal('tlbmc-soc-emp', appState.tlbmc.social.emp);
+      setVal('tlbmc-soc-val', appState.tlbmc.social.val);
+      setVal('tlbmc-soc-cult', appState.tlbmc.social.cult);
+      setVal('tlbmc-soc-scale', appState.tlbmc.social.scale);
+      setVal('tlbmc-soc-user', appState.tlbmc.social.user);
+      setVal('tlbmc-soc-impacts', appState.tlbmc.social.impacts);
+      setVal('tlbmc-soc-benefits', appState.tlbmc.social.benefits);
+
+      renderSdgsGrid();
+    }
+
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val || '';
+    }
+
+    function updateSummaryView() {
+      // Concept
+      setText('sum-concept-name', appState.concept.name || '（事業コンセプト未入力）');
+      setText('sum-concept-org', appState.concept.org || '（推進組織未設定）');
+      setText('sum-challenge', appState.concept.challenge || '（課題未入力）');
+      setText('sum-solution', appState.concept.solution || '（ソリューション未入力）');
+      setText('sum-credibility', `[信頼性/裏付け] ${appState.concept.credibility || '未設定'}`);
+      setText('sum-ask', appState.concept.ask || '特になし');
+      setText('sum-timeline', appState.concept.timeline || '未設定');
+
+      // SDGs Badges
+      const sdgBadges = document.getElementById('sum-sdgs-badges');
+      sdgBadges.innerHTML = '';
+      if (appState.concept.sdgs && appState.concept.sdgs.length > 0) {
+        appState.concept.sdgs.sort((a, b) => a - b).forEach(id => {
+          const sdg = SDGS_DATA.find(s => s.id === id);
+          if (sdg) {
+            const span = document.createElement('span');
+            span.className = 'px-1.5 py-0.5 rounded border border-licLightBorder dark:border-licDarkBorder bg-licLightBg dark:bg-licDarkBg';
+            span.textContent = `[G${sdg.id} ${sdg.name}]`;
+            sdgBadges.appendChild(span);
+          }
+        });
+      } else {
+        sdgBadges.innerHTML = '<span class="text-licLightMuted dark:text-licDarkMuted">選択なし</span>';
+      }
+
+      // 4P
+      setText('sum-val-people', appState.fourP.people || '-');
+      setText('sum-val-planet', appState.fourP.planet || '-');
+      setText('sum-val-profit', appState.fourP.profit || '-');
+      setText('sum-val-progress', appState.fourP.progress || '-');
+
+      // Ambition
+      setText('sum-ambition-type', appState.ambition.type || '-');
+      setText('sum-ambition-rationale', appState.ambition.rationale || '特記事項なし');
+
+      // HMW
+      const hmwAction = appState.system.hmw.action || '';
+      const hmwTarget = appState.system.hmw.target || '';
+      const hmwOutcome = appState.system.hmw.outcome || '';
+      setText('sum-hmw', `どうすれば、[${hmwAction}] + [${hmwTarget}] によって、[${hmwOutcome}] を実現できるだろうか？`);
+
+      // Causal table in summary
+      const sumCausalTbody = document.getElementById('sum-causal-tbody');
+      sumCausalTbody.innerHTML = '';
+      appState.system.causalRows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-licLightBorder dark:border-licDarkBorder';
+        tr.innerHTML = `
+          <td class="p-1 font-semibold">${escapeHtml(row.cause)}</td>
+          <td class="p-1 text-center font-mono-code font-bold ${row.polarity === '[+]' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}">${row.polarity}</td>
+          <td class="p-1 font-semibold">${escapeHtml(row.effect)}</td>
+          <td class="p-1 text-center font-mono-code">${row.isLeverage ? '<span class="text-licLightAccent dark:text-licDarkAccent font-bold">[LEVERAGE]</span>' : '-'}</td>
+          <td class="p-1 text-licLightMuted dark:text-licDarkMuted">${escapeHtml(row.note || '')}</td>
+        `;
+        sumCausalTbody.appendChild(tr);
+      });
+
+      // VPS
+      setText('sum-vps-statement', appState.vps.statement || '（ステートメント未生成）');
+      setText('sum-vps-people-val', appState.vps.peopleValue || '-');
+      setText('sum-vps-people-kpi', `KPI: ${appState.vps.peopleKpi || '-'}`);
+      setText('sum-vps-planet-val', appState.vps.planetValue || '-');
+      setText('sum-vps-planet-kpi', `KPI: ${appState.vps.planetKpi || '-'}`);
+      setText('sum-vps-profit-val', appState.vps.profitValue || '-');
+      setText('sum-vps-profit-kpi', `KPI: ${appState.vps.profitKpi || '-'}`);
+      setText('sum-vps-progress-val', appState.vps.progressValue || '-');
+      setText('sum-vps-progress-kpi', `KPI: ${appState.vps.progressKpi || '-'}`);
+
+      // TLBMC Economic
+      setText('sum-tlbmc-eco-partners', appState.tlbmc.economic.partners || '-');
+      setText('sum-tlbmc-eco-act-res', `${appState.tlbmc.economic.activities || '-'} / ${appState.tlbmc.economic.resources || '-'}`);
+      setText('sum-tlbmc-eco-vp', appState.tlbmc.economic.vp || '-');
+      setText('sum-tlbmc-eco-rel-chan', `${appState.tlbmc.economic.rel || '-'} / ${appState.tlbmc.economic.chan || '-'}`);
+      setText('sum-tlbmc-eco-seg', appState.tlbmc.economic.seg || '-');
+      setText('sum-tlbmc-eco-costs', appState.tlbmc.economic.costs || '-');
+      setText('sum-tlbmc-eco-rev', appState.tlbmc.economic.rev || '-');
+
+      // TLBMC Environmental
+      setText('sum-tlbmc-env-supplies', appState.tlbmc.environmental.supplies || '-');
+      setText('sum-tlbmc-env-prod-mat', `${appState.tlbmc.environmental.prod || '-'} / ${appState.tlbmc.environmental.materials || '-'}`);
+      setText('sum-tlbmc-env-func', appState.tlbmc.environmental.func || '-');
+      setText('sum-tlbmc-env-use-dist', `${appState.tlbmc.environmental.use || '-'} / ${appState.tlbmc.environmental.dist || '-'}`);
+      setText('sum-tlbmc-env-eol', appState.tlbmc.environmental.eol || '-');
+      setText('sum-tlbmc-env-impacts', appState.tlbmc.environmental.impacts || '-');
+      setText('sum-tlbmc-env-benefits', appState.tlbmc.environmental.benefits || '-');
+
+      // TLBMC Social
+      setText('sum-tlbmc-soc-comm', appState.tlbmc.social.comm || '-');
+      setText('sum-tlbmc-soc-gov-emp', `${appState.tlbmc.social.gov || '-'} / ${appState.tlbmc.social.emp || '-'}`);
+      setText('sum-tlbmc-soc-val', appState.tlbmc.social.val || '-');
+      setText('sum-tlbmc-soc-cult-scale', `${appState.tlbmc.social.cult || '-'} / ${appState.tlbmc.social.scale || '-'}`);
+      setText('sum-tlbmc-soc-user', appState.tlbmc.social.user || '-');
+      setText('sum-tlbmc-soc-impacts', appState.tlbmc.social.impacts || '-');
+      setText('sum-tlbmc-soc-benefits', appState.tlbmc.social.benefits || '-');
+
+      // Date update
+      const now = new Date();
+      setText('sum-date', now.toISOString().split('T')[0]);
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[m]));
+    }
+
+    function saveLocal() {
+      try {
+        localStorage.setItem('sust_strategy_state', JSON.stringify(appState));
+      } catch (e) {
+        console.error('LocalStorage save error', e);
+      }
+    }
+
+    function loadLocal() {
+      try {
+        const saved = localStorage.getItem('sust_strategy_state');
+        if (saved) {
+          appState = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.warn('LocalStorage load error, using default sample', e);
+      }
+    }
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const filename = `sustainable_strategy_${(appState.concept.name || 'eval').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.json`;
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('JSONファイルを書き出しました', 'success');
+    }
+
+    function importJSON(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && parsed.concept && parsed.fourP && parsed.tlbmc) {
+            appState = parsed;
+            populateUIFromState();
+            saveLocal();
+            showToast('JSONデータを正常に読み込みました', 'success');
+          } else {
+            showToast('無効なサステナブル評価データ形式です', 'error');
+          }
+        } catch (err) {
+          showToast('JSONの解析に失敗しました', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function setupGlobalActions() {
+      // Sample Load
+      document.getElementById('sample-btn').addEventListener('click', () => {
+        openModal({
+          title: 'サンプルデータの読み込み',
+          desc: '現在入力されているデータが講義サンプルの循環型パッケージング事業データで上書きされます。よろしいですか？',
+          onConfirm: () => {
+            appState = JSON.parse(JSON.stringify(SAMPLE_STATE));
+            populateUIFromState();
+            saveLocal();
+            showToast('講義サンプルデータをロードしました', 'success');
+          }
+        });
+      });
+
+      // Export JSON
+      document.getElementById('export-json-btn').addEventListener('click', exportJSON);
+
+      // Import JSON
+      const fileInput = document.getElementById('import-json-file');
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          importJSON(e.target.files[0]);
+          e.target.value = '';
+        }
+      });
+
+      // Reset
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        openModal({
+          title: '全データの初期化',
+          desc: '入力したすべてのフレームワークデータが消去され、空のシートに戻ります。この操作は元に戻せません。',
+          onConfirm: () => {
+            appState = {
+              concept: { name: "", org: "", challenge: "", stakeholders: "", solution: "", credibility: "", sdgs: [], ask: "", timeline: "" },
+              fourP: { people: "", planet: "", profit: "", progress: "" },
+              ambition: { type: "漸進的 (Incremental)", rationale: "" },
+              system: { causalRows: [], hmw: { action: "", target: "", outcome: "" } },
+              vps: { peopleValue: "", peopleKpi: "", planetValue: "", planetKpi: "", profitValue: "", profitKpi: "", progressValue: "", progressKpi: "", statement: "" },
+              tlbmc: {
+                economic: { partners: "", activities: "", resources: "", vp: "", rel: "", chan: "", seg: "", costs: "", rev: "" },
+                environmental: { supplies: "", prod: "", materials: "", func: "", use: "", dist: "", eol: "", impacts: "", benefits: "" },
+                social: { comm: "", gov: "", emp: "", val: "", cult: "", scale: "", user: "", impacts: "", benefits: "" }
+              }
+            };
+            populateUIFromState();
+            saveLocal();
+            showToast('データをすべて初期化しました');
+          }
+        });
+      });
+
+      // Print Button
+      document.getElementById('print-btn').addEventListener('click', () => {
+        updateSummaryView();
+        window.print();
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      initTabs();
+      initAmbitionMatrix();
+      bindInputs();
+
+      loadLocal();
+      populateUIFromState();
+      setupGlobalActions();
+    });
+  </script>
+</body>
+</html>

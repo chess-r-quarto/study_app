@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# Tools App (Vite + React 19 + TypeScript + Tailwind CSS)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A unified modular toolkit consolidating developer, analytical, policy, and project management tools in a high-performance single-page application.
 
-Currently, two official plugins are available:
+## 🛠️ Included Tools & Modules
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Route | Tool Name | Description |
+| :--- | :--- | :--- |
+| `#/` | **HTML to MD** | Convert HTML / MHTML documents into formatted Markdown and PDF |
+| `#/pdf` | **PDF to MD** | Extract text and layout structures from PDF documents into Markdown |
+| `#/wiki` | **Wiki to MD** | Wikipedia article fetcher and clean Markdown converter |
+| `#/json-dl` | **JSON Downloader** | Parse, filter, and extract nested JSON hierarchies |
+| `#/json-merge` | **JSON Merger** | Deduplicate, combine, and validate JSON structures |
+| `#/legal` | **Legal Compiler** | Japanese legal text compiler, normalization & structure parser |
+| `#/youtube` | **YouTube Formatter** | Clean raw extracted video URLs and reformat with newlines |
+| `#/sustain` | **Sustain Strategy** | Sustainable strategy evaluation, 4P validation, causal loop & TLBMC |
+| `#/pm` | **Local PM Framework** | Municipal project management framework aligned with PMBOK |
 
-## React Compiler
+## 🚀 Development & Build
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Install dependencies
+npm install
 
-## Expanding the Oxlint configuration
+# Start development server
+npm run dev
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+# Type check & build production bundle
+npm run build
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Preview build locally
+npm run preview
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 📦 Deployment Architecture
+
+The application is bundled into `dist/` with relative asset paths (`base: './'`), allowing direct hosting via GitHub Pages or any static file server without server-side dependencies.

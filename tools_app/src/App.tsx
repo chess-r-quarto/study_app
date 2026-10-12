@@ -14,7 +14,7 @@ import LocalPmFramework from './pages/LocalPmFramework';
 function App() {
   return (
     <HashRouter>
-      <div className="h-screen w-screen bg-[#161512] text-[#bababa] font-sans overflow-auto">
+      <div className="min-h-screen w-full font-sans">
         <Routes>
           <Route path="/" element={<HtmlToMd />} />
           <Route path="/pdf" element={<PdfToMd />} />

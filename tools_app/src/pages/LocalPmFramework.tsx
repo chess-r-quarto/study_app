@@ -101,24 +101,26 @@ export default function LocalPmFramework() {
   // Theme management
   useEffect(() => {
     const savedTheme = localStorage.getItem('gov_pm_theme');
-    const initialTheme = savedTheme === 'light' ? 'light' : 'dark';
-    setTheme(initialTheme);
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
     }
   }, []);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('gov_pm_theme', next);
-    if (next === 'dark') {
+  useEffect(() => {
+    localStorage.setItem('gov_pm_theme', theme);
+    if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      showToast(next === 'dark' ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました');
+      return next;
+    });
   };
 
   // Initial Data Load (IndexedDB -> localStorage fallback -> Sample)
@@ -399,7 +401,7 @@ export default function LocalPmFramework() {
   ].slice(0, 4);
 
   return (
-    <div className="bg-[#edebe8] dark:bg-[#161512] text-neutral-800 dark:text-[#dcd8d3] min-h-screen flex flex-col font-sans transition-colors duration-150">
+    <div className={`bg-[#edebe8] dark:bg-[#161512] text-neutral-800 dark:text-[#dcd8d3] min-h-screen flex flex-col font-sans transition-colors duration-150 ${theme === 'dark' ? 'dark' : ''}`}>
       {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-4 right-4 z-50 pointer-events-none">

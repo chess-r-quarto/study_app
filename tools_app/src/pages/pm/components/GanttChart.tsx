@@ -28,11 +28,20 @@ export const GanttChart: React.FC<Props> = ({
 
   const dates: Date[] = [];
   tasks.forEach((t) => {
-    if (t.startDate) dates.push(new Date(t.startDate));
-    if (t.endDate) dates.push(new Date(t.endDate));
+    if (t.startDate) {
+      const d = new Date(t.startDate);
+      if (!isNaN(d.getTime())) dates.push(d);
+    }
+    if (t.endDate) {
+      const d = new Date(t.endDate);
+      if (!isNaN(d.getTime())) dates.push(d);
+    }
   });
   milestones.forEach((m) => {
-    if (m.date) dates.push(new Date(m.date));
+    if (m.date) {
+      const d = new Date(m.date);
+      if (!isNaN(d.getTime())) dates.push(d);
+    }
   });
   dates.push(new Date());
 

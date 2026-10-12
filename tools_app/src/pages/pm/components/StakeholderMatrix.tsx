@@ -174,7 +174,7 @@ export const StakeholderMatrix: React.FC<Props> = ({
             const i = Math.max(1, Math.min(5, Number(sh.interest) || 3));
             const baseX = 30 + ((i - 1) / 4) * 440;
             const baseY = 470 - ((p - 1) / 4) * 440;
-            const hash = sh.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const hash = (sh.id || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
             const offsetX = (hash % 16) - 8;
             const offsetY = ((hash * 3) % 16) - 8;
             const cx = Math.max(40, Math.min(460, baseX + offsetX));

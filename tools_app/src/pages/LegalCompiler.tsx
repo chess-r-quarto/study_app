@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import JSZip from 'jszip';
 import mammoth from 'mammoth';
+import { Cpu, Code2, Binary, Check, Download, ArrowLeft } from 'lucide-react';
 
 interface ParsedDocument {
   title: string;
@@ -22,11 +24,11 @@ const readFileAuto = async (file: File): Promise<string> => {
   try {
     const decoder = new TextDecoder("utf-8", { fatal: true });
     return decoder.decode(buffer);
-  } catch (e) {
+  } catch {
     try {
       const decoder = new TextDecoder("shift-jis", { fatal: true });
       return decoder.decode(buffer);
-    } catch (e2) {
+    } catch {
       const decoder = new TextDecoder("utf-8");
       return decoder.decode(buffer);
     }
@@ -52,9 +54,9 @@ const parseKanjiNum = (s: string | null | undefined): number | string => {
   const unit: Record<string, number> = {'十':10,'百':100,'千':1000};
   let res = 0;
   let tmp = 0;
-  for(const char of s) {
-    if(unit[char]) {
-      if(tmp === 0) tmp = 1;
+  for (const char of s) {
+    if (unit[char]) {
+      if (tmp === 0) tmp = 1;
       res += tmp * unit[char];
       tmp = 0;
     } else if (map[char] !== undefined) {
@@ -70,7 +72,7 @@ const extractAndConvertNum = (s: string | null | undefined): string => {
   return parseKanjiNum(cleanStr).toString();
 };
 
-// --- Core Logic 1: XML Parsing ---
+// --- Core Logic 1: XML Parsing (v5 Deep Structure) ---
 const ERA_MAP: Record<string, string> = { "Meiji": "明治", "Taisho": "大正", "Showa": "昭和", "Heisei": "平成", "Reiwa": "令和" };
 
 const parseLegalXML = (xmlText: string): ParsedDocument => {
@@ -97,8 +99,8 @@ const parseLegalXML = (xmlText: string): ParsedDocument => {
   const getSiblingIndex = (node: Element, tag: string): number => {
     let count = 1;
     let prev = node.previousElementSibling;
-    while(prev) {
-      if(prev.nodeName === tag) count++;
+    while (prev) {
+      if (prev.nodeName === tag) count++;
       prev = prev.previousElementSibling;
     }
     return count;
@@ -122,7 +124,7 @@ const parseLegalXML = (xmlText: string): ParsedDocument => {
       const num = extractAndConvertNum(titleRaw);
       let caption = normalizeText(node.querySelector('ArticleCaption')?.textContent);
       if (caption) {
-        caption = caption.replace(/^[\(（](.*?)[\)）]$/, '$1');
+        caption = caption.replace(/^[(（](.*?)[)）]$/, '$1');
         caption = `(${caption})`;
       } else {
         caption = "";
@@ -131,7 +133,7 @@ const parseLegalXML = (xmlText: string): ParsedDocument => {
       mdBody += `\n##### 第${num}条${captionStr}\n`;
       stats.articles++;
     } else if (name === 'Paragraph') {
-      let numStr = normalizeText(node.querySelector('ParagraphNum')?.textContent);
+      const numStr = normalizeText(node.querySelector('ParagraphNum')?.textContent);
       const num = numStr ? extractAndConvertNum(numStr) : getSiblingIndex(node, 'Paragraph').toString();
       const sentence = node.querySelector('ParagraphSentence')?.textContent || '';
       mdBody += `**第${num}項** ${clean(sentence)}\n\n`;
@@ -177,21 +179,21 @@ const parseLegalXML = (xmlText: string): ParsedDocument => {
         let tableMd = '\n';
         const rows = tableNode.querySelectorAll('TableRow');
         if (rows.length > 0) {
-          rows.forEach((row: any, rowIndex: number) => {
+          rows.forEach((row: Element, rowIndex: number) => {
             const cols = Array.from(row.querySelectorAll('TableColumn'));
-            const colSentencesList = cols.map((col: any) => {
+            const colSentencesList = cols.map((col: Element) => {
               const sentences = Array.from(col.querySelectorAll('Sentence, ColumnSentence > Sentence'));
               if (sentences.length > 0) {
-                return sentences.map((s: any) => normalizeText(s.textContent).replace(/\|/g, '｜'));
+                return sentences.map((s: Element) => normalizeText(s.textContent).replace(/\|/g, '｜'));
               } else {
                 return [normalizeText(col.textContent).replace(/\|/g, '｜')];
               }
             });
-            const maxLines = Math.max(...colSentencesList.map((list: any) => list.length));
-            const lastValues = new Array(cols.length).fill('');
+            const maxLines = Math.max(...colSentencesList.map((list: string[]) => list.length));
+            const lastValues = new Array<string>(cols.length).fill('');
             for (let i = 0; i < maxLines; i++) {
               let rowMd = '|';
-              colSentencesList.forEach((list: any, colIndex: number) => {
+              colSentencesList.forEach((list: string[], colIndex: number) => {
                 if (list[i] !== undefined) {
                   lastValues[colIndex] = list[i];
                 }
@@ -253,7 +255,7 @@ structure_summary:
   return { title: lawTitle, content: header + mdBody };
 };
 
-// --- Core Logic 2: Legacy HTML Parsing ---
+// --- Core Logic 2: Legacy HTML Parsing (Master Class) ---
 const parseReikiHTML = (htmlText: string, fallbackTitle: string = "Unknown_Legacy_Law"): ParsedDocument => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlText, "text/html");
@@ -325,8 +327,8 @@ const parseReikiHTML = (htmlText: string, fallbackTitle: string = "Unknown_Legac
       return;
     }
 
-    let match = rawText.match(/^[\(（](.+?)[\)）]\s*第([0-9０-９一-千]+)条[\s　]*(.*)/) ||
-                rawText.match(/^第([0-9０-９一-千]+)条[\s　]+[\(（](.+?)[\)）][\s　]*(.*)/);
+    let match = rawText.match(/^[(（](.+?)[)）]\s*第([0-9０-９一-千]+)条[\s　]*(.*)/) ||
+                rawText.match(/^第([0-9０-９一-千]+)条[\s　]+[(（](.+?)[)）][\s　]*(.*)/);
 
     if (match) {
       const isLegacyCaptionFirst = rawText.startsWith('(') || rawText.startsWith('（');
@@ -371,7 +373,7 @@ const parseReikiHTML = (htmlText: string, fallbackTitle: string = "Unknown_Legac
       }
     }
 
-    let itemMatch = rawText.match(/^[\(（]([0-9０-９一-千]+)[\)）][\s　]*(.*)/);
+    let itemMatch = rawText.match(/^[(（]([0-9０-９一-千]+)[)）][\s　]*(.*)/);
     if (itemMatch) {
       const num = extractAndConvertNum(itemMatch[1]);
       mdBody += `- **第${num}号** ${itemMatch[2] || rawText.substring(itemMatch[0].length).trim()}\n`;
@@ -390,7 +392,8 @@ const parseReikiHTML = (htmlText: string, fallbackTitle: string = "Unknown_Legac
       return;
     }
 
-    let subMatch1 = rawText.match(/^([イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセスス])[\s　]+(.*)/);
+    // イロハなどのHTMLにおけるフォールバック
+    const subMatch1 = rawText.match(/^([イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセスス])[\s　]+(.*)/);
     if (subMatch1) {
       mdBody += `  - **${subMatch1[1]}** ${subMatch1[2]}\n`;
       isAfterArticleTitle = false;
@@ -412,7 +415,7 @@ const parseReikiHTML = (htmlText: string, fallbackTitle: string = "Unknown_Legac
         stats.paragraphs++;
         isAfterArticleTitle = false;
       } else {
-        if (rawText.match(/^[\(（]一部改正/)) {
+        if (rawText.match(/^[(（]一部改正/)) {
           mdBody += `\n*${rawText}*\n\n`;
         } else if (rawText.match(/^附[\s　]*則/)) {
           mdBody += `\n## ${rawText}\n\n`;
@@ -470,7 +473,9 @@ export default function LegalCompiler() {
         if (fname.endsWith('.zip')) {
           addLog(`Reading archive: ${file.name}`);
           const loadedZip = await JSZip.loadAsync(file);
-          const processableFiles = Object.keys(loadedZip.files).filter(n => !n.startsWith('__MACOSX/') && (n.endsWith('.xml') || n.endsWith('.html') || n.endsWith('.htm') || n.endsWith('.docx')));
+          const processableFiles = Object.keys(loadedZip.files).filter(
+            n => !n.startsWith('__MACOSX/') && (n.endsWith('.xml') || n.endsWith('.html') || n.endsWith('.htm') || n.endsWith('.docx'))
+          );
 
           for (const filePath of processableFiles) {
             const lowerPath = filePath.toLowerCase();
@@ -534,13 +539,13 @@ export default function LegalCompiler() {
         const contentBlob = await outputZip.generateAsync({ type: "blob" });
         const url = URL.createObjectURL(contentBlob);
         setDownloadUrl(url);
-        setDownloadName(`Legal_Artifacts_${new Date().toISOString().slice(0,10)}.zip`);
+        setDownloadName(`Legal_Artifacts_${new Date().toISOString().slice(0, 10)}.zip`);
         addLog("Build complete. Ready to download.");
       } else {
         addLog("Error: No valid sources found.");
       }
     } catch (e: any) {
-      addLog(`Fatal Error: ${e.message}`);
+      addLog(`Fatal Error: ${e.message || String(e)}`);
       console.error(e);
     } finally {
       setProcessing(false);
@@ -579,18 +584,43 @@ export default function LegalCompiler() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-6 overflow-auto" style={{ background: '#161512', color: '#bababa' }}>
-      <div className="w-full max-w-lg">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-6"
+      style={{
+        backgroundColor: '#161512',
+        color: '#bababa',
+        fontFamily: "'Noto Sans JP', sans-serif"
+      }}
+    >
+      <div className="w-full max-w-lg relative">
 
+        {/* Navigation link to Tools / Navigator */}
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center text-xs text-[#707070] hover:text-[#bababa] transition-colors no-underline"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+            <span>Tools Navigator</span>
+          </Link>
+        </div>
+
+        {/* Header */}
         <header className="flex items-center space-x-3 mb-6 select-none opacity-90">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3692e7" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9h6v6H9z" /><path d="M15 2v2" /><path d="M15 20v2" /><path d="M2 15h2" /><path d="M2 9h2" /><path d="M20 15h2" /><path d="M20 9h2" /><path d="M9 2v2" /><path d="M9 20v2" /></svg>
-          <h1 className="text-xl font-light tracking-wide text-[#bababa]">Legal <span className="text-[#3692e7] font-normal">Compiler</span></h1>
+          <Cpu className="w-6 h-6 text-[#3692e7]" />
+          <h1 className="text-xl font-light tracking-wide text-[#bababa]">
+            Legal <span className="text-[#3692e7] font-normal">Compiler</span>
+          </h1>
         </header>
 
+        {/* Dropzone or Complete Card */}
         {!downloadUrl ? (
           <div
-            className={`rounded p-12 text-center border-2 border-dashed transition-all duration-200 cursor-pointer
-              ${isDragging ? 'bg-[#2b3036] border-[#3692e7]' : 'bg-[#262421] border-[#404040] hover:border-[#606060]'}`}
+            className={`rounded p-12 text-center border-2 border-dashed transition-all duration-200 cursor-pointer ${
+              isDragging
+                ? 'bg-[#2b3036] border-[#3692e7]'
+                : 'bg-[#262421] border-[#404040] hover:border-[#606060]'
+            }`}
             style={{ boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}
             onClick={() => !processing && fileInputRef.current?.click()}
             onDragOver={handleDragOver}
@@ -608,12 +638,12 @@ export default function LegalCompiler() {
 
             {processing ? (
               <div className="flex flex-col items-center animate-pulse">
-                <svg className="w-10 h-10 text-[#3692e7] animate-spin mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <Binary className="w-10 h-10 text-[#3692e7] animate-spin mb-4" />
                 <p className="text-sm font-mono text-[#3692e7]">COMPILING...</p>
               </div>
             ) : (
               <div className="space-y-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#505050" strokeWidth="1.5" className="mx-auto"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                <Code2 className="w-10 h-10 text-[#505050] mx-auto" />
                 <div>
                   <p className="text-base text-[#bababa]">Drop Source Code</p>
                   <p className="text-[10px] text-[#606060] mt-2 uppercase tracking-widest font-mono">
@@ -624,26 +654,30 @@ export default function LegalCompiler() {
             )}
           </div>
         ) : (
-          <div className="rounded p-8 text-center border border-[#303030] bg-[#262421]" style={{ boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
+          <div
+            className="rounded p-8 text-center border border-[#303030] bg-[#262421] transition-all duration-300"
+            style={{ boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}
+          >
             <div className="mb-6 flex justify-center">
               <div className="w-16 h-16 rounded-full bg-[#2b3036] flex items-center justify-center border border-[#3692e7]">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3692e7" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <Check className="w-8 h-8 text-[#3692e7]" />
               </div>
             </div>
-            <h2 className="text-lg text-[#bababa] mb-2">Compilation Complete</h2>
+            <h2 className="text-lg text-[#bababa] mb-2 font-normal">Compilation Complete</h2>
             <p className="text-xs text-[#606060] mb-6 font-mono">Ready to export artifacts.</p>
 
             <div className="flex space-x-3 justify-center">
               <a
                 href={downloadUrl}
                 download={downloadName}
-                className="bg-[#3692e7] hover:bg-[#2b7bc4] text-white px-6 py-2 rounded text-sm font-medium transition-colors flex items-center no-underline"
+                className="bg-[#3692e7] hover:bg-[#2b7bc4] text-white px-6 py-2 rounded text-sm font-medium transition-colors flex items-center no-underline cursor-pointer"
               >
+                <Download className="w-4 h-4 mr-2" />
                 Download ZIP
               </a>
               <button
                 onClick={reset}
-                className="bg-[#303030] hover:bg-[#404040] text-[#bababa] px-4 py-2 rounded text-sm transition-colors"
+                className="bg-[#303030] hover:bg-[#404040] text-[#bababa] px-4 py-2 rounded text-sm transition-colors cursor-pointer"
               >
                 Reset
               </button>
@@ -651,7 +685,14 @@ export default function LegalCompiler() {
           </div>
         )}
 
-        <div className="mt-4 rounded p-3 font-mono text-[11px] text-[#606060] h-32 overflow-hidden border border-[#303030] bg-[#262421]" style={{ boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
+        {/* System Terminal Log */}
+        <div
+          className="mt-4 rounded p-3 font-mono text-[11px] text-[#606060] h-32 overflow-hidden border border-[#303030] bg-[#262421]"
+          style={{
+            boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
+            fontFamily: "'SF Mono', Monaco, Inconsolata, 'Fira Mono', monospace"
+          }}
+        >
           <div className="flex items-center space-x-2 mb-2 border-b border-[#303030] pb-1">
             <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
             <div className="w-2 h-2 rounded-full bg-[#505050]"></div>
@@ -669,6 +710,7 @@ export default function LegalCompiler() {
           </div>
         </div>
 
+        {/* Footer Meta */}
         <div className="mt-4 flex justify-between items-center text-[10px] text-[#404040] font-mono">
           <span>TARGET: NOTEBOOKLM / MD</span>
           <span>BUILD: STABLE + LEGACY (HTML/DOCX)</span>

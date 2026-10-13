@@ -1,24 +1,74 @@
 ---
+title: "💾 JSON Downloader & Validator - 実務運用マニュアル"
+subtitle: "構文エラーのリアルタイム検知・自動ファイル名補正・完全セキュアなローカルJSON書き出しガイド"
 format:
   html:
     theme: darkly
     toc: true
+    toc-depth: 3
     embed-resources: true
+    smooth-scroll: true
+date: "2026-10-14"
 ---
 
-# ⬇️ JSON Downloader | Lichess UI
+# 1. 🎯 アプリケーションの概要と設計思想
 
-## 🎯 アプリの目的と概要
-**JSON Downloader** は、ブラウザ上で生成された、あるいは外部から取得したJSONデータを、インデントされた読みやすい形式にフォーマットし、`.json` ファイルとしてローカルにダウンロードするためのツールです。
+## 開発現場やデータ連携における「JSON保存の煩わしさ」
+REST APIのレスポンス検証、データベースのクエリ結果、LLM（ChatGPTやClaude）が生成したJSON出力などをローカルPCにファイルとして保存したい場面は頻繁に発生します。しかし、従来の作業フローには多くの非効率とリスクが存在していました：
 
-## ✨ 主な機能と特徴
-| 機能 (Feature) | 説明 (Description) |
-| :--- | :--- |
-| **JSON Linter/Formatter** | 入力された文字列を `JSON.parse` し、`JSON.stringify(data, null, 2)` で美しく整形します。 |
-| **構文エラー検知** | 不正なJSONフォーマットが入力された場合、リアルタイムでエラー行をハイライトします。 |
-| **Blob出力** | ブラウザの Blob API を用いて、サーバーを経由せずに安全にファイルを生成します。 |
+1. **テキストエディタを立ち上げる手間の多さ**:
+   VS Code等のエディタを開き、新規ファイルを作成し、貼り付け、名前を付けて保存ダイアログを操作するという一連の作業が煩雑。
+2. **潜在的な構文エラー（Syntax Error）の未検知**:
+   カンマの付け忘れや末尾カンマ（Trailing Comma）、括弧の不一致があるまま保存してしまい、後続のプログラムやバッチ処理で実行時エラーが発生する。
+3. **オンラインJSONフォーマッターの機密漏洩リスク**:
+   Web上の無料フォーマッターやバリデーターにAPIキーや個人情報を含むJSONを貼り付けると、第三者のサーバーへデータが送信されてしまう。
 
-## 🚀 使い方 (Usage Guide)
-1. エディタエリアに生のJSON文字列を貼り付けます。
-2. **[Format]** ボタンを押して、データが正しく整形されるか（構文エラーがないか）を確認します。
-3. **[Download]** ボタンを押し、ファイル名を指定してローカルPCに保存します。
+**JSON Downloader** は、ブラウザ内部でミリ秒単位の **リアルタイム構文検証（Validation）** を行いながら、指定したファイル名でワンクリックでローカルに `.json` ファイルを生成・ダウンロードできる軽量・高速・セキュアなユーティリティです。
+
+---
+
+# 2. ✨ 主な機能とシステム仕様
+
+```mermaid
+graph TD
+    UserPaste[JSONテキストをエディタに貼り付け] --> Hook[useEffect: リアルタイム監視]
+    
+    Hook --> TryParse{JSON.parse 成功 ?}
+    
+    TryParse -->|成功| ValidState[緑色アラート: JSON is valid<br>ダウンロードボタンを活性化]
+    TryParse -->|構文エラー| InvalidState[赤色アラート: Invalid format<br>エラーメッセージと位置を表示<br>ボタンを非活性化]
+    
+    ValidState --> ClickDownload[Download JSON をクリック]
+    ClickDownload --> NameCheck{拡張子 .json があるか？}
+    NameCheck -->|なし| AutoAppend[.json を自動付与]
+    NameCheck -->|あり| KeepName[そのまま採用]
+    AutoAppend --> BlobGen[Blob オブジェクト生成]
+    KeepName --> BlobGen
+    BlobGen --> LocalDL[ブラウザから直接ダウンロード保存]
+```
+
+| 機能 | 仕様 | 実務上のメリット |
+| :--- | :--- | :--- |
+| **リアルタイム構文検証** | `JSON.parse` の例外トラップ | 1文字入力するたびに構文エラー（Unexpected token等）を瞬時に検知 |
+| **エラーメッセージ表示** | パース失敗時のエラー詳細を表示 | どの構文が不正かを即座に把握し、エディタ上で直接修正可能 |
+| **ファイル名自動補完** | `.json` サフィックスの自動判定 | `output` と入力しても自動的に `output.json` としてダウンロード |
+| **誤保存防止ガード** | 不正なJSON時のダウンロードボタン無効化 | 壊れたJSONファイルがローカルに保存される事故を100%防止 |
+| **完全ローカル実行** | メモリ上での `URL.createObjectURL` 生成 | 機密設定ファイルや本番APIレスポンスも安全に処理可能 |
+
+---
+
+# 3. 🚀 操作手順 (Usage Guide)
+
+### ステップ 1: JSONテキストの貼り付け
+1. **JSON Downloader** 画面を開きます。
+2. 右側のメインテキストエリアに、APIレスポンスやLLMの生成したJSON文字列を貼り付けます。
+
+### ステップ 2: バリデーション結果の確認
+1. 左サイドバーの **Validation** ボックスを確認します：
+   - **正常な場合**: 緑色の枠で `✔ JSON is valid` と表示されます。
+   - **構文エラーがある場合**: 赤色の枠で `✖ Invalid format` とエラーの理由（例: `Expected property name or '}' in JSON at position 42`）が表示されます。
+2. エラーが出た場合は、テキストエリア内で赤字メッセージを手がかりに修正します。
+
+### ステップ 3: ファイル名の指定とダウンロード
+1. 左サイドバーの **Output Name** に任意のファイル名（例: `user_master`, `api_response.json`）を入力します。
+2. **[Download JSON]** ボタンをクリックすると、即座にダウンロードが完了します。

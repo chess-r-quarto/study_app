@@ -1,27 +1,91 @@
 ---
+title: "🌐 Wikipedia to Clean Markdown Converter - 実務運用マニュアル"
+subtitle: "Wikipedia記事から編集リンク・脚注番号・ナビゲーション枠等のノイズを完全除去し、LLMに最適なMarkdownへ純化"
 format:
   html:
     theme: darkly
     toc: true
+    toc-depth: 3
     embed-resources: true
+    smooth-scroll: true
+date: "2026-10-14"
 ---
 
-# 🌐 Wikipedia to Markdown
+# 1. 🎯 アプリケーションの概要と設計思想
 
-## 🎯 アプリの目的と概要
-**Wikipedia to Markdown** は、指定したWikipediaの記事URLや検索キーワードから、記事の本文を抽出し、LLMプロンプトのコンテキストとして利用しやすいMarkdown形式に変換するツールです。
+## WikipediaテキストをAIに読み込ませる際の「ノイズ問題」
+Wikipediaは世界最大級の知識ベースであり、市場調査、歴史的経緯の確認、技術用語の定義確認など、あらゆる知的生産の基礎資料として頻繁に参照されます。しかし、ブラウザ上でWikipediaのページをコピーしてそのままChatGPTやClaude等のLLMに貼り付けると、以下のような大量の「ゴミ情報（ノイズ）」が混入します：
 
-## ✨ 主な機能と特徴
-| 機能 (Feature) | 説明 (Description) |
-| :--- | :--- |
-| **Wiki API連携** | Wikipediaの公式REST APIを叩き、最新の記事データを取得します。 |
-| **ノイズ除去** | 目次（TOC）、注釈（References）、サイドバーなどの学習に不要な要素を自動で除去します。 |
-| **見出し構造の維持** | 記事のセクション構造（`==` 等）をMarkdownの `#` 構造にマッピングし、階層を保ちます。 |
+1. **無数の編集リンク**: `[編集]` や `edit` といったリンクテキストが各見出しに散乱する。
+2. **脚注番号のインライン混入**: `[1]`, `[2]`, `[要出典]` といった上付き数字が文中にびっしりと挿入され、AIの文章理解や固有表現抽出を妨げる。
+3. **長大なナビゲーション表**: ページ末尾にある関連テンプレート（`navbox`）やサイドバー（`infobox`）が大量のトークンを無駄に消費する。
+4. **印刷用非表示タグ**: スクリーンリーダー用や印刷制御用の隠しメタデータが不自然なテキストとして残る。
 
-> [!TIP]
-> **APIエンドポイント**: 内部では `https://ja.wikipedia.org/w/api.php?action=query&prop=extracts...` を利用し、HTML形式ではなくプレーンテキストベースの抽出(Extracts)を優先してパースしています。
+**Wiki to Markdown Converter** は、WikipediaのHTML構造からこれらのノイズ要素をDOMレベルで正確に剪定（プルーニング）し、純粋な知識本文だけを階層的なATX Markdown（`#`〜`####`）に再構成する専用フィルタリングツールです。
 
-## 🚀 使い方 (Usage Guide)
-1. 検索バーに、取得したいWikipediaの「キーワード」または「URL」を入力します。
-2. **[Fetch]** ボタンを押してAPI通信を行います。
-3. 取得・変換されたMarkdownテキストが画面に表示されるので、コピーしてご活用ください。
+---
+
+# 2. ✨ 自動除去されるノイズ要素一覧
+
+```mermaid
+graph TD
+    RawWiki[WikipediaのHTMLソース] --> DOMParse[DOMツリーの展開]
+    
+    subgraph ノイズ除去フィルター
+        DOMParse --> DelEdit["[編集] リンク (.mw-editsection) を削除"]
+        DOMParse --> DelRef["脚注参照 [1][2] (.reference) を削除"]
+        DOMParse --> DelNav["末尾ナビゲーション枠 (.navbox) を削除"]
+        DOMParse --> DelInfo["サイドバー情報枠 (.infobox) を削除"]
+        DOMParse --> DelMeta["メタデータ (.metadata, .noprint) を削除"]
+    end
+    
+    DelEdit --> CleanDOM[純化された本文DOM]
+    DelRef --> CleanDOM
+    DelNav --> CleanDOM
+    DelInfo --> CleanDOM
+    DelMeta --> CleanDOM
+    
+    CleanDOM --> Turndown[Turndown.js: ATX見出しMarkdownへの変換]
+    Turndown --> Output[高品質 Markdown 出力]
+```
+
+| セレクタ / 要素 | 画面上の表示例 | 除去する理由 |
+| :--- | :--- | :--- |
+| `.mw-editsection` | `[編集]` | 見出しテキストの汚染を防ぎ、正確な章立て構造を保つため |
+| `.reference` | `[1]`, `[23]`, `[注 1]` | 文中の単語分断やAIの誤読を防ぎ、流暢なテキストにするため |
+| `.navbox` | ページ最下部の巨大リンク集 | 本論と無関係な大量の関連項目リンクによるトークン浪費を防ぐため |
+| `.infobox` | ページ右上の要約テーブル | 複雑な表組の崩れを防ぎ、本文のストーリー展開に集中させるため |
+| `.metadata`, `.noprint` | 「この記事には複数の問題があります…」等 | 記事の本質的コンテンツではない運営用メッセージを除去するため |
+
+---
+
+# 3. 🚀 操作手順 (Usage Guide)
+
+### ステップ 1: Wikipedia記事のHTMLを取得
+1. ブラウザで変換したいWikipediaのページを開きます。
+2. 以下のいずれかの方法でコンテンツをコピーします：
+   - **方法 A (簡単)**: 記事のタイトルから本文末尾までをマウスでドラッグ選択し、コピー（Cmd+C / Ctrl+C）。
+   - **方法 B (確実)**: ブラウザの「ページのソースを表示」または開発者ツール（F12）で `<div id="bodyContent">` 配下のHTMLをコピー。
+
+### ステップ 2: エディタへの貼り付けと変換
+1. **Wiki to Markdown** 画面を開きます。
+2. 左ペインの **Input Textarea** にコピーした内容を貼り付けます。
+3. 中央の **[CONVERT]** ボタンをクリックします。
+
+### ステップ 3: 純化されたMarkdownの確認とダウンロード
+1. 右ペインの **Markdown Output** に、ノイズが完全に除去された美しいMarkdownが即座に出力されます。
+2. 右上の **[Download]** ボタンをクリックすると、`wiki_content.md` として保存できます。
+
+---
+
+# 4. 💡 活用事例：NotebookLM のナレッジソース化
+
+Wikipediaから抽出したクリーンなMarkdownを NotebookLM や Obsidian に投入することで、高品質なパーソナルナレッジベースを構築できます：
+
+```markdown
+# 人工知能の歴史
+
+## 第一次ブーム（推論と探索）
+1950年代から1960年代にかけて、コンピュータによる定理証明やチェス・チェッカーなどのゲームプレイが研究された。
+（※「[1][2][編集]」などのゴミ情報が一切ないため、AIの要約品質が劇的に向上）
+```

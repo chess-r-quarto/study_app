@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark" style="color-scheme: dark;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedChess 残薬カレンダー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        lichess: {
+                            bg: '#161512',
+                            panel: '#262421',
+                            header: '#302e2c',
+                            hover: '#363431',
+                            border: '#3c3934',
+                            text: '#bababa',
+                            muted: '#9e9e9e',
+                            bright: '#ffffff',
+                            green: '#629924',
+                            greenHover: '#73b12b',
+                            lime: '#84cc16',
+                            blue: '#3692e7',
+                            orange: '#d59020',
+                            red: '#cc3333'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html {
+            color-scheme: dark;
+        }
+        body {
+            background-color: #161512;
+            color: #bababa;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161512;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3c3934;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #524e48;
+        }
+        .cal-cell {
+            transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .cal-cell:hover, .cal-cell:focus-visible {
+            transform: translateY(-1px);
+            z-index: 10;
+            outline: 2px solid #ffffff;
+        }
+        .heatmap-sq {
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .heatmap-sq:hover, .heatmap-sq:focus-visible {
+            transform: scale(1.12);
+            z-index: 20;
+            outline: 2px solid #ffffff;
+        }
+        /* 基準日かつ通院日の二重リング表示 */
+        .dual-ring-base-visit {
+            box-shadow: inset 0 0 0 3px #629924, inset 0 0 0 6px #3692e7;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-lichess-blue selection:text-white">
+
+    <header class="bg-lichess-panel border-b border-lichess-border sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2.5 text-lichess-bright font-bold text-lg tracking-tight">
+                    <i class="fa-solid fa-chess-knight text-lichess-green text-xl" aria-hidden="true"></i>
+                    <span>MedChess <span class="text-lichess-muted font-normal text-sm">残薬カレンダー</span></span>
+                </div>
+                <nav class="hidden md:flex items-center space-x-2 text-xs font-medium">
+                    <span class="px-3 py-2 min-h-[40px] inline-flex items-center rounded bg-lichess-header text-lichess-bright">
+                        <i class="fa-solid fa-calendar-check mr-1.5 text-lichess-green" aria-hidden="true"></i>残薬シミュレーター
+                    </span>
+                    <button id="btnOpenAddMedTop" type="button" class="px-3 py-2 min-h-[40px] inline-flex items-center rounded hover:bg-lichess-hover text-lichess-text hover:text-lichess-bright transition">
+                        <i class="fa-solid fa-pills mr-1.5 text-lichess-blue" aria-hidden="true"></i>薬を追加登録
+                    </button>
+                </nav>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto justify-between sm:justify-end">
+                <label for="baseDateInput" class="flex items-center space-x-2 bg-lichess-bg px-3 py-1.5 min-h-[40px] rounded border border-lichess-border cursor-pointer">
+                    <span class="w-2 h-2 rounded-full bg-lichess-green animate-pulse" aria-hidden="true"></span>
+                    <span class="text-lichess-muted">基準日:</span>
+                    <input type="date" id="baseDateInput" class="bg-transparent text-lichess-bright font-mono text-xs focus:outline-none cursor-pointer">
+                </label>
+                <button id="btnResetPreset" type="button" class="px-3 py-1.5 min-h-[40px] min-w-[40px] rounded bg-lichess-header hover:bg-lichess-hover text-lichess-text hover:text-white border border-lichess-border transition flex items-center space-x-1.5" title="保存データを消去して初期データに戻す">
+                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                    <span>初期値</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- 左カラム：全薬状況＆薬リスト＆通院スケジュール＆JSON管理 (4列分) -->
+        <aside class="lg:col-span-4 space-y-5 flex flex-col">
+
+            <!-- 0. 全薬の状況ミニ一覧 (新規追加) -->
+            <section class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-lichess-bright flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-list-check text-lichess-orange mr-2" aria-hidden="true"></i>全薬の状況 (不足順)
+                    </h2>
+                    <span class="text-xs text-lichess-muted">行クリックで切替</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-lichess-border text-lichess-muted bg-lichess-bg/40">
+                                <th class="py-2 px-3 font-medium">薬名</th>
+                                <th class="py-2 px-2 font-medium">初回不足日</th>
+                                <th class="py-2 px-2 font-medium text-right">次回受診前</th>
+                                <th class="py-2 px-3 font-medium text-right">最小残日数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allMedsSummaryTable" class="divide-y divide-lichess-border/60">
+                            <!-- JSで動的に描画 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 1. 登録薬一覧＆切り替えパネル -->
+            <section class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-lichess-bright flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-capsules text-lichess-green mr-2" aria-hidden="true"></i>登録済みの薬
+                    </h2>
+                    <button id="btnAddMedModal" type="button" class="bg-lichess-green hover:bg-lichess-greenHover text-white text-xs font-semibold px-3 py-2 min-h-[40px] rounded shadow-sm transition flex items-center">
+                        <i class="fa-solid fa-plus mr-1.5" aria-hidden="true"></i>薬を登録
+                    </button>
+                </div>
+
+                <!-- 薬のタブリスト -->
+                <div id="medListContainer" class="divide-y divide-lichess-border max-h-64 overflow-y-auto">
+                    <!-- JSで動的に描画 -->
+                </div>
+
+                <!-- 選択中の薬のクイック調整コントローラー -->
+                <div id="activeMedConfig" class="p-4 bg-lichess-bg/60 border-t border-lichess-border space-y-3">
+                    <!-- JSで動的に描画 -->
+                </div>
+            </section>
+
+            <!-- 2. 通院日（処方日）管理パネル -->
+            <section class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-lichess-bright flex items-center uppercase tracking-wider">
+                        <i class="fa-solid fa-hospital text-lichess-blue mr-2" aria-hidden="true"></i>通院日スケジュール
+                    </h2>
+                    <span class="text-xs text-lichess-muted">処方数の個別変更可</span>
+                </div>
+                <div class="p-4 space-y-3">
+                    <!-- 通院日追加フォーム -->
+                    <div class="flex space-x-2">
+                        <input type="date" id="newVisitDateInput" aria-label="追加する通院日" class="flex-1 bg-lichess-bg border border-lichess-border rounded px-3 py-2 min-h-[40px] text-xs text-lichess-bright font-mono focus:outline-none focus:border-lichess-blue">
+                        <button id="btnAddVisitDate" type="button" class="bg-lichess-blue hover:bg-blue-500 text-white text-xs font-semibold px-3 py-2 min-h-[40px] rounded transition flex items-center shrink-0">
+                            <i class="fa-solid fa-calendar-plus mr-1.5" aria-hidden="true"></i>追加
+                        </button>
+                    </div>
+
+                    <!-- 通院日ごとの残薬推移ミニテーブル -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-lichess-border text-lichess-muted">
+                                    <th class="py-2 pr-1 font-medium">通院日</th>
+                                    <th class="py-2 px-1 font-medium text-right">受診前</th>
+                                    <th class="py-2 px-1 font-medium text-center">処方数</th>
+                                    <th class="py-2 px-1 font-medium text-right">処方後</th>
+                                    <th class="py-2 px-1 font-medium text-right" title="次回通院日までに必要な錠数">次回必要</th>
+                                    <th class="py-2 px-1 font-medium text-right" title="次回通院日の受診前残薬">次回余り</th>
+                                    <th class="py-2 pl-1 font-medium text-center w-10">削除</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitSummaryTable" class="divide-y divide-lichess-border/60 font-mono">
+                                <!-- JSで動的に描画 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. JSON管理エディタパネル -->
+            <section class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden flex-1 flex flex-col">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-code text-lichess-orange text-xs" aria-hidden="true"></i>
+                        <h2 class="text-xs font-bold text-lichess-bright uppercase tracking-wider">JSON データ管理</h2>
+                        <span id="jsonDirtyBadge" class="hidden px-2 py-0.5 rounded text-xs font-medium bg-lichess-orange/20 text-lichess-orange border border-lichess-orange/50">
+                            未反映の編集あり
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <button id="btnCopyJson" type="button" class="text-xs px-2.5 py-1.5 min-h-[40px] rounded bg-lichess-panel hover:bg-lichess-hover text-lichess-text hover:text-white border border-lichess-border transition flex items-center" title="JSONをクリップボードにコピー">
+                            <i class="fa-regular fa-copy mr-1" aria-hidden="true"></i>コピー
+                        </button>
+                        <button id="btnDownloadJson" type="button" class="text-xs px-2.5 py-1.5 min-h-[40px] min-w-[40px] rounded bg-lichess-panel hover:bg-lichess-hover text-lichess-text hover:text-white border border-lichess-border transition flex items-center justify-center" title="JSONファイルを保存">
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-1 flex flex-col space-y-2.5">
+                    <p class="text-xs text-lichess-muted leading-relaxed">
+                        ボタンやカレンダーの操作はJSONへ反映されます。直接JSONを編集した場合は「JSONをカレンダーに反映」を押してください。
+                    </p>
+                    <div class="relative flex-1 min-h-[210px]">
+                        <textarea id="jsonEditor" spellcheck="false" aria-label="JSONデータエディタ" class="w-full h-full min-h-[210px] bg-lichess-bg border border-lichess-border rounded p-2.5 text-xs font-mono text-lichess-bright focus:outline-none focus:border-lichess-blue resize-y leading-relaxed"></textarea>
+                        <div id="jsonStatusBadge" class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded text-xs font-mono bg-lichess-green/20 text-lichess-green border border-lichess-green/40 hidden">
+                            SYNCED
+                        </div>
+                    </div>
+                    <div id="jsonErrorBox" role="alert" class="hidden text-xs bg-lichess-red/20 border border-lichess-red text-red-300 px-3 py-2 rounded font-mono"></div>
+                    <div class="flex space-x-2 pt-1">
+                        <button id="btnApplyJson" type="button" class="flex-1 bg-lichess-green hover:bg-lichess-greenHover text-white font-semibold text-xs py-2 px-3 min-h-[40px] rounded shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-rotate mr-1.5" aria-hidden="true"></i>JSONをカレンダーに反映
+                        </button>
+                        <label class="cursor-pointer bg-lichess-header hover:bg-lichess-hover text-lichess-text hover:text-white text-xs py-2 px-3 min-h-[40px] rounded border border-lichess-border transition flex items-center justify-center" title="JSONファイルを読み込む">
+                            <i class="fa-solid fa-upload mr-1.5" aria-hidden="true"></i>読込
+                            <input type="file" id="jsonFileInput" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- 右カラム：スタッツ＋残薬推移ヒートマップ＋月間カレンダー (8列分) -->
+        <section class="lg:col-span-8 space-y-5">
+
+            <!-- 1. ステータスサマリーバー -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div class="bg-lichess-panel border border-lichess-border rounded p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-xs text-lichess-muted">
+                        <span>基準日の朝残薬</span>
+                        <i class="fa-solid fa-pills text-lichess-green" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline space-x-1.5">
+                        <span id="statInitialStock" class="text-2xl font-bold text-lichess-bright font-mono">29</span>
+                        <span class="text-xs text-lichess-muted">錠</span>
+                        <span id="statInitialDaysLeft" class="text-xs text-lichess-muted font-mono">(29.0日分)</span>
+                    </div>
+                    <div id="statDailyDoseText" class="mt-1 text-xs text-lichess-muted">1日 1錠 / 標準処方 +30錠</div>
+                </div>
+
+                <div class="bg-lichess-panel border border-lichess-border rounded p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-xs text-lichess-muted">
+                        <span>次回通院日の受診前残薬</span>
+                        <i class="fa-solid fa-hospital text-lichess-blue" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline space-x-1.5">
+                        <span id="statNextVisitStock" class="text-2xl font-bold text-lichess-blue font-mono">11</span>
+                        <span class="text-xs text-lichess-muted">錠</span>
+                        <span id="statNextVisitDaysLeft" class="text-xs text-lichess-muted font-mono">(11.0日分)</span>
+                    </div>
+                    <div id="statNextVisitDate" class="mt-1 text-xs text-lichess-muted">次回: 2026-11-04</div>
+                </div>
+
+                <div class="bg-lichess-panel border border-lichess-border rounded p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-xs text-lichess-muted">
+                        <span>評価期間内の最小残薬</span>
+                        <i class="fa-solid fa-chart-line text-lichess-orange" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline space-x-1.5">
+                        <span id="statMinStock" class="text-2xl font-bold text-lichess-bright font-mono">11</span>
+                        <span class="text-xs text-lichess-muted">錠</span>
+                        <span id="statMinDaysLeft" class="text-xs font-mono text-lichess-muted">(11.0日分)</span>
+                    </div>
+                    <div id="statMinStockDate" class="mt-1 text-xs text-lichess-muted">最小日: 2026-11-03</div>
+                    <div id="statEvalPeriod" class="mt-0.5 text-xs text-lichess-muted font-mono">範囲: 2026-10-17〜2027-01-22</div>
+                </div>
+
+                <div id="statStatusCard" class="bg-lichess-panel border border-lichess-border rounded p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-xs text-lichess-muted">
+                        <span>残日数判定ステータス</span>
+                        <i id="statStatusIcon" class="fa-solid fa-circle-check text-lichess-green" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="statStatusLabel" class="text-lg font-bold text-lichess-green">安全圏 (7日以上)</span>
+                    </div>
+                    <div id="statStatusSub" class="mt-1 text-xs text-lichess-muted">最後の通院日(2027-01-22)まで不足しません</div>
+                </div>
+            </div>
+
+            <!-- 2. 残薬推移ヒートマップ -->
+            <div class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-grip-vertical text-lichess-green" aria-hidden="true"></i>
+                        <h2 class="text-xs font-bold text-lichess-bright uppercase tracking-wider">残薬推移ヒートマップ</h2>
+                    </div>
+
+                    <!-- タップ時の動作モード切替ボタン -->
+                    <div class="flex items-center space-x-1 bg-lichess-bg p-1 rounded border border-lichess-border">
+                        <button id="btnHeatmapModeDetail" type="button" class="px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition flex items-center">
+                            <i class="fa-solid fa-magnifying-glass mr-1.5" aria-hidden="true"></i>詳細表示モード
+                        </button>
+                        <button id="btnHeatmapModeToggle" type="button" class="px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium text-lichess-text hover:text-white transition flex items-center">
+                            <i class="fa-solid fa-hospital mr-1.5" aria-hidden="true"></i>通院切替モード
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 共通凡例 (daysLeft基準 + アイコン併記) -->
+                <div class="px-4 py-2 bg-lichess-bg/50 border-b border-lichess-border flex flex-wrap items-center gap-3 text-xs">
+                    <span class="text-lichess-muted font-medium">判定基準(残日数):</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-lichess-red text-white inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-triangle-exclamation text-[10px]" aria-hidden="true"></i></span>不足(shortfall&gt;0)</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-lichess-orange text-black inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i></span>3日未満(&lt;3日)</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-lime-600 text-white inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-exclamation text-[10px]" aria-hidden="true"></i></span>注意(&lt;7日)</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-[#629924] text-white inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-circle-check text-[10px]" aria-hidden="true"></i></span>十分(7日以上)</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-lichess-blue ring-1 ring-white text-white inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-hospital text-[10px]" aria-hidden="true"></i></span>通院処方日</span>
+                    <span class="flex items-center"><span class="w-4 h-4 rounded-sm bg-lichess-panel ring-2 ring-lichess-green text-lichess-green inline-flex items-center justify-center mr-1.5"><i class="fa-solid fa-flag text-[10px]" aria-hidden="true"></i></span>基準日</span>
+                </div>
+
+                <div class="p-4">
+                    <div class="overflow-x-auto pb-2">
+                        <div class="inline-flex items-start space-x-2 min-w-max">
+                            <!-- 左側：曜日ラベル列 -->
+                            <div class="flex flex-col space-y-1 pt-6 pr-1 text-xs font-mono text-lichess-muted select-none">
+                                <div class="h-10 flex items-center justify-end text-red-400">日</div>
+                                <div class="h-10 flex items-center justify-end">月</div>
+                                <div class="h-10 flex items-center justify-end">火</div>
+                                <div class="h-10 flex items-center justify-end">水</div>
+                                <div class="h-10 flex items-center justify-end">木</div>
+                                <div class="h-10 flex items-center justify-end">金</div>
+                                <div class="h-10 flex items-center justify-end text-blue-400">土</div>
+                            </div>
+                            <!-- 週カラム群（上部に月ラベル付き） -->
+                            <div id="heatmapContainer" class="flex space-x-1">
+                                <!-- JSで週ごとの月ラベル＋7日分の40pxタイルを生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="heatmapTooltip" class="mt-2 text-xs font-mono text-lichess-muted bg-lichess-bg px-3 py-2.5 rounded border border-lichess-border flex flex-wrap items-center justify-between gap-2">
+                        <span>タイルを選択すると詳細を表示します（長押し、または「通院切替モード」で通院日ON/OFF）</span>
+                        <span class="text-lichess-bright font-semibold" id="heatmapHoverDetail"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 月間カレンダーグリッド -->
+            <div class="bg-lichess-panel border border-lichess-border rounded shadow-sm overflow-hidden">
+                <div class="bg-lichess-header px-4 py-2.5 border-b border-lichess-border flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center space-x-3">
+                        <h2 class="text-xs font-bold text-lichess-bright uppercase tracking-wider flex items-center">
+                            <i class="fa-regular fa-calendar-days text-lichess-blue mr-2" aria-hidden="true"></i>月間残薬カレンダー
+                        </h2>
+                        <span class="text-xs text-lichess-muted hidden sm:inline">日付クリックまたはEnter/Spaceで「通院日」を追加・解除</span>
+                    </div>
+                    <!-- 表示モード・月移動ボタン -->
+                    <div class="flex items-center space-x-1.5">
+                        <button id="btnViewModeMulti" type="button" class="px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition">
+                            4ヶ月一覧
+                        </button>
+                        <button id="btnViewModeSingle" type="button" class="px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-panel text-lichess-text hover:text-white border border-lichess-border transition">
+                            1ヶ月拡大
+                        </button>
+                        <div class="h-5 border-r border-lichess-border mx-1"></div>
+                        <button id="btnPrevMonth" type="button" class="p-2 min-h-[40px] min-w-[40px] rounded bg-lichess-panel hover:bg-lichess-hover text-lichess-text hover:text-white border border-lichess-border transition flex items-center justify-center" title="前の月へ" aria-label="前の月へ">
+                            <i class="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i>
+                        </button>
+                        <span id="calendarPeriodLabel" class="text-xs font-mono text-lichess-bright px-2">2026/10 - 2027/01</span>
+                        <button id="btnNextMonth" type="button" class="p-2 min-h-[40px] min-w-[40px] rounded bg-lichess-panel hover:bg-lichess-hover text-lichess-text hover:text-white border border-lichess-border transition flex items-center justify-center" title="次の月へ" aria-label="次の月へ">
+                            <i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- カレンダー本体グリッド -->
+                <div id="calendarGridWrapper" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- JSで各月のカレンダーを描画 -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- フッター（免責事項） -->
+    <footer class="bg-lichess-panel border-t border-lichess-border mt-8 py-4 px-4 text-center text-xs text-lichess-muted">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-info text-lichess-blue" aria-hidden="true"></i>
+            <p>本ツールは残薬の目安を計算するシミュレーターです。服用量や受診日の判断は必ず医師・薬剤師に相談してください。</p>
+        </div>
+    </footer>
+
+    <!-- モーダル：新しい薬を登録 -->
+    <div id="modalAddMed" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modalAddMedTitle">
+        <div class="bg-lichess-panel border border-lichess-border rounded shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="bg-lichess-header px-5 py-3.5 border-b border-lichess-border flex items-center justify-between">
+                <h3 id="modalAddMedTitle" class="text-xs font-bold text-lichess-bright uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-pills text-lichess-green mr-2" aria-hidden="true"></i>新しい薬を追加登録
+                </h3>
+                <button id="btnCloseModal" type="button" class="text-lichess-muted hover:text-white min-h-[40px] min-w-[40px] flex items-center justify-center transition" aria-label="閉じる">
+                    <i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <form id="formAddMed" class="p-5 space-y-4 text-xs">
+                <div>
+                    <label for="inputMedName" class="block text-xs text-lichess-muted mb-1">薬の名前</label>
+                    <input type="text" id="inputMedName" required placeholder="例: アムロジピン錠 5mg" class="w-full bg-lichess-bg border border-lichess-border rounded px-3 py-2 min-h-[40px] text-lichess-bright focus:outline-none focus:border-lichess-green">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label for="inputMedInitial" class="block text-xs text-lichess-muted mb-1">基準日朝残薬</label>
+                        <input type="number" id="inputMedInitial" required min="0" max="9999" step="0.5" value="29" class="w-full bg-lichess-bg border border-lichess-border rounded px-3 py-2 min-h-[40px] text-lichess-bright font-mono focus:outline-none focus:border-lichess-green">
+                    </div>
+                    <div>
+                        <label for="inputMedDaily" class="block text-xs text-lichess-muted mb-1">1日の服用数</label>
+                        <input type="number" id="inputMedDaily" required min="0.5" max="99" step="0.5" value="1" class="w-full bg-lichess-bg border border-lichess-border rounded px-3 py-2 min-h-[40px] text-lichess-bright font-mono focus:outline-none focus:border-lichess-green">
+                    </div>
+                    <div>
+                        <label for="inputMedPrescribe" class="block text-xs text-lichess-muted mb-1">通院時処方数</label>
+                        <input type="number" id="inputMedPrescribe" required min="0" max="9999" step="0.5" value="30" class="w-full bg-lichess-bg border border-lichess-border rounded px-3 py-2 min-h-[40px] text-lichess-bright font-mono focus:outline-none focus:border-lichess-green">
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 pt-1">
+                    <input type="checkbox" id="inputMedTakenToday" class="w-5 h-5 rounded bg-lichess-bg border-lichess-border text-lichess-green focus:ring-0">
+                    <label for="inputMedTakenToday" class="text-xs text-lichess-text cursor-pointer">基準日（初日）の分はすでに服用済み</label>
+                </div>
+                <div class="pt-3 border-t border-lichess-border flex justify-end space-x-2">
+                    <button type="button" id="btnCancelModal" class="px-4 py-2 min-h-[40px] rounded bg-lichess-header hover:bg-lichess-hover text-xs text-lichess-text transition">キャンセル</button>
+                    <button type="submit" class="px-4 py-2 min-h-[40px] rounded bg-lichess-green hover:bg-lichess-greenHover text-xs text-white font-semibold shadow transition">
+                        <i class="fa-solid fa-check mr-1" aria-hidden="true"></i>登録する
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- モーダル：JSON未反映編集の上書き確認 -->
+    <div id="modalConfirmJsonOverwrite" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modalConfirmTitle">
+        <div class="bg-lichess-panel border border-lichess-border rounded shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="bg-lichess-header px-5 py-3.5 border-b border-lichess-border flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-lichess-orange" aria-hidden="true"></i>
+                <h3 id="modalConfirmTitle" class="text-xs font-bold text-lichess-bright uppercase tracking-wider">未反映のJSON編集があります</h3>
+            </div>
+            <div class="p-5 space-y-4 text-xs">
+                <p class="text-lichess-text leading-relaxed">
+                    JSONエディタにまだ反映されていない編集内容があります。現在の操作でJSONエディタの内容を上書きしますか？
+                </p>
+                <div class="flex justify-end space-x-2 pt-2 border-t border-lichess-border">
+                    <button type="button" id="btnConfirmCancel" class="px-4 py-2 min-h-[40px] rounded bg-lichess-header hover:bg-lichess-hover text-xs text-lichess-text transition">
+                        キャンセル（操作を中止）
+                    </button>
+                    <button type="button" id="btnConfirmProceed" class="px-4 py-2 min-h-[40px] rounded bg-lichess-orange hover:bg-amber-600 text-xs text-black font-bold transition">
+                        上書きして実行
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 (元に戻すボタン対応) -->
+    <div id="toastNotification" role="status" aria-live="polite" class="fixed bottom-4 right-4 bg-lichess-header border border-lichess-green text-lichess-bright px-4 py-2.5 rounded shadow-lg text-xs font-medium flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-200 z-50 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-lichess-green" aria-hidden="true"></i>
+        <span id="toastMessage">更新しました</span>
+        <button id="btnToastUndo" type="button" class="hidden px-2.5 py-1 min-h-[32px] rounded bg-lichess-blue hover:bg-blue-500 text-white font-semibold text-xs transition pointer-events-auto">
+            <i class="fa-solid fa-rotate-left mr-1" aria-hidden="true"></i>元に戻す
+        </button>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'medchess-v1';
+
+        /**
+         * 初期プリセットデータを作成する関数
+         * 基準日: 2026-10-17、初期残薬29錠、毎回30錠処方、通院日: 11/4, 11/30, 12/21, 1/22
+         */
+        function getDefaultState() {
+            return {
+                baseDate: "2026-10-17",
+                activeMedicineId: "med-1",
+                visitDates: [
+                    "2026-11-04",
+                    "2026-11-30",
+                    "2026-12-21",
+                    "2027-01-22"
+                ],
+                visitOverrides: {},
+                medicines: [
+                    {
+                        id: "med-1",
+                        name: "定期処方薬 A (1日1錠)",
+                        initialStock: 29,
+                        dailyDose: 1,
+                        prescribeAmount: 30,
+                        takenOnBaseDate: false
+                    },
+                    {
+                        id: "med-2",
+                        name: "朝晩処方薬 B (サンプル・1日2錠)",
+                        initialStock: 58,
+                        dailyDose: 2,
+                        prescribeAmount: 60,
+                        takenOnBaseDate: false
+                    }
+                ]
+            };
+        }
+
+        let appState = getDefaultState();
+
+        let calendarViewState = {
+            startYear: 2026,
+            startMonth: 9, // 0-indexed (9 = 10月)
+            monthsToShow: 4
+        };
+
+        // ヒートマップのタップ動作モード ('detail' | 'toggle')
+        let heatmapInteractionMode = 'detail';
+
+        // JSONエディタの未反映フラグ
+        let isJsonDirty = false;
+        let pendingConfirmCallback = null;
+
+        // 直前1操作のUndo用スナップショット
+        let lastUndoState = null;
+
+        // YYYY-MM-DD 形式かつ実在するカレンダー日付か検証
+        function isValidDateStr(dateStr) {
+            if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return false;
+            }
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            return (
+                dt.getFullYear() === y &&
+                dt.getMonth() === m - 1 &&
+                dt.getDate() === d
+            );
+        }
+
+        function parseDateStr(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function formatDateStr(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function diffDays(d1Str, d2Str) {
+            const d1 = parseDateStr(d1Str);
+            const d2 = parseDateStr(d2Str);
+            return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function alignCalendarViewToBaseDate() {
+            if (isValidDateStr(appState.baseDate)) {
+                const d = parseDateStr(appState.baseDate);
+                calendarViewState.startYear = d.getFullYear();
+                calendarViewState.startMonth = d.getMonth();
+            }
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    appState,
+                    calendarViewState
+                }));
+            } catch (e) {
+                // プライベートブラウズや容量超過時は無視
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return false;
+                const parsed = JSON.parse(raw);
+                if (!parsed || !parsed.appState) return false;
+                const validation = validateState(parsed.appState);
+                if (!validation.valid) return false;
+                appState = validation.sanitized;
+                if (parsed.calendarViewState &&
+                    Number.isInteger(parsed.calendarViewState.startYear) &&
+                    Number.isInteger(parsed.calendarViewState.startMonth) &&
+                    (parsed.calendarViewState.monthsToShow === 1 || parsed.calendarViewState.monthsToShow === 4)) {
+                    calendarViewState = parsed.calendarViewState;
+                } else {
+                    alignCalendarViewToBaseDate();
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        let toastTimer = null;
+        function showToast(msg, undoSnapshot = null) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const undoBtn = document.getElementById('btnToastUndo');
+
+            msgEl.textContent = msg;
+            if (undoSnapshot) {
+                lastUndoState = undoSnapshot;
+                undoBtn.classList.remove('hidden');
+            } else {
+                lastUndoState = null;
+                undoBtn.classList.add('hidden');
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimer);
+            const duration = undoSnapshot ? 5000 : 2600;
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                lastUndoState = null;
+            }, duration);
+        }
+
+        function createUndoSnapshot() {
+            return JSON.parse(JSON.stringify(appState));
+        }
+
+        function setJsonDirty(dirty) {
+            isJsonDirty = dirty;
+            const badge = document.getElementById('jsonDirtyBadge');
+            if (dirty) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function executeWithDirtyCheck(actionFn) {
+            if (!isJsonDirty) {
+                actionFn();
+                return;
+            }
+            pendingConfirmCallback = () => {
+                setJsonDirty(false);
+                actionFn();
+            };
+            const modal = document.getElementById('modalConfirmJsonOverwrite');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        /**
+         * 通院日ごとの処方数を取得（visitOverrides に指定があれば上書き値を使用）
+         */
+        function getPrescribeAmountForDate(med, dateStr) {
+            if (appState.visitOverrides &&
+                Object.prototype.hasOwnProperty.call(appState.visitOverrides, dateStr) &&
+                Number.isFinite(Number(appState.visitOverrides[dateStr])) &&
+                Number(appState.visitOverrides[dateStr]) >= 0) {
+                return Number(appState.visitOverrides[dateStr]);
+            }
+            return Number(med.prescribeAmount);
+        }
+
+        /**
+         * 残薬シミュレーション (監査仕様1 準拠)
+         * - 各日の「朝時点残薬 (morningStock)」= 前日の終了時残薬 (基準日は initialStock)
+         * - 受診日は、朝時点残薬を「受診前残薬 stockBeforeVisit」とする(その日の服用を引く前)
+         * - 受診日は 受診前残薬 + prescribeAmount を加えてから、その日の服用分を引く
+         * - 非受診日は 朝時点残薬 - その日の服用分
+         * - 基準日のみ、takenOnBaseDate が true なら服用分は 0
+         * - 残薬は 0 でクランプし(マイナスにしない)、足りなかった分は shortfall として記録 (isShort = true)
+         * - 各日に daysLeft = stockEndOfDay / dailyDose (小数1桁) を持たせる
+         */
+        function simulateMedication(med, baseDateStr, visitDatesList, totalDays = 175) {
+            const visitSet = new Set(visitDatesList);
+            const dailyMap = {};
+            const baseDate = parseDateStr(baseDateStr);
+
+            let morningStock = Number(med.initialStock);
+            const dailyDose = Number(med.dailyDose);
+
+            for (let i = 0; i < totalDays; i++) {
+                const curDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + i);
+                const dateStr = formatDateStr(curDate);
+                const isBaseDate = (i === 0);
+                const isVisit = visitSet.has(dateStr);
+
+                // 受診前残薬 = 朝時点残薬（その日の服用を引く前）
+                const stockBeforeVisit = Math.round(morningStock * 100) / 100;
+                const prescribed = isVisit ? getPrescribeAmountForDate(med, dateStr) : 0;
+                // 処方後残薬（受診日の服用前 + 処方）
+                const stockAfterPrescribe = Math.round((stockBeforeVisit + prescribed) * 100) / 100;
+
+                // その日の服用分（基準日かつtakenOnBaseDateなら0）
+                const consumedToday = (isBaseDate && med.takenOnBaseDate) ? 0 : dailyDose;
+
+                const rawEnd = Math.round((stockAfterPrescribe - consumedToday) * 100) / 100;
+                let stockEndOfDay = rawEnd;
+                let shortfall = 0;
+                let isShort = false;
+
+                if (rawEnd < 0) {
+                    stockEndOfDay = 0;
+                    shortfall = Math.round(Math.abs(rawEnd) * 100) / 100;
+                    isShort = true;
+                }
+
+                const daysLeft = Number((stockEndOfDay / dailyDose).toFixed(1));
+                const daysLeftBeforeVisit = Number((stockBeforeVisit / dailyDose).toFixed(1));
+
+                dailyMap[dateStr] = {
+                    dateStr,
+                    dayIndex: i,
+                    isBaseDate,
+                    isVisit,
+                    morningStock: stockBeforeVisit,
+                    stockBeforeVisit,
+                    prescribed,
+                    stockAfterPrescribe,
+                    consumedToday,
+                    stockEndOfDay,
+                    shortfall,
+                    isShort,
+                    daysLeft,
+                    daysLeftBeforeVisit
+                };
+
+                morningStock = stockEndOfDay;
+            }
+
+            return dailyMap;
+        }
+
+        /**
+         * 残日数(daysLeft)および不足量(shortfall)に基づく共通ステータス判定関数 (監査仕様2 準拠)
+         * 不足(shortfall > 0) = 赤
+         * daysLeft < 3 = 橙
+         * daysLeft < 7 = 黄緑(注意)
+         * それ以上 = 緑
+         */
+        function getStockLevel(day, mode = 'end') {
+            const shortfall = mode === 'beforeVisit' ? 0 : Number(day.shortfall || 0);
+            const daysLeft = mode === 'beforeVisit' ? Number(day.daysLeftBeforeVisit) : Number(day.daysLeft);
+
+            if (shortfall > 0 || (mode === 'beforeVisit' && day.stockBeforeVisit <= 0 && day.dayIndex > 0)) {
+                return {
+                    key: 'short',
+                    priority: 0,
+                    label: '残薬不足 (枯渇)',
+                    shortLabel: '不足',
+                    iconClass: 'fa-solid fa-triangle-exclamation',
+                    textClass: 'text-lichess-red font-bold',
+                    bgClass: 'bg-lichess-red text-white',
+                    cellBgClass: 'bg-[#3a1d1d] hover:bg-[#4a2424]'
+                };
+            }
+            if (daysLeft < 3) {
+                return {
+                    key: 'danger',
+                    priority: 1,
+                    label: '残り3日未満 (要警戒)',
+                    shortLabel: '3日未満',
+                    iconClass: 'fa-solid fa-circle-exclamation',
+                    textClass: 'text-lichess-orange font-bold',
+                    bgClass: 'bg-lichess-orange text-black',
+                    cellBgClass: 'bg-[#382914] hover:bg-[#473419]'
+                };
+            }
+            if (daysLeft < 7) {
+                return {
+                    key: 'warn',
+                    priority: 2,
+                    label: '残り7日未満 (注意)',
+                    shortLabel: '注意(<7日)',
+                    iconClass: 'fa-solid fa-exclamation',
+                    textClass: 'text-lime-400 font-bold',
+                    bgClass: 'bg-lime-600 text-white',
+                    cellBgClass: 'bg-[#283318] hover:bg-[#32401e]'
+                };
+            }
+            return {
+                key: 'safe',
+                priority: 3,
+                label: '安全圏 (余裕あり)',
+                shortLabel: '十分(7日+)',
+                iconClass: 'fa-solid fa-circle-check',
+                textClass: 'text-lichess-green font-bold',
+                bgClass: 'bg-[#629924] text-white',
+                cellBgClass: 'bg-lichess-panel hover:bg-lichess-hover'
+            };
+        }
+
+        /**
+         * 受け入れテスト (監査仕様1)
+         * 初期プリセット med-1 (基準日 2026-10-17、残薬29、1日1錠、処方30、通院日 11/4, 11/30, 12/21, 1/22):
+         * - 受診前残薬(stockBeforeVisit): 11/4=11, 11/30=15, 12/21=24, 1/22=22
+         * - 処方後(受診日の服用前+処方 stockAfterPrescribe): 41, 45, 54, 52
+         * med-2 (残薬58、1日2錠、処方60) の 11/4 受診前残薬 = 22
+         */
+        function runAcceptanceTests() {
+            const preset = getDefaultState();
+            const med1 = preset.medicines[0];
+            const med2 = preset.medicines[1];
+            const sim1 = simulateMedication(med1, preset.baseDate, preset.visitDates, 175);
+            const sim2 = simulateMedication(med2, preset.baseDate, preset.visitDates, 175);
+
+            // med-1 受診前残薬の検証
+            console.assert(sim1["2026-11-04"].stockBeforeVisit === 11, `Expected 11/4 stockBeforeVisit=11, got ${sim1["2026-11-04"].stockBeforeVisit}`);
+            console.assert(sim1["2026-11-30"].stockBeforeVisit === 15, `Expected 11/30 stockBeforeVisit=15, got ${sim1["2026-11-30"].stockBeforeVisit}`);
+            console.assert(sim1["2026-12-21"].stockBeforeVisit === 24, `Expected 12/21 stockBeforeVisit=24, got ${sim1["2026-12-21"].stockBeforeVisit}`);
+            console.assert(sim1["2027-01-22"].stockBeforeVisit === 22, `Expected 1/22 stockBeforeVisit=22, got ${sim1["2027-01-22"].stockBeforeVisit}`);
+
+            // med-1 処方後(受診日の服用前+処方)の検証
+            console.assert(sim1["2026-11-04"].stockAfterPrescribe === 41, `Expected 11/4 stockAfterPrescribe=41, got ${sim1["2026-11-04"].stockAfterPrescribe}`);
+            console.assert(sim1["2026-11-30"].stockAfterPrescribe === 45, `Expected 11/30 stockAfterPrescribe=45, got ${sim1["2026-11-30"].stockAfterPrescribe}`);
+            console.assert(sim1["2026-12-21"].stockAfterPrescribe === 54, `Expected 12/21 stockAfterPrescribe=54, got ${sim1["2026-12-21"].stockAfterPrescribe}`);
+            console.assert(sim1["2027-01-22"].stockAfterPrescribe === 52, `Expected 1/22 stockAfterPrescribe=52, got ${sim1["2027-01-22"].stockAfterPrescribe}`);
+
+            // med-2 11/4 受診前残薬の検証
+            console.assert(sim2["2026-11-04"].stockBeforeVisit === 22, `Expected med-2 11/4 stockBeforeVisit=22, got ${sim2["2026-11-04"].stockBeforeVisit}`);
+        }
+
+        /**
+         * JSON入力データの検証とサニタイズ (監査仕様3 準拠)
+         */
+        function validateState(parsed) {
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return { valid: false, error: 'トップレベルはJSONオブジェクトである必要があります。' };
+            }
+            if (!isValidDateStr(parsed.baseDate)) {
+                return { valid: false, error: 'baseDate は実在する YYYY-MM-DD 形式の日付である必要があります。' };
+            }
+            if (!Array.isArray(parsed.visitDates)) {
+                return { valid: false, error: 'visitDates は配列である必要があります。' };
+            }
+            for (let i = 0; i < parsed.visitDates.length; i++) {
+                if (!isValidDateStr(parsed.visitDates[i])) {
+                    return { valid: false, error: `visitDates[${i}] ("${parsed.visitDates[i]}") は有効な YYYY-MM-DD 日付ではありません。` };
+                }
+            }
+            if (!Array.isArray(parsed.medicines) || parsed.medicines.length < 1) {
+                return { valid: false, error: 'medicines は1件以上の薬を含む配列である必要があります。' };
+            }
+
+            const seenIds = new Set();
+            const sanitizedMeds = [];
+
+            for (let i = 0; i < parsed.medicines.length; i++) {
+                const m = parsed.medicines[i];
+                if (!m || typeof m !== 'object') {
+                    return { valid: false, error: `medicines[${i}] が不正なオブジェクトです。` };
+                }
+                if (typeof m.id !== 'string' || !/^[A-Za-z0-9-]+$/.test(m.id)) {
+                    return { valid: false, error: `medicines[${i}].id は英数字とハイフンのみの文字列である必要があります。` };
+                }
+                if (seenIds.has(m.id)) {
+                    return { valid: false, error: `medicines[${i}].id ("${m.id}") が重複しています。` };
+                }
+                seenIds.add(m.id);
+
+                if (typeof m.name !== 'string' || m.name.trim() === '') {
+                    return { valid: false, error: `medicines[${i}].name は空でない文字列である必要があります。` };
+                }
+                if (typeof m.initialStock !== 'number' || !Number.isFinite(m.initialStock) || m.initialStock < 0) {
+                    return { valid: false, error: `medicines[${i}].initialStock は0以上の有限数である必要があります。` };
+                }
+                if (typeof m.prescribeAmount !== 'number' || !Number.isFinite(m.prescribeAmount) || m.prescribeAmount < 0) {
+                    return { valid: false, error: `medicines[${i}].prescribeAmount は0以上の有限数である必要があります。` };
+                }
+                if (typeof m.dailyDose !== 'number' || !Number.isFinite(m.dailyDose) || m.dailyDose < 0.5) {
+                    return { valid: false, error: `medicines[${i}].dailyDose は0.5以上の有限数である必要があります。` };
+                }
+                if (typeof m.takenOnBaseDate !== 'boolean') {
+                    return { valid: false, error: `medicines[${i}].takenOnBaseDate は真偽値(true/false)である必要があります。` };
+                }
+
+                sanitizedMeds.push({
+                    id: m.id,
+                    name: m.name.trim(),
+                    initialStock: m.initialStock,
+                    dailyDose: m.dailyDose,
+                    prescribeAmount: m.prescribeAmount,
+                    takenOnBaseDate: m.takenOnBaseDate
+                });
+            }
+
+            const sanitizedOverrides = {};
+            if (parsed.visitOverrides !== undefined) {
+                if (!parsed.visitOverrides || typeof parsed.visitOverrides !== 'object' || Array.isArray(parsed.visitOverrides)) {
+                    return { valid: false, error: 'visitOverrides はオブジェクトである必要があります。' };
+                }
+                for (const [k, v] of Object.entries(parsed.visitOverrides)) {
+                    if (!isValidDateStr(k)) {
+                        return { valid: false, error: `visitOverrides のキー "${k}" は実在する YYYY-MM-DD 日付である必要があります。` };
+                    }
+                    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) {
+                        return { valid: false, error: `visitOverrides["${k}"] は0以上の有限数である必要があります。` };
+                    }
+                    sanitizedOverrides[k] = v;
+                }
+            }
+
+            let activeId = typeof parsed.activeMedicineId === 'string' ? parsed.activeMedicineId : sanitizedMeds[0].id;
+            if (!sanitizedMeds.some(m => m.id === activeId)) {
+                activeId = sanitizedMeds[0].id;
+            }
+
+            return {
+                valid: true,
+                sanitized: {
+                    baseDate: parsed.baseDate,
+                    activeMedicineId: activeId,
+                    visitDates: Array.from(new Set(parsed.visitDates)).sort(),
+                    visitOverrides: sanitizedOverrides,
+                    medicines: sanitizedMeds
+                }
+            };
+        }
+
+        function getActiveMedicine() {
+            let med = appState.medicines.find(m => m.id === appState.activeMedicineId);
+            if (!med && appState.medicines.length > 0) {
+                med = appState.medicines[0];
+                appState.activeMedicineId = med.id;
+            }
+            return med;
+        }
+
+        /**
+         * 評価対象期間の最終日（最後の通院日、通院予定がなければ基準日から90日後）を返す
+         */
+        function getEvaluationTargetDate(simData) {
+            const upcomingVisits = appState.visitDates.filter(d => d >= appState.baseDate && simData[d]);
+            if (upcomingVisits.length > 0) {
+                return {
+                    lastTargetDate: upcomingVisits[upcomingVisits.length - 1],
+                    hasUpcomingVisit: true,
+                    upcomingVisits
+                };
+            }
+            const fallbackDate = formatDateStr(new Date(parseDateStr(appState.baseDate).getTime() + 90 * 86400000));
+            return {
+                lastTargetDate: fallbackDate,
+                hasUpcomingVisit: false,
+                upcomingVisits: []
+            };
+        }
+
+        /**
+         * 状態変更後に全体を再描画・JSONエディタとlocalStorageを同期
+         */
+        function syncAndRender(skipJsonEditorUpdate = false) {
+            appState.visitDates = Array.from(new Set(appState.visitDates)).sort();
+            if (!appState.visitOverrides) appState.visitOverrides = {};
+
+            document.getElementById('baseDateInput').value = appState.baseDate;
+
+            const activeMed = getActiveMedicine();
+            const simData = simulateMedication(activeMed, appState.baseDate, appState.visitDates, 175);
+
+            renderAllMedsOverview();
+            renderMedicineList(activeMed);
+            renderActiveMedicineControls(activeMed);
+            renderVisitSummaryTable(activeMed, simData);
+            renderStatsCards(activeMed, simData);
+            renderHeatmap(activeMed, simData);
+            renderMonthlyCalendars(activeMed, simData);
+
+            if (!skipJsonEditorUpdate && !isJsonDirty) {
+                const editor = document.getElementById('jsonEditor');
+                editor.value = JSON.stringify(appState, null, 2);
+                document.getElementById('jsonErrorBox').classList.add('hidden');
+            }
+
+            saveToStorage();
+        }
+
+        // 0. 全薬の状況ミニ一覧 (監査仕様5 準拠: 最初に不足する薬を先頭に並べる)
+        function renderAllMedsOverview() {
+            const tbody = document.getElementById('allMedsSummaryTable');
+            tbody.innerHTML = '';
+
+            const summaries = appState.medicines.map(med => {
+                const sim = simulateMedication(med, appState.baseDate, appState.visitDates, 175);
+                const { lastTargetDate, upcomingVisits } = getEvaluationTargetDate(sim);
+                const nextVisitStr = upcomingVisits[0];
+                const nextVisitBefore = (nextVisitStr && sim[nextVisitStr]) ? sim[nextVisitStr].stockBeforeVisit : null;
+
+                let firstShortDate = null;
+                let minDaysLeft = Infinity;
+                let worstDay = null;
+
+                Object.values(sim).forEach(day => {
+                    if (day.dateStr <= lastTargetDate) {
+                        if (day.shortfall > 0 && !firstShortDate) {
+                            firstShortDate = day.dateStr;
+                        }
+                        if (day.daysLeft < minDaysLeft) {
+                            minDaysLeft = day.daysLeft;
+                            worstDay = day;
+                        }
+                    }
+                });
+
+                if (minDaysLeft === Infinity) {
+                    minDaysLeft = Number((med.initialStock / med.dailyDose).toFixed(1));
+                }
+
+                const level = worstDay ? getStockLevel(worstDay) : getStockLevel({ shortfall: 0, daysLeft: minDaysLeft });
+
+                return {
+                    med,
+                    firstShortDate,
+                    nextVisitBefore,
+                    minDaysLeft,
+                    level
+                };
+            });
+
+            // ソート: 最初に不足する薬を先頭（日付昇順）、不足なしは minDaysLeft 昇順
+            summaries.sort((a, b) => {
+                if (a.firstShortDate && !b.firstShortDate) return -1;
+                if (!a.firstShortDate && b.firstShortDate) return 1;
+                if (a.firstShortDate && b.firstShortDate && a.firstShortDate !== b.firstShortDate) {
+                    return a.firstShortDate.localeCompare(b.firstShortDate);
+                }
+                return a.minDaysLeft - b.minDaysLeft;
+            });
+
+            summaries.forEach(item => {
+                const isActive = item.med.id === appState.activeMedicineId;
+                const tr = document.createElement('tr');
+                tr.className = `cursor-pointer transition ${isActive ? 'bg-lichess-hover font-semibold' : 'hover:bg-lichess-hover/50'}`;
+                tr.setAttribute('role', 'button');
+                tr.setAttribute('tabindex', '0');
+                tr.setAttribute('aria-label', `${item.med.name} を選択`);
+
+                const shortText = item.firstShortDate
+                    ? `<span class="text-lichess-red font-mono font-bold"><i class="fa-solid fa-triangle-exclamation mr-1" aria-hidden="true"></i>${escapeHtml(item.firstShortDate.slice(5))}</span>`
+                    : `<span class="text-lichess-green"><i class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>不足なし</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-lichess-bright truncate max-w-[120px]">
+                        ${isActive ? '<i class="fa-solid fa-caret-right text-lichess-green mr-1" aria-hidden="true"></i>' : ''}${escapeHtml(item.med.name)}
+                    </td>
+                    <td class="py-2.5 px-2">${shortText}</td>
+                    <td class="py-2.5 px-2 text-right font-mono text-lichess-bright">${item.nextVisitBefore !== null ? `${escapeHtml(item.nextVisitBefore)}錠` : '-'}</td>
+                    <td class="py-2.5 px-3 text-right font-mono ${item.level.textClass}">
+                        <i class="${item.level.iconClass} mr-1" aria-hidden="true"></i>${escapeHtml(item.minDaysLeft.toFixed(1))}日
+                    </td>
+                `;
+
+                const selectMed = () => {
+                    executeWithDirtyCheck(() => {
+                        appState.activeMedicineId = item.med.id;
+                        syncAndRender();
+                    });
+                };
+
+                tr.addEventListener('click', selectMed);
+                tr.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectMed();
+                    }
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 1. 登録薬リストの描画
+        function renderMedicineList(activeMed) {
+            const container = document.getElementById('medListContainer');
+            container.innerHTML = '';
+
+            appState.medicines.forEach(med => {
+                const isActive = med.id === activeMed.id;
+                const row = document.createElement('div');
+                row.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer transition ${
+                    isActive ? 'bg-lichess-hover border-l-4 border-lichess-green' : 'hover:bg-lichess-hover/50'
+                }`;
+
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'flex items-center space-x-2.5 min-w-0 flex-1 min-h-[40px]';
+                leftDiv.setAttribute('role', 'button');
+                leftDiv.setAttribute('tabindex', '0');
+                leftDiv.innerHTML = `
+                    <i class="fa-solid fa-prescription-bottle-medical ${isActive ? 'text-lichess-green' : 'text-lichess-muted'}" aria-hidden="true"></i>
+                    <div class="truncate">
+                        <div class="text-xs font-bold ${isActive ? 'text-lichess-bright' : 'text-lichess-text'} truncate">${escapeHtml(med.name)}</div>
+                        <div class="text-xs text-lichess-muted font-mono">
+                            初期:${escapeHtml(med.initialStock)}錠 / 1日:${escapeHtml(med.dailyDose)}錠 / 処方:+${escapeHtml(med.prescribeAmount)}錠
+                        </div>
+                    </div>
+                `;
+
+                const selectHandler = () => {
+                    executeWithDirtyCheck(() => {
+                        appState.activeMedicineId = med.id;
+                        syncAndRender();
+                    });
+                };
+
+                leftDiv.addEventListener('click', selectHandler);
+                leftDiv.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectHandler();
+                    }
+                });
+
+                row.appendChild(leftDiv);
+
+                if (appState.medicines.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'text-lichess-muted hover:text-lichess-red p-2 min-w-[40px] min-h-[40px] ml-2 transition flex items-center justify-center rounded hover:bg-lichess-bg/50';
+                    delBtn.title = 'この薬を削除';
+                    delBtn.setAttribute('aria-label', `${med.name} を削除`);
+                    delBtn.innerHTML = '<i class="fa-regular fa-trash-can text-xs" aria-hidden="true"></i>';
+
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        executeWithDirtyCheck(() => {
+                            const snapshot = createUndoSnapshot();
+                            const removedName = med.name;
+                            appState.medicines = appState.medicines.filter(m => m.id !== med.id);
+                            syncAndRender();
+                            showToast(`「${removedName}」を削除しました`, snapshot);
+                        });
+                    });
+                    row.appendChild(delBtn);
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        // 選択中の薬のクイックボタン調整UI (服用数は ±0.5 刻みに統一、タップ領域40px以上)
+        function renderActiveMedicineControls(activeMed) {
+            const container = document.getElementById('activeMedConfig');
+            container.innerHTML = `
+                <div class="flex items-center justify-between text-xs gap-2">
+                    <span class="text-lichess-muted font-medium truncate">選択中: <strong class="text-lichess-bright">${escapeHtml(activeMed.name)}</strong></span>
+                    <label class="flex items-center space-x-2 cursor-pointer select-none min-h-[40px] shrink-0">
+                        <input type="checkbox" id="chkTakenToday" ${activeMed.takenOnBaseDate ? 'checked' : ''} class="w-4 h-4 rounded bg-lichess-panel border-lichess-border text-lichess-green focus:ring-0">
+                        <span class="text-xs text-lichess-text">基準日分は服用済</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <!-- 初期残薬 -->
+                    <div class="bg-lichess-panel border border-lichess-border rounded p-2 text-center">
+                        <div class="text-xs text-lichess-muted mb-1.5">基準日の残薬</div>
+                        <div class="flex items-center justify-between">
+                            <button type="button" data-adj="initialStock" data-delta="-1" aria-label="基準日の残薬を1減らす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">-1</button>
+                            <span class="font-mono font-bold text-sm text-lichess-bright px-1">${escapeHtml(activeMed.initialStock)}</span>
+                            <button type="button" data-adj="initialStock" data-delta="1" aria-label="基準日の残薬を1増やす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">+1</button>
+                        </div>
+                    </div>
+                    <!-- 1日服用量 (±0.5刻み) -->
+                    <div class="bg-lichess-panel border border-lichess-border rounded p-2 text-center">
+                        <div class="text-xs text-lichess-muted mb-1.5">1日の服用数</div>
+                        <div class="flex items-center justify-between">
+                            <button type="button" data-adj="dailyDose" data-delta="-0.5" aria-label="1日の服用数を0.5減らす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">-0.5</button>
+                            <span class="font-mono font-bold text-sm text-lichess-bright px-1">${escapeHtml(activeMed.dailyDose)}</span>
+                            <button type="button" data-adj="dailyDose" data-delta="0.5" aria-label="1日の服用数を0.5増やす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">+0.5</button>
+                        </div>
+                    </div>
+                    <!-- 標準処方数 -->
+                    <div class="bg-lichess-panel border border-lichess-border rounded p-2 text-center">
+                        <div class="text-xs text-lichess-muted mb-1.5">1回の処方数</div>
+                        <div class="flex items-center justify-between">
+                            <button type="button" data-adj="prescribeAmount" data-delta="-5" aria-label="1回の処方数を5減らす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">-5</button>
+                            <span class="font-mono font-bold text-sm text-lichess-bright px-1">${escapeHtml(activeMed.prescribeAmount)}</span>
+                            <button type="button" data-adj="prescribeAmount" data-delta="5" aria-label="1回の処方数を5増やす" class="w-10 h-10 rounded bg-lichess-header hover:bg-lichess-hover text-lichess-bright font-mono text-xs">+5</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.querySelector('#chkTakenToday').addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                executeWithDirtyCheck(() => {
+                    activeMed.takenOnBaseDate = checked;
+                    syncAndRender();
+                });
+            });
+
+            container.querySelectorAll('[data-adj]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const field = btn.getAttribute('data-adj');
+                    const delta = Number(btn.getAttribute('data-delta'));
+                    executeWithDirtyCheck(() => {
+                        const minVal = field === 'dailyDose' ? 0.5 : 0;
+                        activeMed[field] = Math.max(minVal, Math.round((Number(activeMed[field]) + delta) * 100) / 100);
+                        syncAndRender();
+                    });
+                });
+            });
+        }
+
+        // 2. 通院日テーブルの描画 (次回までの必要数・次回受診時の余り・処方数上書き対応)
+        function renderVisitSummaryTable(activeMed, simData) {
+            const tbody = document.getElementById('visitSummaryTable');
+            tbody.innerHTML = '';
+
+            if (appState.visitDates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-center text-lichess-muted">通院日が登録されていません</td></tr>`;
+                return;
+            }
+
+            appState.visitDates.forEach((visitDateStr, idx) => {
+                const dayInfo = simData[visitDateStr];
+                const nextVisitStr = appState.visitDates[idx + 1] || null;
+                const nextVisitInfo = (nextVisitStr && simData[nextVisitStr]) ? simData[nextVisitStr] : null;
+
+                // 次回通院までの日数・必要数・次回受診時の余り
+                let neededUntilNextText = '-';
+                let surplusAtNextText = '-';
+                if (nextVisitStr) {
+                    const spanDays = diffDays(visitDateStr, nextVisitStr);
+                    if (spanDays >= 0) {
+                        const neededPills = Math.round(spanDays * activeMed.dailyDose * 100) / 100;
+                        neededUntilNextText = `${escapeHtml(neededPills)}錠`;
+                    }
+                    if (nextVisitInfo) {
+                        surplusAtNextText = `${escapeHtml(nextVisitInfo.stockBeforeVisit)}錠`;
+                    }
+                }
+
+                // 受診前残薬のステータス判定（getStockLevel共有）
+                const beforeLevel = dayInfo ? getStockLevel(dayInfo, 'beforeVisit') : null;
+                const currentPrescribe = getPrescribeAmountForDate(activeMed, visitDateStr);
+                const isOverridden = appState.visitOverrides && Object.prototype.hasOwnProperty.call(appState.visitOverrides, visitDateStr);
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-lichess-hover/40 transition';
+
+                tr.innerHTML = `
+                    <td class="py-2 pr-1 text-lichess-bright font-medium whitespace-nowrap">
+                        <i class="fa-solid fa-hospital text-lichess-blue mr-1" aria-hidden="true"></i>${escapeHtml(visitDateStr.slice(5).replace('-', '/'))}
+                        <div class="text-xs text-lichess-muted">${escapeHtml(visitDateStr.slice(0, 4))}</div>
+                    </td>
+                    <td class="py-2 px-1 text-right whitespace-nowrap ${beforeLevel ? beforeLevel.textClass : 'text-lichess-muted'}">
+                        ${dayInfo ? `<i class="${beforeLevel.iconClass} mr-1" aria-hidden="true"></i>${escapeHtml(dayInfo.stockBeforeVisit)}錠<div class="text-xs text-lichess-muted">(${escapeHtml(dayInfo.daysLeftBeforeVisit.toFixed(1))}日)</div>` : '範囲外'}
+                    </td>
+                    <td class="py-2 px-1 text-center">
+                        <input type="number" min="0" max="9999" step="1" value="${escapeHtml(currentPrescribe)}"
+                            aria-label="${escapeHtml(visitDateStr)} の処方数"
+                            data-override-date="${escapeHtml(visitDateStr)}"
+                            class="w-16 min-h-[40px] bg-lichess-bg border ${isOverridden ? 'border-lichess-orange text-lichess-orange' : 'border-lichess-border text-lichess-bright'} rounded px-1.5 py-1 text-xs text-center font-mono focus:outline-none focus:border-lichess-blue"
+                            title="この通院日の処方数を個別変更">
+                    </td>
+                    <td class="py-2 px-1 text-right text-lichess-blue font-bold whitespace-nowrap">
+                        ${dayInfo ? `${escapeHtml(dayInfo.stockAfterPrescribe)}錠<div class="text-xs text-lichess-muted">終:${escapeHtml(dayInfo.stockEndOfDay)}錠</div>` : '-'}
+                    </td>
+                    <td class="py-2 px-1 text-right text-lichess-text whitespace-nowrap">${neededUntilNextText}</td>
+                    <td class="py-2 px-1 text-right text-lichess-bright font-semibold whitespace-nowrap">${surplusAtNextText}</td>
+                    <td class="py-2 pl-1 text-center">
+                        <button type="button" data-remove-visit="${escapeHtml(visitDateStr)}" aria-label="${escapeHtml(visitDateStr)} の通院予定を削除" class="text-lichess-muted hover:text-lichess-red min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded hover:bg-lichess-bg/50 transition" title="この通院日を削除">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                `;
+
+                const overrideInput = tr.querySelector('[data-override-date]');
+                overrideInput.addEventListener('change', (e) => {
+                    const val = Number(e.target.value);
+                    if (!Number.isFinite(val) || val < 0) return;
+                    executeWithDirtyCheck(() => {
+                        if (!appState.visitOverrides) appState.visitOverrides = {};
+                        if (val === Number(activeMed.prescribeAmount)) {
+                            delete appState.visitOverrides[visitDateStr];
+                        } else {
+                            appState.visitOverrides[visitDateStr] = val;
+                        }
+                        syncAndRender();
+                        showToast(`${visitDateStr} の処方数を ${val}錠 に設定しました`);
+                    });
+                });
+
+                tr.querySelector('[data-remove-visit]').addEventListener('click', () => {
+                    executeWithDirtyCheck(() => {
+                        const snapshot = createUndoSnapshot();
+                        appState.visitDates = appState.visitDates.filter(d => d !== visitDateStr);
+                        if (appState.visitOverrides) {
+                            delete appState.visitOverrides[visitDateStr];
+                        }
+                        syncAndRender();
+                        showToast(`通院日 (${visitDateStr}) を解除しました`, snapshot);
+                    });
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. 上部スタッツカードの描画 (監査仕様2 準拠)
+        function renderStatsCards(activeMed, simData) {
+            const initDaysLeft = (activeMed.initialStock / activeMed.dailyDose).toFixed(1);
+            document.getElementById('statInitialStock').textContent = activeMed.initialStock;
+            document.getElementById('statInitialDaysLeft').textContent = `(${initDaysLeft}日分)`;
+            document.getElementById('statDailyDoseText').textContent =
+                `1日 ${activeMed.dailyDose}錠 消費 / 標準処方 +${activeMed.prescribeAmount}錠`;
+
+            const { lastTargetDate, hasUpcomingVisit, upcomingVisits } = getEvaluationTargetDate(simData);
+            const nextVisitStr = upcomingVisits[0];
+
+            if (nextVisitStr && simData[nextVisitStr]) {
+                const nvInfo = simData[nextVisitStr];
+                document.getElementById('statNextVisitStock').textContent = nvInfo.stockBeforeVisit;
+                document.getElementById('statNextVisitDaysLeft').textContent = `(${nvInfo.daysLeftBeforeVisit.toFixed(1)}日分)`;
+                document.getElementById('statNextVisitDate').textContent =
+                    `次回: ${nextVisitStr} (処方後 ${nvInfo.stockAfterPrescribe}錠)`;
+            } else {
+                document.getElementById('statNextVisitStock').textContent = '-';
+                document.getElementById('statNextVisitDaysLeft').textContent = '';
+                document.getElementById('statNextVisitDate').textContent = '通院予定なし';
+            }
+
+            // 評価範囲（基準日〜最後の通院日）で最小残薬・最小残日数・最悪ステータスを算出
+            let minStock = Infinity;
+            let minDaysLeft = Infinity;
+            let minDateStr = appState.baseDate;
+            let firstDepletedDate = null;
+            let worstDay = null;
+
+            Object.values(simData).forEach(day => {
+                if (day.dateStr <= lastTargetDate) {
+                    if (day.daysLeft < minDaysLeft) {
+                        minDaysLeft = day.daysLeft;
+                        minStock = day.stockEndOfDay;
+                        minDateStr = day.dateStr;
+                        worstDay = day;
+                    }
+                    if (day.shortfall > 0 && !firstDepletedDate) {
+                        firstDepletedDate = day.dateStr;
+                    }
+                }
+            });
+
+            if (minStock === Infinity) {
+                minStock = activeMed.initialStock;
+                minDaysLeft = Number(initDaysLeft);
+            }
+
+            document.getElementById('statMinStock').textContent = minStock;
+            document.getElementById('statMinDaysLeft').textContent = `(${minDaysLeft.toFixed(1)}日分)`;
+            document.getElementById('statMinStockDate').textContent = `最小到達日: ${minDateStr}`;
+            document.getElementById('statEvalPeriod').textContent = `範囲: ${appState.baseDate}〜${lastTargetDate}`;
+
+            const level = worstDay ? getStockLevel(worstDay) : getStockLevel({ shortfall: 0, daysLeft: minDaysLeft });
+            const statusIcon = document.getElementById('statStatusIcon');
+            const statusLabel = document.getElementById('statStatusLabel');
+            const statusSub = document.getElementById('statStatusSub');
+
+            statusIcon.className = `${level.iconClass} ${level.textClass}`;
+            statusLabel.className = `text-lg font-bold ${level.textClass}`;
+            statusLabel.textContent = level.label;
+
+            if (firstDepletedDate) {
+                statusSub.textContent = `${firstDepletedDate} に薬が不足します`;
+            } else if (hasUpcomingVisit) {
+                statusSub.textContent = `最後の通院日(${lastTargetDate})まで不足しません`;
+            } else {
+                statusSub.textContent = `評価終了日(${lastTargetDate})まで不足しません`;
+            }
+        }
+
+        // 4. 残薬推移ヒートマップの描画 (監査仕様2・6 準拠: 40px四方、月/曜日ラベル、role/tabindex/aria-label)
+        function renderHeatmap(activeMed, simData) {
+            const container = document.getElementById('heatmapContainer');
+            const hoverDetail = document.getElementById('heatmapHoverDetail');
+            container.innerHTML = '';
+
+            const daysArray = Object.values(simData);
+            if (daysArray.length === 0) return;
+
+            const firstDate = parseDateStr(daysArray[0].dateStr);
+            const startDayOfWeek = firstDate.getDay();
+
+            let currentWeekWrapper = createWeekColumnWrapper('');
+            let currentWeekGrid = currentWeekWrapper.grid;
+            let lastMonthLabeled = -1;
+
+            for (let pad = 0; pad < startDayOfWeek; pad++) {
+                const emptySq = document.createElement('div');
+                emptySq.className = 'w-10 h-10 rounded bg-transparent';
+                currentWeekGrid.appendChild(emptySq);
+            }
+
+            daysArray.forEach((day, idx) => {
+                const dObj = parseDateStr(day.dateStr);
+                if (dObj.getDay() === 0 && currentWeekGrid.children.length > 0) {
+                    container.appendChild(currentWeekWrapper.root);
+                    currentWeekWrapper = createWeekColumnWrapper('');
+                    currentWeekGrid = currentWeekWrapper.grid;
+                }
+
+                // 月の切り替わり（または最初の列）に月ラベルを表示
+                const m = dObj.getMonth() + 1;
+                if ((dObj.getDate() <= 7 || idx === 0) && lastMonthLabeled !== m && currentWeekWrapper.label.textContent === '') {
+                    currentWeekWrapper.label.textContent = `${m}月`;
+                    lastMonthLabeled = m;
+                }
+
+                const level = getStockLevel(day);
+                const sq = document.createElement('div');
+                const colorClass = getHeatmapSquareClasses(day, level);
+                sq.className = `heatmap-sq w-10 h-10 rounded cursor-pointer flex flex-col items-center justify-center select-none ${colorClass}`;
+                sq.setAttribute('role', 'button');
+                sq.setAttribute('tabindex', '0');
+
+                const ariaText = buildDayAriaLabel(day, level);
+                sq.setAttribute('aria-label', ariaText);
+
+                // アイコン＋日付表示（色だけに頼らない）
+                let iconHtml = `<i class="${level.iconClass} text-xs" aria-hidden="true"></i>`;
+                if (day.isVisit) {
+                    iconHtml = `<i class="fa-solid fa-hospital text-xs" aria-hidden="true"></i>`;
+                } else if (day.isBaseDate) {
+                    iconHtml = `<i class="fa-solid fa-flag text-xs" aria-hidden="true"></i>`;
+                }
+
+                sq.innerHTML = `
+                    ${iconHtml}
+                    <span class="text-xs font-mono leading-none mt-0.5">${dObj.getDate()}</span>
+                `;
+
+                const showDetail = () => {
+                    hoverDetail.textContent = ariaText;
+                };
+
+                sq.addEventListener('mouseenter', showDetail);
+                sq.addEventListener('focus', showDetail);
+
+                // 長押し(500ms)で詳細モード中でも通院日をトグル可能にする
+                let longPressTimer = null;
+                let longPressed = false;
+                sq.addEventListener('touchstart', () => {
+                    longPressed = false;
+                    longPressTimer = setTimeout(() => {
+                        longPressed = true;
+                        showDetail();
+                        toggleVisitDate(day.dateStr, simData);
+                    }, 500);
+                }, { passive: true });
+                sq.addEventListener('touchend', () => clearTimeout(longPressTimer));
+                sq.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+                sq.addEventListener('click', () => {
+                    if (longPressed) return;
+                    showDetail();
+                    if (heatmapInteractionMode === 'toggle') {
+                        toggleVisitDate(day.dateStr, simData);
+                    }
+                });
+
+                sq.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        showDetail();
+                        toggleVisitDate(day.dateStr, simData);
+                    }
+                });
+
+                currentWeekGrid.appendChild(sq);
+            });
+
+            if (currentWeekGrid.children.length > 0) {
+                container.appendChild(currentWeekWrapper.root);
+            }
+        }
+
+        function createWeekColumnWrapper(monthText) {
+            const root = document.createElement('div');
+            root.className = 'flex flex-col items-center';
+            const label = document.createElement('div');
+            label.className = 'h-6 text-xs font-mono text-lichess-muted flex items-center';
+            label.textContent = monthText;
+            const grid = document.createElement('div');
+            grid.className = 'flex flex-col space-y-1';
+            root.appendChild(label);
+            root.appendChild(grid);
+            return { root, label, grid };
+        }
+
+        function getHeatmapSquareClasses(day, level) {
+            let ringClass = '';
+            if (day.isBaseDate && day.isVisit) {
+                ringClass = 'dual-ring-base-visit';
+            } else if (day.isBaseDate) {
+                ringClass = 'ring-2 ring-lichess-green';
+            } else if (day.isVisit) {
+                ringClass = 'ring-2 ring-white';
+            }
+
+            if (day.isVisit && level.key !== 'short') {
+                return `bg-lichess-blue text-white ${ringClass}`;
+            }
+            return `${level.bgClass} ${ringClass}`;
+        }
+
+        function buildDayAriaLabel(day, level) {
+            if (!day) return '';
+            const parts = [day.dateStr];
+            if (day.isBaseDate) parts.push('基準日');
+            if (day.isVisit) {
+                parts.push(`通院日 受診前${day.stockBeforeVisit}錠 処方後${day.stockAfterPrescribe}錠 終了時${day.stockEndOfDay}錠 (${day.daysLeft.toFixed(1)}日分)`);
+            } else {
+                parts.push(`残薬${day.stockEndOfDay}錠 (${day.daysLeft.toFixed(1)}日分)`);
+            }
+            if (day.shortfall > 0) {
+                parts.push(`不足${day.shortfall}錠`);
+            }
+            parts.push(`判定:${level.shortLabel}`);
+            return parts.join(' ');
+        }
+
+        // 5. 月間カレンダーの描画
+        function renderMonthlyCalendars(activeMed, simData) {
+            const wrapper = document.getElementById('calendarGridWrapper');
+            wrapper.innerHTML = '';
+
+            if (calendarViewState.monthsToShow === 1) {
+                wrapper.className = 'p-4 grid grid-cols-1 gap-5';
+            } else {
+                wrapper.className = 'p-4 grid grid-cols-1 md:grid-cols-2 gap-5';
+            }
+
+            const startY = calendarViewState.startYear;
+            const startM = calendarViewState.startMonth;
+
+            const firstMonthDate = new Date(startY, startM, 1);
+            const lastMonthDate = new Date(startY, startM + calendarViewState.monthsToShow - 1, 1);
+
+            document.getElementById('calendarPeriodLabel').textContent =
+                calendarViewState.monthsToShow === 1
+                    ? `${firstMonthDate.getFullYear()}/${String(firstMonthDate.getMonth() + 1).padStart(2, '0')}`
+                    : `${firstMonthDate.getFullYear()}/${String(firstMonthDate.getMonth() + 1).padStart(2, '0')} - ${lastMonthDate.getFullYear()}/${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+            for (let mOffset = 0; mOffset < calendarViewState.monthsToShow; mOffset++) {
+                const targetMonthDate = new Date(startY, startM + mOffset, 1);
+                const year = targetMonthDate.getFullYear();
+                const month = targetMonthDate.getMonth();
+
+                const monthCard = buildSingleMonthCard(year, month, simData);
+                wrapper.appendChild(monthCard);
+            }
+        }
+
+        function buildSingleMonthCard(year, month, simData) {
+            const card = document.createElement('div');
+            card.className = 'bg-lichess-bg border border-lichess-border rounded overflow-hidden flex flex-col';
+
+            const header = document.createElement('div');
+            header.className = 'bg-lichess-header/70 px-3.5 py-2 border-b border-lichess-border flex items-center justify-between';
+            header.innerHTML = `
+                <span class="font-bold text-sm text-lichess-bright font-mono">${year}年 ${month + 1}月</span>
+                <span class="text-xs text-lichess-muted font-mono">${year}-${String(month + 1).padStart(2, '0')}</span>
+            `;
+            card.appendChild(header);
+
+            const daysHeader = document.createElement('div');
+            daysHeader.className = 'grid grid-cols-7 text-center text-xs text-lichess-muted bg-lichess-panel border-b border-lichess-border py-1.5 font-medium';
+            ['日', '月', '火', '水', '木', '金', '土'].forEach((w, idx) => {
+                const span = document.createElement('span');
+                if (idx === 0) span.className = 'text-red-400';
+                if (idx === 6) span.className = 'text-blue-400';
+                span.textContent = w;
+                daysHeader.appendChild(span);
+            });
+            card.appendChild(daysHeader);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-7 gap-px bg-lichess-border flex-1';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'bg-lichess-bg/60 min-h-[78px]';
+                grid.appendChild(empty);
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(year, month, d);
+                const dateStr = formatDateStr(dateObj);
+                const daySim = simData[dateStr];
+                const level = daySim ? getStockLevel(daySim) : null;
+
+                const cell = document.createElement('div');
+                let cellBg = 'bg-lichess-bg text-lichess-muted/40';
+                let borderAccent = '';
+
+                if (daySim) {
+                    cellBg = level.cellBgClass;
+                    if (daySim.isVisit) {
+                        cellBg = 'bg-[#1d3247] hover:bg-[#25405a]';
+                    }
+                    // 基準日かつ通院日は緑リングと青リングの両方が分かる表示にする (監査仕様4)
+                    if (daySim.isBaseDate && daySim.isVisit) {
+                        borderAccent = 'dual-ring-base-visit';
+                    } else if (daySim.isBaseDate) {
+                        borderAccent = 'ring-2 ring-inset ring-lichess-green';
+                    } else if (daySim.isVisit) {
+                        borderAccent = 'ring-2 ring-inset ring-lichess-blue';
+                    }
+                }
+
+                cell.className = `cal-cell p-1.5 min-h-[78px] flex flex-col justify-between cursor-pointer select-none relative ${cellBg} ${borderAccent}`;
+                cell.setAttribute('role', 'button');
+                cell.setAttribute('tabindex', '0');
+
+                if (daySim) {
+                    cell.setAttribute('aria-label', buildDayAriaLabel(daySim, level));
+                } else {
+                    cell.setAttribute('aria-label', `${dateStr} シミュレーション範囲外`);
+                }
+
+                // 上部バッジ（基準日・通院日の両方がある場合も両方表示）
+                const badges = [];
+                if (daySim?.isBaseDate) {
+                    badges.push(`<span class="text-xs px-1 rounded bg-lichess-green text-white font-bold inline-flex items-center" title="基準日"><i class="fa-solid fa-flag mr-0.5" aria-hidden="true"></i>基準</span>`);
+                }
+                if (daySim?.isVisit) {
+                    badges.push(`<span class="text-xs px-1 rounded bg-lichess-blue text-white font-bold inline-flex items-center" title="通院日"><i class="fa-solid fa-hospital mr-0.5" aria-hidden="true"></i>通院</span>`);
+                }
+
+                let bottomContent = '';
+                if (daySim) {
+                    if (daySim.isVisit) {
+                        const beforeLevel = getStockLevel(daySim, 'beforeVisit');
+                        bottomContent = `
+                            <div class="text-xs font-mono leading-tight text-right mt-1">
+                                <div class="${beforeLevel.textClass}" title="受診前残薬"><i class="${beforeLevel.iconClass} mr-0.5" aria-hidden="true"></i>前${escapeHtml(daySim.stockBeforeVisit)}</div>
+                                <div class="text-lichess-blue font-bold" title="処方後(服用前)残薬">処${escapeHtml(daySim.stockAfterPrescribe)}錠</div>
+                            </div>
+                        `;
+                    } else {
+                        bottomContent = `
+                            <div class="text-right font-mono mt-1">
+                                <div class="text-xs ${level.textClass}">
+                                    <i class="${level.iconClass} mr-0.5" aria-hidden="true"></i>${escapeHtml(daySim.stockEndOfDay)}<span class="text-xs text-lichess-muted ml-0.5">錠</span>
+                                </div>
+                                <div class="text-xs text-lichess-muted">${escapeHtml(daySim.daysLeft.toFixed(1))}日</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    bottomContent = `<div class="text-xs text-right text-lichess-muted/40 font-mono">-</div>`;
+                }
+
+                cell.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-0.5">
+                        <span class="text-xs font-mono ${daySim ? 'text-lichess-bright font-medium' : 'text-lichess-muted/40'}">${d}</span>
+                        <div class="flex flex-wrap gap-0.5">${badges.join('')}</div>
+                    </div>
+                    ${bottomContent}
+                `;
+
+                const handleActivate = () => {
+                    toggleVisitDate(dateStr, simData);
+                };
+
+                cell.addEventListener('click', handleActivate);
+                cell.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleActivate();
+                    }
+                });
+
+                grid.appendChild(cell);
+            }
+
+            card.appendChild(grid);
+            return card;
+        }
+
+        // カレンダー/ヒートマップでの通院日トグル（範囲外チェック＆Undo付き）
+        function toggleVisitDate(dateStr, simData) {
+            if (dateStr < appState.baseDate || !simData || !simData[dateStr]) {
+                showToast('この日付はシミュレーション範囲外です');
+                return;
+            }
+            executeWithDirtyCheck(() => {
+                const snapshot = createUndoSnapshot();
+                const exists = appState.visitDates.includes(dateStr);
+                if (exists) {
+                    appState.visitDates = appState.visitDates.filter(d => d !== dateStr);
+                    showToast(`${dateStr} の通院予定を解除しました`, snapshot);
+                } else {
+                    appState.visitDates.push(dateStr);
+                    showToast(`${dateStr} を通院処方日に設定しました`, snapshot);
+                }
+                syncAndRender();
+            });
+        }
+
+        // JSONテキストを検証してappStateへ反映
+        function applyJsonFromEditor() {
+            const editor = document.getElementById('jsonEditor');
+            const errBox = document.getElementById('jsonErrorBox');
+            try {
+                const parsed = JSON.parse(editor.value);
+                const result = validateState(parsed);
+                if (!result.valid) {
+                    errBox.textContent = `JSON検証エラー: ${result.error}`;
+                    errBox.classList.remove('hidden');
+                    return;
+                }
+                appState = result.sanitized;
+                setJsonDirty(false);
+                errBox.classList.add('hidden');
+                alignCalendarViewToBaseDate();
+                syncAndRender();
+
+                const badge = document.getElementById('jsonStatusBadge');
+                badge.classList.remove('hidden');
+                setTimeout(() => badge.classList.add('hidden'), 1500);
+                showToast('JSONデータを検証しカレンダーに反映しました');
+            } catch (err) {
+                errBox.textContent = `JSON構文エラー: ${err.message}`;
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function fallbackCopyText(textareaEl) {
+            try {
+                textareaEl.select();
+                document.execCommand('copy');
+                showToast('JSONをクリップボードにコピーしました');
+            } catch (e) {
+                showToast('コピーに失敗しました');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // 受け入れテストの実行
+            runAcceptanceTests();
+
+            // localStorage からの状態復元
+            const restored = loadFromStorage();
+            if (!restored) {
+                alignCalendarViewToBaseDate();
+            }
+
+            // 基準日の変更
+            document.getElementById('baseDateInput').addEventListener('change', (e) => {
+                const newDate = e.target.value;
+                if (!isValidDateStr(newDate)) {
+                    e.target.value = appState.baseDate;
+                    return;
+                }
+                executeWithDirtyCheck(() => {
+                    appState.baseDate = newDate;
+                    alignCalendarViewToBaseDate();
+                    syncAndRender();
+                    showToast(`基準日を ${newDate} に変更しました`);
+                });
+            });
+
+            // 通院日の手動追加（範囲外チェック＆Undo付き）
+            document.getElementById('btnAddVisitDate').addEventListener('click', () => {
+                const val = document.getElementById('newVisitDateInput').value;
+                if (!isValidDateStr(val)) {
+                    showToast('有効な日付を選択してください');
+                    return;
+                }
+                const activeMed = getActiveMedicine();
+                const simData = simulateMedication(activeMed, appState.baseDate, appState.visitDates, 175);
+                if (val < appState.baseDate || !simData[val]) {
+                    showToast('この日付はシミュレーション範囲外です');
+                    return;
+                }
+                if (appState.visitDates.includes(val)) {
+                    showToast(`${val} は既に通院日に登録されています`);
+                    return;
+                }
+                executeWithDirtyCheck(() => {
+                    const snapshot = createUndoSnapshot();
+                    appState.visitDates.push(val);
+                    syncAndRender();
+                    showToast(`通院日 ${val} を追加しました`, snapshot);
+                });
+            });
+
+            // トーストの「元に戻す」ボタン
+            document.getElementById('btnToastUndo').addEventListener('click', () => {
+                if (!lastUndoState) return;
+                appState = lastUndoState;
+                lastUndoState = null;
+                setJsonDirty(false);
+                syncAndRender();
+                showToast('直前の操作を元に戻しました');
+            });
+
+            // ヒートマップのモード切替ボタン
+            const btnModeDetail = document.getElementById('btnHeatmapModeDetail');
+            const btnModeToggle = document.getElementById('btnHeatmapModeToggle');
+            btnModeDetail.addEventListener('click', () => {
+                heatmapInteractionMode = 'detail';
+                btnModeDetail.className = 'px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition flex items-center';
+                btnModeToggle.className = 'px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium text-lichess-text hover:text-white transition flex items-center';
+            });
+            btnModeToggle.addEventListener('click', () => {
+                heatmapInteractionMode = 'toggle';
+                btnModeToggle.className = 'px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition flex items-center';
+                btnModeDetail.className = 'px-2.5 py-1.5 min-h-[40px] rounded text-xs font-medium text-lichess-text hover:text-white transition flex items-center';
+            });
+
+            // カレンダーの月送り・表示切替
+            document.getElementById('btnPrevMonth').addEventListener('click', () => {
+                calendarViewState.startMonth -= 1;
+                if (calendarViewState.startMonth < 0) {
+                    calendarViewState.startMonth = 11;
+                    calendarViewState.startYear -= 1;
+                }
+                syncAndRender(true);
+            });
+
+            document.getElementById('btnNextMonth').addEventListener('click', () => {
+                calendarViewState.startMonth += 1;
+                if (calendarViewState.startMonth > 11) {
+                    calendarViewState.startMonth = 0;
+                    calendarViewState.startYear += 1;
+                }
+                syncAndRender(true);
+            });
+
+            const btnMulti = document.getElementById('btnViewModeMulti');
+            const btnSingle = document.getElementById('btnViewModeSingle');
+
+            const updateViewModeButtons = () => {
+                if (calendarViewState.monthsToShow === 1) {
+                    btnSingle.className = 'px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition';
+                    btnMulti.className = 'px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-panel text-lichess-text hover:text-white border border-lichess-border transition';
+                } else {
+                    btnMulti.className = 'px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-blue text-white transition';
+                    btnSingle.className = 'px-3 py-2 min-h-[40px] rounded text-xs font-medium bg-lichess-panel text-lichess-text hover:text-white border border-lichess-border transition';
+                }
+            };
+            updateViewModeButtons();
+
+            btnMulti.addEventListener('click', () => {
+                calendarViewState.monthsToShow = 4;
+                updateViewModeButtons();
+                syncAndRender(true);
+            });
+
+            btnSingle.addEventListener('click', () => {
+                calendarViewState.monthsToShow = 1;
+                updateViewModeButtons();
+                syncAndRender(true);
+            });
+
+            // 薬の追加モーダル制御
+            const modal = document.getElementById('modalAddMed');
+            const openModal = () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.getElementById('inputMedName').focus();
+            };
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+
+            document.getElementById('btnAddMedModal').addEventListener('click', openModal);
+            document.getElementById('btnOpenAddMedTop').addEventListener('click', openModal);
+            document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+            document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+
+            document.getElementById('formAddMed').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('inputMedName').value.trim() || '新規処方薬';
+                const initialStock = Math.max(0, Number(document.getElementById('inputMedInitial').value));
+                const dailyDose = Math.max(0.5, Number(document.getElementById('inputMedDaily').value));
+                const prescribeAmount = Math.max(0, Number(document.getElementById('inputMedPrescribe').value));
+                const takenOnBaseDate = document.getElementById('inputMedTakenToday').checked;
+
+                executeWithDirtyCheck(() => {
+                    const newMed = {
+                        id: 'med-' + Date.now(),
+                        name,
+                        initialStock,
+                        dailyDose,
+                        prescribeAmount,
+                        takenOnBaseDate
+                    };
+
+                    appState.medicines.push(newMed);
+                    appState.activeMedicineId = newMed.id;
+                    closeModal();
+                    e.target.reset();
+                    syncAndRender();
+                    showToast(`「${name}」を登録しました`);
+                });
+            });
+
+            // JSONエディタの未反映編集検知と確認モーダル
+            const jsonEditor = document.getElementById('jsonEditor');
+            jsonEditor.addEventListener('input', () => {
+                setJsonDirty(true);
+            });
+
+            const confirmModal = document.getElementById('modalConfirmJsonOverwrite');
+            const closeConfirmModal = () => {
+                confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
+                pendingConfirmCallback = null;
+            };
+            document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+                closeConfirmModal();
+                syncAndRender(true);
+            });
+            document.getElementById('btnConfirmProceed').addEventListener('click', () => {
+                const cb = pendingConfirmCallback;
+                closeConfirmModal();
+                if (cb) cb();
+            });
+
+            // JSON反映＆コピー＆保存＆読込
+            document.getElementById('btnApplyJson').addEventListener('click', applyJsonFromEditor);
+
+            document.getElementById('btnCopyJson').addEventListener('click', () => {
+                const text = jsonEditor.value;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast('JSONをクリップボードにコピーしました');
+                    }).catch(() => {
+                        fallbackCopyText(jsonEditor);
+                    });
+                } else {
+                    fallbackCopyText(jsonEditor);
+                }
+            });
+
+            document.getElementById('btnDownloadJson').addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `medchess-schedule-${appState.baseDate}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('JSONファイルを保存しました');
+            });
+
+            document.getElementById('jsonFileInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    jsonEditor.value = ev.target.result;
+                    setJsonDirty(true);
+                    applyJsonFromEditor();
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            // 初期値リセット（localStorageも消去、カレンダー表示月を基準日に合わせる）
+            document.getElementById('btnResetPreset').addEventListener('click', () => {
+                executeWithDirtyCheck(() => {
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch (e) {}
+                    appState = getDefaultState();
+                    setJsonDirty(false);
+                    alignCalendarViewToBaseDate();
+                    syncAndRender();
+                    showToast('保存データを消去し初期データにリセットしました');
+                });
+            });
+
+            // 初回描画
+            syncAndRender();
+        });
+    </script>
+</body>
+</html>
